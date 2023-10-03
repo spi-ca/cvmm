@@ -39,8 +39,3 @@ func (w LogWriter) Write(b []byte) (int, error) {
 	}
 	return len(b), nil
 }
-
-func SetLogFlags(flag int) {
-	InfoLog.SetFlags(flag)
-	ErrLog.SetFlags(flag)
-}

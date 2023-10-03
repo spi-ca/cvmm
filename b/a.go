@@ -1,0 +1,101 @@
+package main
+
+import (
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"context"
+	"errors"
+	"io"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/creack/pty"
+	"golang.org/x/term"
+)
+
+func main() {
+	path := os.Args[1]
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Expected Open from a variable.
+	t, err := os.OpenFile(path, os.O_RDWR|syscall.O_NOCTTY, 0) //nolint:gosec
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() { _ = t.Close() }() // Best effort.
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		log.Printf("opening console pty(%s)", path)
+
+		// Handle pty size.
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGWINCH)
+		go func() {
+			for range ch {
+				if err := pty.InheritSize(os.Stdin, t); err != nil {
+					log.Printf("error resizing pty: %s", err)
+				}
+			}
+		}()
+
+		_, _ = t.Write([]byte{'\n', '\n'})
+		_ = t.Sync()
+		defer func() {
+			_, _ = os.Stderr.Write([]byte{'\r', '\n'})
+			_ = os.Stderr.Sync()
+			log.Printf("Bye!")
+		}()
+		log.Printf("Press ESC+( keystroke to exit this session.\r")
+
+		<-time.After(time.Second)
+
+		ch <- syscall.SIGWINCH                        // Initial resize.
+		defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
+
+		// Set stdin in raw mode.
+		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			panic(err)
+		}
+		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort
+
+		go func() { _, _ = io.Copy(os.Stdout, t) }()
+		go func() { util.CaptureEscapeKeySequence(os.Stdin, t); cancel() }()
+		<-ctx.Done()
+	} else {
+		closer := make(chan struct{})
+		go func() {
+			defer close(closer)
+			_, _ = io.Copy(t, os.Stdin)
+		}()
+
+		go func() {
+			defer cancel()
+			_ = t.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+			_, err = io.CopyN(os.Stdout, t, 80)
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			for {
+				_ = t.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+				writeBytes, err := io.Copy(os.Stdout, t)
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-closer:
+					if writeBytes == 0 {
+						return
+					}
+				default:
+				}
+			}
+		}()
+		<-ctx.Done()
+	}
+
+}

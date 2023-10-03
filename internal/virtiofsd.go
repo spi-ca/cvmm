@@ -17,21 +17,19 @@ import (
 
 	"amuz.es/src/spi-ca/chmgr/internal/returns"
 	"amuz.es/src/spi-ca/chmgr/internal/util"
-	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 )
 
-type VirtiofsdMonitor struct {
-	BinaryPath       string
-	EntryChannelSize int
+type VirtiofsMonitor struct {
+	BinaryPath string
 }
 
-func (s *VirtiofsdMonitor) Execute(ctx context.Context, root string) <-chan error {
+func (s *VirtiofsMonitor) Execute(ctx context.Context, root string) <-chan error {
 	errorChan := make(chan error, 1)
 	go s.execute(ctx, root, errorChan)
 	return errorChan
 }
 
-func (s *VirtiofsdMonitor) handleStdout(res *returns.ExecutionResult, reader io.Reader, closer func()) {
+func (s *VirtiofsMonitor) handleStdout(res *returns.ExecutionResult, reader io.Reader, closer func()) {
 	defer closer()
 	prefix := fmt.Sprintf("[%d]&1> ", res.PID)
 	scanner := bufio.NewScanner(reader)
@@ -41,7 +39,7 @@ func (s *VirtiofsdMonitor) handleStdout(res *returns.ExecutionResult, reader io.
 		log.Print(prefix, line)
 	}
 }
-func (s *VirtiofsdMonitor) handleStderr(res *returns.ExecutionResult, reader io.Reader, closer func()) {
+func (s *VirtiofsMonitor) handleStderr(res *returns.ExecutionResult, reader io.Reader, closer func()) {
 	defer closer()
 	prefix := fmt.Sprintf("[%d]&2> ", res.PID)
 	scanner := bufio.NewScanner(reader)
@@ -52,7 +50,7 @@ func (s *VirtiofsdMonitor) handleStderr(res *returns.ExecutionResult, reader io.
 	}
 }
 
-func (s *VirtiofsdMonitor) execute(ctx context.Context, cwd string, errorChan chan<- error) {
+func (s *VirtiofsMonitor) execute(ctx context.Context, cwd string, errorChan chan<- error) {
 	defer func() {
 		if err := recover(); err != nil {
 			util.ErrLog.Printf("panic on Scanner.Scan : %v", err)
@@ -70,10 +68,6 @@ func (s *VirtiofsdMonitor) execute(ctx context.Context, cwd string, errorChan ch
 	invoke.Env = os.Environ()
 	invoke.Stdin = nil
 	invoke.SysProcAttr = &syscall.SysProcAttr{}
-
-	if err := sys.ApplySysProAttrPdeathsig(invoke.SysProcAttr, syscall.SIGTERM); err != nil {
-		errorChan <- fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
-	}
 
 	stdout, _ := invoke.StdoutPipe()
 	stderr, _ := invoke.StderrPipe()
@@ -95,11 +89,11 @@ func (s *VirtiofsdMonitor) execute(ctx context.Context, cwd string, errorChan ch
 	go s.handleStdout(res, stdout, wg.Done)
 	go s.handleStderr(res, stderr, wg.Done)
 
-	log.Printf("virtiofsd started(%d)", res.PID)
+	log.Printf("virtiofs started(%d)", res.PID)
 	res.Err = invoke.Wait()
 	ended := time.Now()
 	wg.Wait()
-	log.Printf("virtiofsd(%d) ended in %s", &res, ended.Sub(started))
+	log.Printf("virtiofs(%d) ended in %s", &res, ended.Sub(started))
 
 	if err := res.HandleError(); err != nil {
 		errorChan <- fmt.Errorf("failed to start process(find): %w", err)

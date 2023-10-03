@@ -3,30 +3,11 @@ package internal
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"time"
 )
-
-func NewNodeClient(socketPath string) *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
-			},
-		},
-		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return errors.New("stopped after 10 redirects")
-			}
-			return nil
-		},
-		Timeout: 5 * time.Second,
-	}
-}
 
 func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus NodeStatus, errorChan chan<- error) {
 	defer func() {

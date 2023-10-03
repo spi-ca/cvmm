@@ -1,32 +1,107 @@
 package main
 
 import (
-	"context"
+	"amuz.es/src/spi-ca/chmgr/internal/entry"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"time"
+	"strings"
 
-	"amuz.es/src/spi-ca/chmgr/internal"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	flags "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
+
+const (
+	name = "chmgr"
+)
+
+var (
+	flagNameReplacer = strings.NewReplacer("-", ".", "_", ".")
+	envNameReplacer  = strings.NewReplacer(".", "_", "-", "_")
+)
+
+func init() {
+	flags.String("pid-file", fmt.Sprintf("%s.pid", name), "specify a pid file")
+	flags.String("image-root", "/srv/vmm/images", "specify image repository path")
+
+	flags.String("image-kernel-filename", "vmlinuz", "specify image kernel filename")
+	flags.String("image-initramfs-filename", "initramfs.img", "specify image initramfs filename")
+	flags.String("image-rootfs-filename", "root.img", "specify image rootfs filename")
+
+	flags.String("node-root", "/srv/vmm/nodes", "specify node repository path")
+	flags.String("manifest-filename", "settings.yaml", "specify node manifest file path")
+	flags.String("cloudhypervisor-monitor-filename", "monitor.sock", "specify monitor socket filename")
+	flags.String("virtiofs-socket-filename", "virtiofs_{{.directoryName}}.sock", "specify virtiofs socket filename")
+	flags.String("volatile-directory", "run", "specify volatile directory name")
+
+	flags.String("virtiofsd-path", "/usr/lib/virtiofsd", "specify virtiofsd binary path")
+	flags.String("cloudhypervisor-path", "/usr/bin/cloud-hypervisor", "specify cloud-hypervisor binary path")
+
+	flags.Parse()
+	viper.SetEnvKeyReplacer(envNameReplacer)
+	viper.AutomaticEnv()
+	_ = viper.BindFlagValues(util.PFlagViperReplacer{FlagSet: flags.CommandLine, Replacer: flagNameReplacer})
+}
 
 // GOGC=100
 // GOMEMLIMIT=32Mib
 func main() {
+
+	consumedArgs := 0
+	if flags.NArg() == 0 {
+		usage()
+	}
+
+	action := flags.Arg(0)
+
 	if len(os.Args) != 2 {
 		log.Fatalf("args: %s [socket_path] %v", filepath.Base(os.Args[0]), os.Args)
 	}
 
-	c := internal.NewNodeClient(os.Args[1])
+	switch action {
+	case "start":
+		var (
+			nodeName string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			nodeName = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			fmt.Println("required arguments missing")
+			usage()
+		}
+		entry.Starter(nodeName)
+	case "console":
+		var (
+			nodeName string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			nodeName = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			fmt.Println("required arguments missing")
+			usage()
+		}
+		entry.Starter(nodeName)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	errorChan := make(chan error, 1)
-	go internal.NodeStatusChecker(ctx, c, internal.NodeStatusRunning, errorChan)
-	for err := range errorChan {
-		log.Printf("err %v", err)
+	case "stop":
+	default:
+		fmt.Printf("invalid action %s\n", action)
+		usage()
 	}
+}
 
-	log.Printf("initiated shutdown")
+func usage() {
+	fmt.Printf("usage: \n"+
+		"\t%s start NODE_NAME\n"+
+		"\t%s console NODE_NAME\n",
+		name,
+		name,
+	)
+	flags.PrintDefaults()
+	os.Exit(1)
 }
