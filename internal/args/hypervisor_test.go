@@ -1,51 +1,14 @@
 package args
 
 import (
+	"bytes"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"github.com/google/uuid"
 )
-
-//func TestHypervisorArgs(t *testing.T) {
-//	r := strings.NewReader(`
-//	name: test-mock
-//cpus: 2
-//mem: 4G
-//uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
-//rootfs_uuid: 3a42a0c0-dfd2-40b2-b9eb-86842610a5c1
-//image: kube-master
-//net_mac_addr: 2e:33:5f:11:1b:42
-//net_if_name: vmtap-01
-//cmdline:
-//- console=hvc0
-//- cpuidle.governor=haltpoll
-//- clocksource=kvm-clock
-//- net.ifnames=0
-//- quiet
-//- loglevel=3
-//disk:
-//- data.img
-//directory:
-//- configuration`)
-//
-//	cfg := &Hypervisor{}
-//
-//	d := yaml.NewDecoder(r)
-//	err := d.Decode(cfg)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	fmt.Printf("v = %v\n", cfg)
-//
-//	marshalled, err := yaml.Marshal(cfg)
-//	if err != nil {
-//		panic(err)
-//	}
-//	fmt.Printf("v = %s\n", string(marshalled))
-//
-//}
 
 func TestHypervisor_MachineId(t *testing.T) {
 	type fields struct {
@@ -64,7 +27,7 @@ func TestHypervisor_MachineId(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   string
+		want   []byte
 	}{
 		{
 			name: "yaml test",
@@ -76,11 +39,38 @@ func TestHypervisor_MachineId(t *testing.T) {
 				RootfsUuid: uuid.MustParse("3a42a0c0-dfd2-40b2-b9eb-86842610a5c1"),
 				Image:      "test-image",
 				NetMacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
-				NetIfName:  "",
-				Cmdline:    []string{},
-				Disk:       nil,
-				Directory:  nil,
+				NetIfName:  "vmtap-01",
+				Cmdline: []string{
+					"console=hvc0",
+					"cpuidle.governor=haltpoll",
+					"clocksource=kvm-clock",
+					"net.ifnames=0",
+					"quiet",
+					"loglevel=3",
+				},
+				Disk:      []string{"data.img"},
+				Directory: []string{"configuration"},
 			},
+			want: []byte(`name: test-mock
+cpus: 2
+mem: 4G
+uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
+rootfs_uuid: 3a42a0c0-dfd2-40b2-b9eb-86842610a5c1
+image: test-image
+net_mac_addr: 2e:33:5f:11:1b:42
+net_if_name: vmtap-01
+cmdline:
+    - console=hvc0
+    - cpuidle.governor=haltpoll
+    - clocksource=kvm-clock
+    - net.ifnames=0
+    - quiet
+    - loglevel=3
+disk:
+    - data.img
+directory:
+    - configuration
+`),
 		},
 	}
 	for _, tt := range tests {
@@ -98,8 +88,13 @@ func TestHypervisor_MachineId(t *testing.T) {
 				Disk:       tt.fields.Disk,
 				Directory:  tt.fields.Directory,
 			}
-			if got := i.MachineId(); got != tt.want {
-				t.Errorf("MachineId() = %v, want %v", got, tt.want)
+			got, err := yaml.Marshal(i)
+			if err != nil {
+				panic(err)
+			}
+
+			if bytes.Compare(got, tt.want) != 0 {
+				t.Errorf("yaml() = %v, want %v", string(got), string(tt.want))
 			}
 		})
 	}

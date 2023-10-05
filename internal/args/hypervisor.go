@@ -8,17 +8,17 @@ import (
 )
 
 type Hypervisor struct {
-	Name       string          `yaml:"name"`
-	Cpus       int             `yaml:"cpus"`
-	Mem        util.IECSize    `yaml:"mem"`
-	Uuid       uuid.UUID       `yaml:"uuid"`
-	RootfsUuid uuid.UUID       `yaml:"rootfs_uuid"`
-	Image      string          `yaml:"image"`
-	NetMacAddr util.MACAddress `yaml:"net_mac_addr"`
-	NetIfName  string          `yaml:"net_if_name"`
-	Cmdline    []string        `yaml:"cmdline"`
-	Disk       []string        `yaml:"disk"`
-	Directory  []string        `yaml:"directory"`
+	Name       string          `json:"name" yaml:"name"`
+	Cpus       int             `json:"cpus" yaml:"cpus"`
+	Mem        util.IECSize    `json:"mem" yaml:"mem"`
+	Uuid       uuid.UUID       `json:"uuid" yaml:"uuid"`
+	RootfsUuid uuid.UUID       `json:"rootfs_uuid" yaml:"rootfs_uuid"`
+	Image      string          `json:"image" yaml:"image"`
+	NetMacAddr util.MACAddress `json:"net_mac_addr" yaml:"net_mac_addr"`
+	NetIfName  string          `json:"net_if_name" yaml:"net_if_name"`
+	Cmdline    []string        `json:"cmdline" yaml:"cmdline"`
+	Disk       []string        `json:"disk" yaml:"disk"`
+	Directory  []string        `json:"directory" yaml:"directory"`
 }
 
 func (i *Hypervisor) MachineId() string { return strings.ReplaceAll(i.Uuid.String(), "-", "") }
