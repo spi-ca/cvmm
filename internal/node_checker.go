@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/hvm"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"time"
 )
 
-func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus NodeStatus, errorChan chan<- error) {
+func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus hvm.NodeStatus, errorChan chan<- error) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Printf("panic on nodeStatusChecker: %v", err)
@@ -18,7 +19,7 @@ func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus 
 	}()
 
 	i := &struct {
-		Status NodeStatus `json:"state"`
+		Status hvm.NodeStatus `json:"state"`
 	}{}
 
 	ticker := time.NewTicker(time.Second)

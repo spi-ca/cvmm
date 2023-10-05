@@ -1,7 +1,6 @@
-package internal
+package hvm
 
 import (
-	"bytes"
 	"errors"
 )
 
@@ -53,35 +52,19 @@ func (ts NodeStatus) String() string {
 	}
 }
 
-func (ts NodeStatus) MarshalJSON() ([]byte, error) {
-	buf := bytes.Buffer{}
-	if ts.IsValid() {
-		buf.WriteByte('"')
-		buf.WriteString(ts.String())
-		buf.WriteByte('"')
-	} else {
-		buf.WriteString("null")
+func (ts NodeStatus) MarshalText() ([]byte, error) { return []byte(ts.String()), nil }
 
-	}
-	return buf.Bytes(), nil
-}
-
-func (ts *NodeStatus) UnmarshalJSON(b []byte) (err error) {
+func (ts *NodeStatus) UnmarshalText(b []byte) error {
 	length := len(b)
 	if length < 0 {
-		err = errors.New("malformed format")
-		return
-	}
-	if b[0] != '"' && b[length-1] != '"' {
-		err = errors.New("malformed format")
-		return
+		return errors.New("malformed format")
 	}
 
-	new_status, err := NodeStatusNameOf(string(b[1 : length-1]))
+	new_status, err := NodeStatusNameOf(string(b))
 	if err != nil {
-		return
-	} else {
-		*ts = new_status
+		return err
 	}
-	return
+
+	*ts = new_status
+	return nil
 }
