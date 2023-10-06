@@ -1,15 +1,15 @@
 package entry
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/cloudhypervisor"
-	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"amuz.es/src/spi-ca/chmgr/internal/hvm"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 
 	"github.com/spf13/viper"
 )
@@ -49,13 +49,14 @@ func Console(nodeName string) {
 
 	util.InfoLog.Printf("chmgr/console(%s) had been initiated", nodeName)
 
-	h := &hvm.Hypervisor{
-		imageRoot:         viper.GetString("image.root"),
-		nodeRoot:          viper.GetString("node.root"),
-		volatileDirectory: viper.GetString("volatile.directory"),
-	}
+	h, err := hvm.Load(
+		viper.GetString("image.root"),
+		viper.GetString("node.root"),
+		viper.GetString("volatile.directory"),
+		viper.GetString("manifest.filename"),
+		viper.GetString("cloudhypervisor.monitor.filename"),
+	)
 
-	err := h.LoadFromYaml(viper.GetString("manifest.filename"))
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}
@@ -63,7 +64,6 @@ func Console(nodeName string) {
 	started := time.Now()
 	//err := runner.Execute(ctx, srcPath, dstPath)
 	//
-	c := cloudhypervisor.NewNodeClient(h.VolatilePath())
 	//
 	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()

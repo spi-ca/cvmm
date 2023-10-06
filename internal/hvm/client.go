@@ -3,6 +3,7 @@ package hvm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -29,6 +30,17 @@ func NewClient(socketPath string) *Client {
 
 func (c *Client) Close() { c.cli.CloseIdleConnections() }
 
+func (c *Client) Info() error {
+	resp, err := c.cli.Get("http://localhost/api/v1/vm.info")
+	if err != nil {
+		return err
+	} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("http error(%d): %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	//todo todo
+	return nil
+}
 func (c *Client) dialContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return (&net.Dialer{}).DialContext(ctx, "unix", c.socketPath)
 }

@@ -10,10 +10,9 @@ func Load(imageRoot, nodeRoot, volatileDirectory, manifestFilename, socketFilena
 
 	h.client = NewClient(h.NodeBasePath(socketFilename))
 
-	err := h.load(manifestFilename)
-	if err != nil {
+	if err := h.load(manifestFilename); err != nil {
 		return nil, err
+	} else {
+		return h, nil
 	}
-
-	return h, nil
 }

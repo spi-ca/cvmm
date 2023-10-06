@@ -3,9 +3,7 @@ package main
 import (
 	"amuz.es/src/spi-ca/chmgr/internal/entry"
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"amuz.es/src/spi-ca/chmgr/internal/util"
@@ -55,10 +53,6 @@ func main() {
 	}
 
 	action := flags.Arg(0)
-
-	if len(os.Args) != 2 {
-		log.Fatalf("args: %s [socket_path] %v", filepath.Base(os.Args[0]), os.Args)
-	}
 
 	switch action {
 	case "start":

@@ -10,7 +10,6 @@ require (
 	golang.org/x/sys v0.10.0
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	gopkg.in/yaml.v3 v3.0.1
-	toolman.org/io/rawio v0.2.0
 )
 
 require (
@@ -25,5 +24,4 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	golang.org/x/text v0.11.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	toolman.org/base/log/v2 v2.1.0 // indirect
 )

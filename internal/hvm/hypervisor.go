@@ -1,13 +1,14 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/args"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"amuz.es/src/spi-ca/chmgr/internal/args"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"gopkg.in/yaml.v3"
 )
 
 type Hypervisor struct {
@@ -164,31 +165,32 @@ func (i *Hypervisor) CommandArgs(
 
 	virtiofsFilenameTmpl := util.F(virtiofsFilename)
 
-	var args []string
-	args = append(args, "--platform", i.PlatformArg())
-	args = append(args, "--kernel", i.ImageBasePath(kernelFilename))
-	args = append(args, "--initramfs", i.ImageBasePath(initramfsFilename))
-	args = append(args, "--cmdline", i.KernelCommandline())
-	args = append(args, "--cpus", i.CpuArgs())
-	args = append(args, "--memory", i.MemoryArgs())
-	args = append(args, "--balloon", i.BaloonArgs())
-
-	args = append(args, "--console", "pty")
-	args = append(args, "--serial", "off")
-
-	args = append(args, "--api-socket", fmt.Sprintf("path=%s", i.VolatilePath(monitorFilename)))
-	args = append(args, "--net", i.NetworkInterfaceArgs())
+	var arguments []string
+	arguments = append(
+		arguments,
+		"--platform", i.PlatformArg(),
+		"--kernel", i.ImageBasePath(kernelFilename),
+		"--initramfs", i.ImageBasePath(initramfsFilename),
+		"--cmdline", i.KernelCommandline(),
+		"--cpus", i.CpuArgs(),
+		"--memory", i.MemoryArgs(),
+		"--balloon", i.BaloonArgs(),
+		"--console", "pty",
+		"--serial", "off",
+		"--api-socket", fmt.Sprintf("path=%s", i.VolatilePath(monitorFilename)),
+		"--net", i.NetworkInterfaceArgs(),
+		"--watchdog",
+		"--pvpanic",
+	)
 
 	for _, filename := range i.args.Directory {
-		args = append(args, "--fs", i.DirectoryArgs(filename, i.VolatilePath(virtiofsFilenameTmpl.R(util.FormatArgs{"directoryName": filename}))))
+		arguments = append(arguments, "--fs", i.DirectoryArgs(filename, i.VolatilePath(virtiofsFilenameTmpl.R(util.FormatArgs{"directoryName": filename}))))
 	}
 
-	args = append(args, "--disk", i.DiskArgs(i.ImageBasePath(rootfsFilename), true))
+	arguments = append(arguments, "--disk", i.DiskArgs(i.ImageBasePath(rootfsFilename), true))
 	for _, filename := range i.args.Disk {
-		args = append(args, "--disk", i.DiskArgs(i.NodeBasePath(filename), false))
+		arguments = append(arguments, "--disk", i.DiskArgs(i.NodeBasePath(filename), false))
 	}
-	args = append(args, "--watchdog")
-	args = append(args, "--pvpanic")
 
-	return args
+	return arguments
 }
