@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/spf13/viper"
+	flags "github.com/spf13/pflag"
 
 	"gopkg.in/yaml.v3"
 
@@ -16,13 +17,17 @@ import (
 )
 
 func main() {
-	var (
-		path   = os.Args[1]
-		action = os.Args[2]
-	)
-
 	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", viper.GetString("log.prefix"), os.Getpid()))
 	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", viper.GetString("log.prefix"), os.Getpid()))
+
+	if len(os.Args) != 3 {
+		usage(fmt.Sprintf("not enough arguments"))
+	}
+
+	var (
+		action = os.Args[1]
+		path   = os.Args[2]
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -181,7 +186,7 @@ func main() {
 		}
 		err = client.VmSendMigration(ctx, &req)
 	default:
-		panic(fmt.Errorf("invalid action %s", action))
+		usage(fmt.Sprintf("invalid action %s", action))
 	}
 
 	if err != nil {
@@ -195,4 +200,44 @@ func main() {
 			panic(fmt.Errorf("failed to marshal response: %w", err))
 		}
 	}
+}
+
+func usage(reason string) {
+	if len(reason) > 0 {
+		util.ErrLog.Println(reason)
+	}
+	_, _ = os.Stderr.WriteString(util.F(`usage: 
+	{{.name}} vmm-ping SOCKET
+	{{.name}} vmm-shutdown SOCKET
+	{{.name}} vm-info SOCKET
+	{{.name}} vm-counters SOCKET
+	{{.name}} vm-create SOCKET
+	{{.name}} vm-delete SOCKET
+	{{.name}} vm-boot SOCKET
+	{{.name}} vm-pause SOCKET
+	{{.name}} vm-resume SOCKET
+	{{.name}} vm-shutdown SOCKET
+	{{.name}} vm-reboot SOCKET
+	{{.name}} vm-power-button SOCKET
+	{{.name}} vm-resize SOCKET
+	{{.name}} vm-resize-zone SOCKET
+	{{.name}} vm-add-device SOCKET
+	{{.name}} vm-remove-device SOCKET
+	{{.name}} vm-add-disk SOCKET
+	{{.name}} vm-add-fs SOCKET
+	{{.name}} vm-add-pmem SOCKET
+	{{.name}} vm-add-net SOCKET
+	{{.name}} vm-add-vsock SOCKET
+	{{.name}} vm-add-vdpa SOCKET
+	{{.name}} vm-shanshot SOCKET
+	{{.name}} vm-coredump SOCKET
+	{{.name}} vm-restore SOCKET
+	{{.name}} vm-receive-migration SOCKET
+	{{.name}} vm-send-migration SOCKET
+`).R(util.FormatArgs{
+		"name": os.Args[0],
+	}))
+
+	flags.PrintDefaults()
+	os.Exit(1)
 }
