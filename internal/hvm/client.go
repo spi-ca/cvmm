@@ -59,7 +59,7 @@ const (
 	clientUrlVmAddNet           = "http://localhost/api/v1/vm.add-net"
 	clientUrlVmAddVsock         = "http://localhost/api/v1/vm.add-vsock"
 	clientUrlVmAddVdpa          = "http://localhost/api/v1/vm.add-vdpa"
-	clientUrlVmShanshot         = "http://localhost/api/v1/vm.snapshot"
+	clientUrlVmSnapshot         = "http://localhost/api/v1/vm.snapshot"
 	clientUrlVmCoredump         = "http://localhost/api/v1/vm.coredump"
 	clientUrlVmRestore          = "http://localhost/api/v1/vm.restore"
 	clientUrlVmReceiveMigration = "http://localhost/api/v1/vm.receive-migration"
@@ -791,16 +791,16 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 }
 
 // Returns a VM snapshot
-func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error {
+func (c *Client) VmSnapshot(ctx context.Context, config VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmShanshot: %w", err)
+		util.ErrLog.Printf("failed to encode VmSnapshot: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShanshot, bytes.NewReader(reqBuf))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSnapshot, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
@@ -808,7 +808,7 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute VmShanshot, https request failed: %w", err)
+		return fmt.Errorf("failed to execute VmSnapshot, https request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -816,11 +816,11 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 	case http.StatusNoContent:
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("failed to execute VmShanshot: %w", ErrVmNotCreated)
+		return fmt.Errorf("failed to execute VmSnapshot: %w", ErrVmNotCreated)
 	case http.StatusMethodNotAllowed:
-		return fmt.Errorf("failed to execute VmShanshot: %w", ErrVmNotBooted)
+		return fmt.Errorf("failed to execute VmSnapshot: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmShanshot: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
+		return fmt.Errorf("failed to execute VmSnapshot: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 

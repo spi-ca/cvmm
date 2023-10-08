@@ -152,13 +152,13 @@ func main() {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
 		resp, err = client.VmAddVdpa(ctx, req)
-	case "vm-shanshot":
+	case "vm-snapshot":
 		req := hvm.VmSnapshotConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmShanshot(ctx, req)
+		err = client.VmSnapshot(ctx, req)
 	case "vm-coredump":
 		req := hvm.VmCoredumpData{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
@@ -231,7 +231,7 @@ func usage(reason string) {
 	{{.name}} vm-add-net SOCKET
 	{{.name}} vm-add-vsock SOCKET
 	{{.name}} vm-add-vdpa SOCKET
-	{{.name}} vm-shanshot SOCKET
+	{{.name}} vm-snapshot SOCKET
 	{{.name}} vm-coredump SOCKET
 	{{.name}} vm-restore SOCKET
 	{{.name}} vm-receive-migration SOCKET
