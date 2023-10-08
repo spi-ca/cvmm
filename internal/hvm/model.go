@@ -1,9 +1,10 @@
 package hvm
 
 import (
+	"net"
+
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"github.com/google/uuid"
-	"net"
 )
 
 type (
@@ -42,7 +43,26 @@ type (
 		PciBdf    string           `json:"pci_bdf" yaml:"pci_bdf"`
 	}
 
-	VmCounters map[string]map[string]int64
+	VMCounter struct {
+		// BlockCounters
+		WriteLatencyMin uint64 `json:"write_latency_min,omitempty"`
+		ReadBytes       uint64 `json:"read_bytes,omitempty"`
+		ReadLatencyMin  uint64 `json:"read_latency_min,omitempty"`
+		WriteLatencyMax uint64 `json:"write_latency_max,omitempty"`
+		ReadLatencyAvg  uint64 `json:"read_latency_avg,omitempty"`
+		ReadOps         uint64 `json:"read_ops,omitempty"`
+		WriteLatencyAvg uint64 `json:"write_latency_avg,omitempty"`
+		WriteBytes      uint64 `json:"write_bytes,omitempty"`
+		ReadLatencyMax  uint64 `json:"read_latency_max,omitempty"`
+		WriteOps        uint64 `json:"write_ops,omitempty"`
+		// NetCounters
+		RxFrames uint64 `json:"rx_frames,omitempty"`
+		TxBytes  uint64 `json:"tx_bytes,omitempty"`
+		RxBytes  uint64 `json:"rx_bytes,omitempty"`
+		TxFrames uint64 `json:"tx_frames,omitempty"`
+	}
+
+	VmCounters map[string]VMCounter
 
 	// PciDeviceInfo is presentation structure for the Information about a PCI device
 	PciDeviceInfo struct {
