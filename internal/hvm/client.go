@@ -86,6 +86,7 @@ func (c *Client) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -139,6 +140,7 @@ func (c *Client) VmInfo(ctx context.Context) (*VmInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -168,6 +170,7 @@ func (c *Client) VmCounters(ctx context.Context) (*VmCounters, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -208,6 +211,7 @@ func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -433,6 +437,7 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -470,6 +475,7 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -507,6 +513,8 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -551,6 +559,7 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -588,6 +597,8 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -632,6 +643,8 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -676,6 +689,8 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -720,6 +735,8 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -764,6 +781,8 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -808,6 +827,8 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -852,6 +873,7 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -891,6 +913,7 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -930,6 +953,7 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -967,6 +991,7 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -1004,6 +1029,7 @@ func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) 
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
