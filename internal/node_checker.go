@@ -2,10 +2,10 @@ package internal
 
 import (
 	"amuz.es/src/spi-ca/chmgr/internal/hvm"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 )
@@ -13,7 +13,7 @@ import (
 func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus hvm.NodeStatus, errorChan chan<- error) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("panic on nodeStatusChecker: %v", err)
+			util.ErrLog.Printf("panic on nodeStatusChecker: %v", err)
 		}
 		close(errorChan)
 	}()

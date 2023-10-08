@@ -89,11 +89,11 @@ func (s *VirtiofsMonitor) execute(ctx context.Context, cwd string, errorChan cha
 	go s.handleStdout(res, stdout, wg.Done)
 	go s.handleStderr(res, stderr, wg.Done)
 
-	log.Printf("virtiofs started(%d)", res.PID)
+	util.InfoLog.Printf("virtiofs started(%d)", res.PID)
 	res.Err = invoke.Wait()
 	ended := time.Now()
 	wg.Wait()
-	log.Printf("virtiofs(%d) ended in %s", &res, ended.Sub(started))
+	util.InfoLog.Printf("virtiofs(%d) ended in %s", &res, ended.Sub(started))
 
 	if err := res.HandleError(); err != nil {
 		errorChan <- fmt.Errorf("failed to start process(find): %w", err)

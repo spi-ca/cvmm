@@ -4,8 +4,9 @@ import (
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"errors"
+	"fmt"
+	"github.com/spf13/viper"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,9 @@ import (
 
 func main() {
 	path := os.Args[1]
+
+	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", viper.GetString("log.prefix"), os.Getpid()))
+	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", viper.GetString("log.prefix"), os.Getpid()))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -42,7 +46,7 @@ func main() {
 
 	defer func() { _ = t.Close() }() // Best effort.
 	if term.IsTerminal(int(os.Stdin.Fd())) {
-		log.Printf("opening console pty(%s)", path)
+		util.InfoLog.Printf("opening console pty(%s)", path)
 
 		// Handle pty size.
 		ch := make(chan os.Signal, 1)
@@ -50,7 +54,7 @@ func main() {
 		go func() {
 			for range ch {
 				if err := pty.InheritSize(os.Stdin, t); err != nil {
-					log.Printf("error resizing pty: %s", err)
+					util.ErrLog.Printf("error resizing pty: %s", err)
 				}
 			}
 		}()
@@ -60,9 +64,9 @@ func main() {
 		defer func() {
 			_, _ = os.Stderr.Write([]byte{'\r', '\n'})
 			_ = os.Stderr.Sync()
-			log.Printf("Bye!")
+			util.InfoLog.Printf("Bye!")
 		}()
-		log.Printf("Press ESC+( keystroke to exit this session.\r")
+		util.InfoLog.Printf("Press ESC+( keystroke to exit this session.\r")
 
 		<-time.After(time.Second)
 

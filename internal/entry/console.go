@@ -71,7 +71,7 @@ func Console(nodeName string) {
 	//errorChan := make(chan error, 1)
 	//go internal.NodeStatusChecker(ctx, c, internal.NodeStatusRunning, errorChan)
 	//for err := range errorChan {
-	//	log.Printf("err %v", err)
+	//	util.ErrLog.Printf("err %v", err)
 	//}
 
 	util.InfoLog.Printf("initiated shutdown")

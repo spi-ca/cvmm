@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/spf13/viper"
+
 	"gopkg.in/yaml.v3"
 
 	"amuz.es/src/spi-ca/chmgr/internal/hvm"
@@ -14,7 +16,13 @@ import (
 )
 
 func main() {
-	path := os.Args[1]
+	var (
+		path   = os.Args[1]
+		action = os.Args[2]
+	)
+
+	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", viper.GetString("log.prefix"), os.Getpid()))
+	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", viper.GetString("log.prefix"), os.Getpid()))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -33,7 +41,6 @@ func main() {
 	}()
 
 	var (
-		action = os.Args[2]
 		client = hvm.NewClient(path)
 		err    error
 		resp   any

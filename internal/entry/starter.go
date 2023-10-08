@@ -6,7 +6,6 @@ import (
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,33 +43,33 @@ func Starter(nodeName string) {
 
 	//util.InfoLog.Printf("fast-volume-sync/copier(%s -> %s) had been initiated", srcPath, dstPath)
 
-	runner := hvm.HypervisorConfig{
-	//	FileMode: sys.UnFilemodeStr(viper.GetString("file.mode")),
-	//	Args: args.RsyncArgs{
-	//		Verbose:            viper.GetBool("rsync.verbose"),
-	//		Delete:             viper.GetBool("rsync.delete"),
-	//		PreservePermission: viper.GetBool("rsync.perms"),
-	//		PreserveOwnership:  viper.GetBool("rsync.owner"),
-	//		CopySpecial:        viper.GetBool("rsync.special"),
-	//		Compress:           viper.GetBool("rsync.compress"),
-	//		WholeFile:          viper.GetBool("rsync.whole.file"),
-	//		Inplace:            viper.GetBool("rsync.inplace"),
-	//		Recursive:          viper.GetBool("rsync.recursive"),
-	//		Port:               viper.GetInt("rsync.port"),
-	//		BandwidthLimit:     viper.GetString("rsync.bandwidth.limit"),
-	//	},
-	//	UseRsync:         viper.GetBool("rsync.enabled"),
-	//	ScanDuration:     viper.GetDuration("scan.deadline"),
-	//	FinderBinaryPath: util.LookupBinary(viper.GetString("scan.find.path")),
-	//	TaskSize:         viper.GetInt("task.size"),
-	//	ChunkSize:        viper.GetInt("chunk.size"),
-	//	Retry: args.RetryArgs{
-	//		Attempts:  viper.GetInt("retry.attempts"),
-	//		Delay:     viper.GetDuration("retry.delay"),
-	//		MaxDelay:  viper.GetDuration("retry.max.delay"),
-	//		MaxJitter: viper.GetDuration("retry.max.jitter"),
-	//	},
-	//}
+	runner := hvm.Hypervisor{
+		//	FileMode: sys.UnFilemodeStr(viper.GetString("file.mode")),
+		//	Args: args.RsyncArgs{
+		//		Verbose:            viper.GetBool("rsync.verbose"),
+		//		Delete:             viper.GetBool("rsync.delete"),
+		//		PreservePermission: viper.GetBool("rsync.perms"),
+		//		PreserveOwnership:  viper.GetBool("rsync.owner"),
+		//		CopySpecial:        viper.GetBool("rsync.special"),
+		//		Compress:           viper.GetBool("rsync.compress"),
+		//		WholeFile:          viper.GetBool("rsync.whole.file"),
+		//		Inplace:            viper.GetBool("rsync.inplace"),
+		//		Recursive:          viper.GetBool("rsync.recursive"),
+		//		Port:               viper.GetInt("rsync.port"),
+		//		BandwidthLimit:     viper.GetString("rsync.bandwidth.limit"),
+		//	},
+		//	UseRsync:         viper.GetBool("rsync.enabled"),
+		//	ScanDuration:     viper.GetDuration("scan.deadline"),
+		//	FinderBinaryPath: util.LookupBinary(viper.GetString("scan.find.path")),
+		//	TaskSize:         viper.GetInt("task.size"),
+		//	ChunkSize:        viper.GetInt("chunk.size"),
+		//	Retry: args.RetryArgs{
+		//		Attempts:  viper.GetInt("retry.attempts"),
+		//		Delay:     viper.GetDuration("retry.delay"),
+		//		MaxDelay:  viper.GetDuration("retry.max.delay"),
+		//		MaxJitter: viper.GetDuration("retry.max.jitter"),
+		//	},
+	}
 	started := time.Now()
 	err := runner.Execute(ctx, srcPath, dstPath)
 
@@ -82,10 +81,10 @@ func Starter(nodeName string) {
 	errorChan := make(chan error, 1)
 	go internal.NodeStatusChecker(ctx, c, internal.NodeStatusRunning, errorChan)
 	for err := range errorChan {
-		log.Printf("err %v", err)
+		util.InfoLog.Printf("err %v", err)
 	}
 
-	log.Printf("initiated shutdown")
+	util.InfoLog.Printf("initiated shutdown")
 
 	ended := time.Now()
 	if err == nil {
