@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/spf13/viper"
 
 	flags "github.com/spf13/pflag"
 
@@ -65,6 +66,7 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
+		util.InfoLog.Printf("config parsed %v", req)
 		err = client.VmCreate(ctx, &req)
 	case "vm-delete":
 		err = client.VmDelete(ctx)
