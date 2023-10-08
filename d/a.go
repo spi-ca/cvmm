@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -68,7 +67,6 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		_ = json.NewEncoder(os.Stderr).Encode(req)
 		err = client.VmCreate(ctx, req)
 	case "vm-delete":
 		err = client.VmDelete(ctx)
