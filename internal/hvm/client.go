@@ -65,11 +65,12 @@ const (
 )
 
 var (
-	ErrVmNotCreated     = errors.New("VM instance is not created")
-	ErrVmNotStarted     = errors.New("VM instance is not started")
-	ErrVmNotBooted      = errors.New("VM instance is not booted")
-	ErrVmNotPaused      = errors.New("VM instance is not paused")
-	ErrVmAlreadyCreated = errors.New("VM instance is already")
+	ErrVmNotCreated         = errors.New("VM instance is not created")
+	ErrVmNotStarted         = errors.New("VM instance is not started")
+	ErrVmNotBooted          = errors.New("VM instance is not booted")
+	ErrVmNotPaused          = errors.New("VM instance is not paused")
+	ErrVmAlreadyCreated     = errors.New("VM instance is already")
+	ErrRedirectionForbidded = errors.New("this client cannot redirect")
 )
 
 func (c *Client) Close() {
@@ -207,11 +208,12 @@ func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -417,6 +419,7 @@ func (c *Client) VmPowerButton(ctx context.Context) error {
 	}
 }
 
+// Resize the VM
 func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -433,11 +436,12 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -455,6 +459,7 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	}
 }
 
+// Resize a memory zone
 func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -471,11 +476,12 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -493,6 +499,7 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	}
 }
 
+// Add a new device to the VM
 func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -509,12 +516,13 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -539,6 +547,7 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 	return &obj, decoder.Decode(&obj)
 }
 
+// Remove a device from the VM
 func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -555,11 +564,12 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -577,6 +587,7 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 	}
 }
 
+// Add a new disk to the VM
 func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -593,12 +604,13 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -623,6 +635,7 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 	return &obj, decoder.Decode(&obj)
 }
 
+// Add a new virtio-fs device to the VM
 func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -639,12 +652,13 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -669,6 +683,7 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 	return &obj, decoder.Decode(&obj)
 }
 
+// Add a new pmem device to the VM
 func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -685,12 +700,13 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -715,6 +731,7 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 	return &obj, decoder.Decode(&obj)
 }
 
+// Add a new network device to the VM
 func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -731,12 +748,13 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -761,6 +779,7 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 	return &obj, decoder.Decode(&obj)
 }
 
+// Add a new vsock device to the VM
 func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -777,12 +796,13 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -807,6 +827,7 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 	return &obj, decoder.Decode(&obj)
 }
 
+// Add a new vDPA device to the VM
 func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -823,12 +844,13 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -853,6 +875,7 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 	return &obj, decoder.Decode(&obj)
 }
 
+// Returns a VM snapshot
 func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -869,11 +892,12 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShanshot, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShanshot, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -893,6 +917,7 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 	}
 }
 
+// Takes a VM coredump
 func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -909,11 +934,12 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -933,6 +959,7 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	}
 }
 
+// Restore a VM from a snapshot
 func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -949,11 +976,12 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -971,6 +999,7 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	}
 }
 
+// Receive a VM migration from URL
 func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -987,11 +1016,12 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -1009,6 +1039,7 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 	}
 }
 
+// Send a VM migration to URL
 func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -1025,11 +1056,12 @@ func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) 
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -1052,8 +1084,5 @@ func (c *Client) dialContext(ctx context.Context, _, _ string) (net.Conn, error)
 }
 
 func (c *Client) checkRedirect(_ *http.Request, via []*http.Request) error {
-	if len(via) >= 10 {
-		return errors.New("stopped after 10 redirects")
-	}
-	return nil
+	return ErrRedirectionForbidded
 }
