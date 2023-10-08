@@ -1,11 +1,11 @@
 package hvm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"sync"
@@ -197,23 +197,16 @@ func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmConfig: %w", err)
-		}
-	}()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmConfig: %w", err)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -424,24 +417,16 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmResize: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmResize: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -464,24 +449,16 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmResizeZone: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmResizeZone: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -504,25 +481,17 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddDevice: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddDevice: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -552,24 +521,16 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmRemoveDevice: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmRemoveDevice: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -592,25 +553,17 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddDisk: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddDisk: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -640,25 +593,17 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddFs: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddFs: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -688,25 +633,17 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddPmem: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddPmem: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -736,25 +673,17 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddNet: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddNet: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -784,25 +713,17 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddVsock: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddVsock: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -832,25 +753,17 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmAddVdpa: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmAddVdpa: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -880,24 +793,16 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmShanshot: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmShanshot: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShanshot, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShanshot, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -922,24 +827,16 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmCoredump: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmCoredump: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -964,24 +861,16 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmRestore: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmRestore: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -1004,24 +893,16 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmReceiveMigration: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmReceiveMigration: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -1044,24 +925,16 @@ func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) 
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	r, w := io.Pipe()
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		util.ErrLog.Printf("failed to encode VmSendMigration: %w", err)
+	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		defer w.Close()
-		err := json.NewEncoder(w).Encode(&config)
-		if err != nil {
-			util.ErrLog.Printf("failed to encode VmSendMigration: %w", err)
-		}
-	}()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, bytes.NewReader(reqBuf))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Body, req.GetBody = r, nil
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
