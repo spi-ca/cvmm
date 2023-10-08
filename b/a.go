@@ -18,7 +18,22 @@ import (
 func main() {
 	path := os.Args[1]
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case sysSignal := <-exitSignal:
+			util.ErrLog.Println(sysSignal.String(), " received")
+			cancel()
+			return
+		}
+	}()
+
 	// Expected Open from a variable.
 	t, err := os.OpenFile(path, os.O_RDWR|syscall.O_NOCTTY, 0) //nolint:gosec
 	if err != nil {
