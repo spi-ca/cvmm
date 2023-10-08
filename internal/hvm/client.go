@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -153,7 +155,7 @@ func (c *Client) VmInfo(ctx context.Context) (*VmInfo, error) {
 	case http.StatusOK:
 		break
 	default:
-		return nil, fmt.Errorf("failed to execute VmInfo: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmInfo: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -183,7 +185,7 @@ func (c *Client) VmCounters(ctx context.Context) (*VmCounters, error) {
 	case http.StatusOK:
 		break
 	default:
-		return nil, fmt.Errorf("failed to execute VmCounters: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmCounters: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -218,7 +220,7 @@ func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 	case http.StatusNoContent:
 		return nil
 	default:
-		return fmt.Errorf("failed to execute VmCreate: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmCreate: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -242,7 +244,7 @@ func (c *Client) VmDelete(ctx context.Context) error {
 	case http.StatusNoContent:
 		return nil
 	default:
-		return fmt.Errorf("failed to execute VmDelete: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmDelete: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -268,7 +270,7 @@ func (c *Client) VmBoot(ctx context.Context) error {
 	case http.StatusNotFound:
 		return fmt.Errorf("failed to execute VmBoot: %w", ErrVmNotCreated)
 	default:
-		return fmt.Errorf("failed to execute VmBoot: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmBoot: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -296,7 +298,7 @@ func (c *Client) VmPause(ctx context.Context) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmPause: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmPause: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmPause: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -324,7 +326,7 @@ func (c *Client) VmResume(ctx context.Context) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmResume: %w", ErrVmNotPaused)
 	default:
-		return fmt.Errorf("failed to execute VmResume: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmResume: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -352,7 +354,7 @@ func (c *Client) VmShutdown(ctx context.Context) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmShutdown: %w", ErrVmNotStarted)
 	default:
-		return fmt.Errorf("failed to execute VmShutdown: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmShutdown: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -380,7 +382,7 @@ func (c *Client) VmReboot(ctx context.Context) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmReboot: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmReboot: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmReboot: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -408,7 +410,7 @@ func (c *Client) VmPowerButton(ctx context.Context) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmPowerButton: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmPowerButton: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmPowerButton: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -440,7 +442,7 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	case http.StatusNotFound:
 		return fmt.Errorf("failed to execute VmResize: %w", ErrVmNotCreated)
 	default:
-		return fmt.Errorf("failed to execute VmResize: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmResize: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -472,7 +474,7 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	case http.StatusInternalServerError:
 		return fmt.Errorf("failed to execute VmResizeZone")
 	default:
-		return fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -507,7 +509,7 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("failed to execute VmAddDevice")
 	default:
-		return nil, fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -544,7 +546,7 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 	case http.StatusNotFound:
 		return fmt.Errorf("failed to execute VmRemoveDevice")
 	default:
-		return fmt.Errorf("failed to execute VmRemoveDevice: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmRemoveDevice: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -579,7 +581,7 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddDisk")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddDisk: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddDisk: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -619,7 +621,7 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddFs")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddFs: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddFs: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -659,7 +661,7 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddPmem")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddPmem: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddPmem: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -699,7 +701,7 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddNet")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddNet: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddNet: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -739,7 +741,7 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddVsock")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddVsock: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddVsock: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -779,7 +781,7 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("failed to execute VmAddVdpa")
 	default:
-		return nil, fmt.Errorf("failed to execute VmAddVdpa: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to execute VmAddVdpa: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
 	decoder := json.NewDecoder(resp.Body)
@@ -818,7 +820,7 @@ func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error 
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmShanshot: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmShanshot: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmShanshot: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -852,7 +854,7 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	case http.StatusMethodNotAllowed:
 		return fmt.Errorf("failed to execute VmCoredump: %w", ErrVmNotBooted)
 	default:
-		return fmt.Errorf("failed to execute VmCoredump: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmCoredump: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -884,7 +886,7 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	case http.StatusNotFound:
 		return fmt.Errorf("failed to execute VmRestore: %w", ErrVmAlreadyCreated)
 	default:
-		return fmt.Errorf("failed to execute VmRestore: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmRestore: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -916,7 +918,7 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 	case http.StatusInternalServerError:
 		return fmt.Errorf("failed to execute VmReceiveMigration: migration could not be received")
 	default:
-		return fmt.Errorf("failed to execute VmReceiveMigration: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmReceiveMigration: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -948,7 +950,7 @@ func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) 
 	case http.StatusInternalServerError:
 		return fmt.Errorf("failed to execute VmSendMigration: migration could not be sent")
 	default:
-		return fmt.Errorf("failed to execute VmSendMigration: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmSendMigration: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 }
 
@@ -958,4 +960,10 @@ func (c *Client) dialContext(ctx context.Context, _, _ string) (net.Conn, error)
 
 func (c *Client) checkRedirect(_ *http.Request, via []*http.Request) error {
 	return ErrRedirectionForbidded
+}
+
+func (c *Client) readResponseMessage(resp *http.Response) string {
+	buf := strings.Builder{}
+	_, _ = io.CopyN(&buf, resp.Body, resp.ContentLength)
+	return buf.String()
 }
