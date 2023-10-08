@@ -68,8 +68,8 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		_ = json.NewEncoder(os.Stderr).Encode(&req)
-		err = client.VmCreate(ctx, &req)
+		_ = json.NewEncoder(os.Stderr).Encode(req)
+		err = client.VmCreate(ctx, req)
 	case "vm-delete":
 		err = client.VmDelete(ctx)
 	case "vm-boot":
@@ -90,105 +90,105 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmResize(ctx, &req)
+		err = client.VmResize(ctx, req)
 	case "vm-resize-zone":
 		req := hvm.VmResizeZone{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmResizeZone(ctx, &req)
+		err = client.VmResizeZone(ctx, req)
 	case "vm-add-device":
 		req := hvm.DeviceConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddDevice(ctx, &req)
+		resp, err = client.VmAddDevice(ctx, req)
 	case "vm-remove-device":
 		req := hvm.VmRemoveDevice{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmRemoveDevice(ctx, &req)
+		err = client.VmRemoveDevice(ctx, req)
 	case "vm-add-disk":
 		req := hvm.DiskConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddDisk(ctx, &req)
+		resp, err = client.VmAddDisk(ctx, req)
 	case "vm-add-fs":
 		req := hvm.FsConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddFs(ctx, &req)
+		resp, err = client.VmAddFs(ctx, req)
 	case "vm-add-pmem":
 		req := hvm.PmemConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddPmem(ctx, &req)
+		resp, err = client.VmAddPmem(ctx, req)
 	case "vm-add-net":
 		req := hvm.NetConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddNet(ctx, &req)
+		resp, err = client.VmAddNet(ctx, req)
 	case "vm-add-vsock":
 		req := hvm.VsockConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddVsock(ctx, &req)
+		resp, err = client.VmAddVsock(ctx, req)
 	case "vm-add-vdpa":
 		req := hvm.VdpaConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		resp, err = client.VmAddVdpa(ctx, &req)
+		resp, err = client.VmAddVdpa(ctx, req)
 	case "vm-shanshot":
 		req := hvm.VmSnapshotConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmShanshot(ctx, &req)
+		err = client.VmShanshot(ctx, req)
 	case "vm-coredump":
 		req := hvm.VmCoredumpData{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmCoredump(ctx, &req)
+		err = client.VmCoredump(ctx, req)
 	case "vm-restore":
 		req := hvm.RestoreConfig{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmRestore(ctx, &req)
+		err = client.VmRestore(ctx, req)
 	case "vm-receive-migration":
 		req := hvm.ReceiveMigrationData{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmReceiveMigration(ctx, &req)
+		err = client.VmReceiveMigration(ctx, req)
 	case "vm-send-migration":
 		req := hvm.SendMigrationData{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
-		err = client.VmSendMigration(ctx, &req)
+		err = client.VmSendMigration(ctx, req)
 	default:
 		usage(fmt.Sprintf("invalid action %s", action))
 	}

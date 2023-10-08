@@ -189,12 +189,11 @@ func (c *Client) VmCounters(ctx context.Context) (*VmCounters, error) {
 }
 
 // Create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
-func (c *Client) VmCreate(ctx context.Context, config *VmConfig) error {
+func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
 	r, w := io.Pipe()
-
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
@@ -414,7 +413,7 @@ func (c *Client) VmPowerButton(ctx context.Context) error {
 	}
 }
 
-func (c *Client) VmResize(ctx context.Context, config *VmResize) error {
+func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -451,7 +450,7 @@ func (c *Client) VmResize(ctx context.Context, config *VmResize) error {
 	}
 }
 
-func (c *Client) VmResizeZone(ctx context.Context, config *VmResizeZone) error {
+func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -488,7 +487,7 @@ func (c *Client) VmResizeZone(ctx context.Context, config *VmResizeZone) error {
 	}
 }
 
-func (c *Client) VmAddDevice(ctx context.Context, config *DeviceConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -532,7 +531,7 @@ func (c *Client) VmAddDevice(ctx context.Context, config *DeviceConfig) (*PciDev
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmRemoveDevice(ctx context.Context, config *VmRemoveDevice) error {
+func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -569,7 +568,7 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config *VmRemoveDevice) err
 	}
 }
 
-func (c *Client) VmAddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -613,7 +612,7 @@ func (c *Client) VmAddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceI
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmAddFs(ctx context.Context, config *FsConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -657,7 +656,7 @@ func (c *Client) VmAddFs(ctx context.Context, config *FsConfig) (*PciDeviceInfo,
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmAddPmem(ctx context.Context, config *PmemConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -701,7 +700,7 @@ func (c *Client) VmAddPmem(ctx context.Context, config *PmemConfig) (*PciDeviceI
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmAddNet(ctx context.Context, config *NetConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -745,7 +744,7 @@ func (c *Client) VmAddNet(ctx context.Context, config *NetConfig) (*PciDeviceInf
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmAddVsock(ctx context.Context, config *VsockConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -789,7 +788,7 @@ func (c *Client) VmAddVsock(ctx context.Context, config *VsockConfig) (*PciDevic
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmAddVdpa(ctx context.Context, config *VdpaConfig) (*PciDeviceInfo, error) {
+func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -833,7 +832,7 @@ func (c *Client) VmAddVdpa(ctx context.Context, config *VdpaConfig) (*PciDeviceI
 	return &obj, decoder.Decode(&obj)
 }
 
-func (c *Client) VmShanshot(ctx context.Context, config *VmSnapshotConfig) error {
+func (c *Client) VmShanshot(ctx context.Context, config VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -872,7 +871,7 @@ func (c *Client) VmShanshot(ctx context.Context, config *VmSnapshotConfig) error
 	}
 }
 
-func (c *Client) VmCoredump(ctx context.Context, config *VmCoredumpData) error {
+func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -911,7 +910,7 @@ func (c *Client) VmCoredump(ctx context.Context, config *VmCoredumpData) error {
 	}
 }
 
-func (c *Client) VmRestore(ctx context.Context, config *RestoreConfig) error {
+func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -948,7 +947,7 @@ func (c *Client) VmRestore(ctx context.Context, config *RestoreConfig) error {
 	}
 }
 
-func (c *Client) VmReceiveMigration(ctx context.Context, config *ReceiveMigrationData) error {
+func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -985,7 +984,7 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config *ReceiveMigratio
 	}
 }
 
-func (c *Client) VmSendMigration(ctx context.Context, config *SendMigrationData) error {
+func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
