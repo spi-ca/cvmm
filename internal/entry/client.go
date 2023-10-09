@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func Client(nodeName string, action hvm.ClientAction) {
+func Client(name, nodeName string, action hvm.ClientAction) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 시그널 처리
@@ -33,12 +33,11 @@ func Client(nodeName string, action hvm.ClientAction) {
 		}
 	}()
 
-	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", viper.GetString("log.prefix"), os.Getpid()))
-	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", viper.GetString("log.prefix"), os.Getpid()))
+	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", name, os.Getpid()))
+	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", name, os.Getpid()))
 	util.InfoLog.Print(
 		"args:",
 		"\n	argNodeName=", nodeName,
-		"\n	log.prefix=", viper.GetString("log.prefix"),
 		"\n	image.root=", viper.GetString("node.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),

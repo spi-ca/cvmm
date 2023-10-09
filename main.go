@@ -1,10 +1,11 @@
 package main
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/entry"
 	"fmt"
 	"os"
 	"strings"
+
+	"amuz.es/src/spi-ca/chmgr/internal/entry"
 
 	"amuz.es/src/spi-ca/chmgr/internal/hvm"
 
@@ -104,7 +105,7 @@ func main() {
 		if err != nil {
 			usage(fmt.Sprintf("invalid clientAction %s", rawClientAction))
 		}
-		entry.Client(nodeName, clientAction)
+		entry.Client(name, nodeName, clientAction)
 	default:
 		usage(fmt.Sprintf("invalid action %s", action))
 	}
