@@ -135,10 +135,13 @@ func (c *client) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 		return nil, fmt.Errorf("failed to execute VmmPing: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := VmmPingResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Shuts the cloud-hypervisor VMM.
@@ -189,10 +192,13 @@ func (c *client) VmInfo(ctx context.Context) (*VmInfo, error) {
 		return nil, fmt.Errorf("failed to execute VmInfo: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := VmInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Get counters from the VM
@@ -219,10 +225,13 @@ func (c *client) VmCounters(ctx context.Context) (*VmCounters, error) {
 		return nil, fmt.Errorf("failed to execute VmCounters: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := VmCounters{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
@@ -543,10 +552,13 @@ func (c *client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 		return nil, fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Remove a device from the VM
@@ -615,10 +627,13 @@ func (c *client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 		return nil, fmt.Errorf("failed to execute VmAddDisk: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Add a new virtio-fs device to the VM
@@ -655,10 +670,13 @@ func (c *client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 		return nil, fmt.Errorf("failed to execute VmAddFs: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Add a new pmem device to the VM
@@ -695,10 +713,13 @@ func (c *client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 		return nil, fmt.Errorf("failed to execute VmAddPmem: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Add a new network device to the VM
@@ -735,10 +756,13 @@ func (c *client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 		return nil, fmt.Errorf("failed to execute VmAddNet: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Add a new vsock device to the VM
@@ -775,10 +799,13 @@ func (c *client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 		return nil, fmt.Errorf("failed to execute VmAddVsock: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Add a new vDPA device to the VM
@@ -815,10 +842,13 @@ func (c *client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 		return nil, fmt.Errorf("failed to execute VmAddVdpa: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	decoder := json.NewDecoder(resp.Body)
 	obj := PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
 
-	return &obj, decoder.Decode(&obj)
+	return &obj, nil
 }
 
 // Returns a VM snapshot
