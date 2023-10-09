@@ -12,13 +12,14 @@ import (
 )
 
 type Hypervisor struct {
+	name              string `yaml:"-"`
 	imageRoot         string `yaml:"-"`
-	nodeRoot          string `yaml:"-"`
+	nodeHome          string `yaml:"-"`
 	volatileDirectory string `yaml:"-"`
 
 	args args.Hypervisor
 
-	client *Client
+	cli *client
 }
 
 func (i *Hypervisor) load(manifestFilename string) error {
@@ -37,14 +38,16 @@ func (i *Hypervisor) load(manifestFilename string) error {
 
 	return nil
 }
-
+func (i *Hypervisor) Close()            { i.cli.Close() }
+func (i *Hypervisor) GetClient() Client { return i.cli }
 func (i *Hypervisor) ImageBasePath(rest ...string) string {
 	args := []string{i.imageRoot, i.args.Image}
 	args = append(args, rest...)
 	return filepath.Join(args...)
 }
+
 func (i *Hypervisor) NodeBasePath(rest ...string) string {
-	args := []string{i.nodeRoot, i.args.Name}
+	args := []string{i.nodeHome}
 	args = append(args, rest...)
 	return filepath.Join(args...)
 }
@@ -86,7 +89,7 @@ func (i *Hypervisor) BaloonArgs() string {
 
 func (i *Hypervisor) PlatformArg() string {
 	args := append([]string(nil), i.args.Cmdline...)
-	args = append(args, fmt.Sprintf("oem_strings=amuzes-%s", i.args.Name))
+	args = append(args, fmt.Sprintf("oem_strings=amuzes-%s", i.name))
 	args = append(args, fmt.Sprintf("serial_number=%s", i.args.MachineId()))
 	args = append(args, fmt.Sprintf("uuid=%s", i.args.Uuid.String()))
 	return strings.Join(args, ",")
@@ -132,7 +135,7 @@ func (i *Hypervisor) DiskArgs(filePath string, readonly bool) string {
 }
 
 func (i *Hypervisor) VolatilePath(rest ...string) string {
-	args := []string{i.nodeRoot, i.args.Name, i.volatileDirectory}
+	args := []string{i.nodeHome, i.volatileDirectory}
 	args = append(args, rest...)
 	return filepath.Join(args...)
 }
@@ -145,7 +148,7 @@ func (i *Hypervisor) VirtiofsArgs(virtiofsFilename string) []string {
 
 	for _, filename := range i.args.Directory {
 		cfg := &VirtiofsConfig{
-			Directory:      i.NodeBasePath(i.nodeRoot, filename),
+			Directory:      i.NodeBasePath(filename),
 			SocketPath:     i.VolatilePath(virtiofsFilenameTmpl.R(util.FormatArgs{"directoryName": filename})),
 			ThreadPoolSize: i.args.Cpus,
 		}

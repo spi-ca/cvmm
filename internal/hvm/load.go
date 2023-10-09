@@ -1,14 +1,16 @@
 package hvm
 
-func Load(imageRoot, nodeRoot, volatileDirectory, manifestFilename, socketFilename string) (*Hypervisor, error) {
+import "path/filepath"
 
+func Load(name, imageRoot, nodeRoot, volatileDirectory, manifestFilename, socketFilename string) (*Hypervisor, error) {
 	h := &Hypervisor{
+		name:              name,
 		imageRoot:         imageRoot,
-		nodeRoot:          nodeRoot,
+		nodeHome:          filepath.Join(nodeRoot, name),
 		volatileDirectory: volatileDirectory,
 	}
 
-	h.client = NewClient(h.NodeBasePath(socketFilename))
+	h.cli = newClient(h.NodeBasePath(socketFilename))
 
 	if err := h.load(manifestFilename); err != nil {
 		return nil, err

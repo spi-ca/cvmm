@@ -11,30 +11,47 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 )
 
-type Client struct {
-	cli        http.Client
-	socketPath string
-	wg         sync.WaitGroup
-}
-
-func NewClient(socketPath string) *Client {
-	c := Client{
-		socketPath: socketPath,
+type (
+	Client interface {
+		VmmPing(ctx context.Context) (*VmmPingResponse, error)
+		VmmShutdown(ctx context.Context) error
+		VmInfo(ctx context.Context) (*VmInfo, error)
+		VmCounters(ctx context.Context) (*VmCounters, error)
+		VmCreate(ctx context.Context, config VmConfig) error
+		VmDelete(ctx context.Context) error
+		VmBoot(ctx context.Context) error
+		VmPause(ctx context.Context) error
+		VmResume(ctx context.Context) error
+		VmShutdown(ctx context.Context) error
+		VmReboot(ctx context.Context) error
+		VmPowerButton(ctx context.Context) error
+		VmResize(ctx context.Context, config VmResize) error
+		VmResizeZone(ctx context.Context, config VmResizeZone) error
+		VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error)
+		VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error
+		VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error)
+		VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error)
+		VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error)
+		VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error)
+		VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error)
+		VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error)
+		VmSnapshot(ctx context.Context, config VmSnapshotConfig) error
+		VmCoredump(ctx context.Context, config VmCoredumpData) error
+		VmRestore(ctx context.Context, config RestoreConfig) error
+		VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error
+		VmSendMigration(ctx context.Context, config SendMigrationData) error
 	}
 
-	c.cli.Transport = &http.Transport{
-		DialContext: c.dialContext,
+	client struct {
+		cli        http.Client
+		socketPath string
+		wg         sync.WaitGroup
 	}
-	c.cli.CheckRedirect = c.checkRedirect
-	c.cli.Timeout = 5 * time.Second
-
-	return &c
-}
+)
 
 const (
 	clientUrlVmmPing            = "http://localhost/api/v1/vmm.ping"
@@ -75,13 +92,27 @@ var (
 	ErrRedirectionForbidded = errors.New("this client cannot redirect")
 )
 
-func (c *Client) Close() {
+func NewClient(socketPath string) Client { return newClient(socketPath) }
+func newClient(socketPath string) *client {
+	c := client{
+		socketPath: socketPath,
+	}
+
+	c.cli.Transport = &http.Transport{
+		DialContext: c.dialContext,
+	}
+	c.cli.CheckRedirect = c.checkRedirect
+
+	return &c
+}
+
+func (c *client) Close() {
 	c.cli.CloseIdleConnections()
 	c.wg.Wait()
 }
 
 // Ping the VMM to check for API server availability
-func (c *Client) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
+func (c *client) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -111,7 +142,7 @@ func (c *Client) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 }
 
 // Shuts the cloud-hypervisor VMM.
-func (c *Client) VmmShutdown(ctx context.Context) error {
+func (c *client) VmmShutdown(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -135,7 +166,7 @@ func (c *Client) VmmShutdown(ctx context.Context) error {
 }
 
 // Returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
-func (c *Client) VmInfo(ctx context.Context) (*VmInfo, error) {
+func (c *client) VmInfo(ctx context.Context) (*VmInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -165,7 +196,7 @@ func (c *Client) VmInfo(ctx context.Context) (*VmInfo, error) {
 }
 
 // Get counters from the VM
-func (c *Client) VmCounters(ctx context.Context) (*VmCounters, error) {
+func (c *client) VmCounters(ctx context.Context) (*VmCounters, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -195,7 +226,7 @@ func (c *Client) VmCounters(ctx context.Context) (*VmCounters, error) {
 }
 
 // Create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
-func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
+func (c *client) VmCreate(ctx context.Context, config VmConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -225,7 +256,7 @@ func (c *Client) VmCreate(ctx context.Context, config VmConfig) error {
 }
 
 // Delete the cloud-hypervisor Virtual Machine (VM) instance.
-func (c *Client) VmDelete(ctx context.Context) error {
+func (c *client) VmDelete(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -249,7 +280,7 @@ func (c *Client) VmDelete(ctx context.Context) error {
 }
 
 // Boot the previously created VM instance.
-func (c *Client) VmBoot(ctx context.Context) error {
+func (c *client) VmBoot(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -275,7 +306,7 @@ func (c *Client) VmBoot(ctx context.Context) error {
 }
 
 // Pause a previously booted VM instance.
-func (c *Client) VmPause(ctx context.Context) error {
+func (c *client) VmPause(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -303,7 +334,7 @@ func (c *Client) VmPause(ctx context.Context) error {
 }
 
 // Resume a previously paused VM instance.
-func (c *Client) VmResume(ctx context.Context) error {
+func (c *client) VmResume(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -331,7 +362,7 @@ func (c *Client) VmResume(ctx context.Context) error {
 }
 
 // Shut the VM instance down.
-func (c *Client) VmShutdown(ctx context.Context) error {
+func (c *client) VmShutdown(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -359,7 +390,7 @@ func (c *Client) VmShutdown(ctx context.Context) error {
 }
 
 // Reboot the VM instance.
-func (c *Client) VmReboot(ctx context.Context) error {
+func (c *client) VmReboot(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -387,7 +418,7 @@ func (c *Client) VmReboot(ctx context.Context) error {
 }
 
 // Trigger a power button in the VM.
-func (c *Client) VmPowerButton(ctx context.Context) error {
+func (c *client) VmPowerButton(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -415,7 +446,7 @@ func (c *Client) VmPowerButton(ctx context.Context) error {
 }
 
 // Resize the VM
-func (c *Client) VmResize(ctx context.Context, config VmResize) error {
+func (c *client) VmResize(ctx context.Context, config VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -447,7 +478,7 @@ func (c *Client) VmResize(ctx context.Context, config VmResize) error {
 }
 
 // Resize a memory zone
-func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
+func (c *client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -479,7 +510,7 @@ func (c *Client) VmResizeZone(ctx context.Context, config VmResizeZone) error {
 }
 
 // Add a new device to the VM
-func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -519,7 +550,7 @@ func (c *Client) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDevi
 }
 
 // Remove a device from the VM
-func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error {
+func (c *client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -551,7 +582,7 @@ func (c *Client) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) erro
 }
 
 // Add a new disk to the VM
-func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -591,7 +622,7 @@ func (c *Client) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceIn
 }
 
 // Add a new virtio-fs device to the VM
-func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -631,7 +662,7 @@ func (c *Client) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, 
 }
 
 // Add a new pmem device to the VM
-func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -671,7 +702,7 @@ func (c *Client) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceIn
 }
 
 // Add a new network device to the VM
-func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -711,7 +742,7 @@ func (c *Client) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo
 }
 
 // Add a new vsock device to the VM
-func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -751,7 +782,7 @@ func (c *Client) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDevice
 }
 
 // Add a new vDPA device to the VM
-func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error) {
+func (c *client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -791,7 +822,7 @@ func (c *Client) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceIn
 }
 
 // Returns a VM snapshot
-func (c *Client) VmSnapshot(ctx context.Context, config VmSnapshotConfig) error {
+func (c *client) VmSnapshot(ctx context.Context, config VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -825,7 +856,7 @@ func (c *Client) VmSnapshot(ctx context.Context, config VmSnapshotConfig) error 
 }
 
 // Takes a VM coredump
-func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
+func (c *client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -859,7 +890,7 @@ func (c *Client) VmCoredump(ctx context.Context, config VmCoredumpData) error {
 }
 
 // Restore a VM from a snapshot
-func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
+func (c *client) VmRestore(ctx context.Context, config RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -891,7 +922,7 @@ func (c *Client) VmRestore(ctx context.Context, config RestoreConfig) error {
 }
 
 // Receive a VM migration from URL
-func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error {
+func (c *client) VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -923,7 +954,7 @@ func (c *Client) VmReceiveMigration(ctx context.Context, config ReceiveMigration
 }
 
 // Send a VM migration to URL
-func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) error {
+func (c *client) VmSendMigration(ctx context.Context, config SendMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -954,15 +985,15 @@ func (c *Client) VmSendMigration(ctx context.Context, config SendMigrationData) 
 	}
 }
 
-func (c *Client) dialContext(ctx context.Context, _, _ string) (net.Conn, error) {
+func (c *client) dialContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return (&net.Dialer{}).DialContext(ctx, "unix", c.socketPath)
 }
 
-func (c *Client) checkRedirect(_ *http.Request, via []*http.Request) error {
+func (c *client) checkRedirect(_ *http.Request, via []*http.Request) error {
 	return ErrRedirectionForbidded
 }
 
-func (c *Client) readResponseMessage(resp *http.Response) string {
+func (c *client) readResponseMessage(resp *http.Response) string {
 	buf := strings.Builder{}
 	_, _ = io.CopyN(&buf, resp.Body, resp.ContentLength)
 	return buf.String()

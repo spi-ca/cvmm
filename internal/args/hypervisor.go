@@ -8,7 +8,6 @@ import (
 )
 
 type Hypervisor struct {
-	Name       string          `json:"name" yaml:"name"`
 	Cpus       int             `json:"cpus" yaml:"cpus"`
 	Mem        util.IECSize    `json:"mem" yaml:"mem"`
 	Uuid       uuid.UUID       `json:"uuid" yaml:"uuid"`
@@ -58,9 +57,9 @@ func (i *Hypervisor) BaloonArgs() string {
 	return strings.Join(args, ",")
 }
 
-func (i *Hypervisor) PlatformArg() string {
+func (i *Hypervisor) PlatformArg(name string) string {
 	args := append([]string(nil), i.Cmdline...)
-	args = append(args, fmt.Sprintf("oem_strings=amuzes-%s", i.Name))
+	args = append(args, fmt.Sprintf("oem_strings=amuzes-%s", name))
 	args = append(args, fmt.Sprintf("serial_number=%s", i.MachineId()))
 	args = append(args, fmt.Sprintf("uuid=%s", i.Uuid.String()))
 	return strings.Join(args, ",")
