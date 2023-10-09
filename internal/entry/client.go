@@ -44,8 +44,6 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		"\n---",
 	)
 
-	util.InfoLog.Printf("chmgr/client(%s) had been initiated", nodeName)
-
 	h, err := hvm.Load(
 		nodeName,
 		viper.GetString("image.root"),
