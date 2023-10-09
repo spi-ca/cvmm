@@ -2,9 +2,75 @@ package hvm
 
 import (
 	"encoding/json"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"testing"
 )
+
+func TestCpusConfig_String(t *testing.T) {
+	var response = []byte(`
+boot_vcpus: 8
+max_vcpus: 8
+topology:
+    threads_per_core: 2
+    cores_per_die: 16
+    dies_per_package: 2
+    packages: 2
+kvm_hyperv: true
+max_phys_bits: 48
+affinity:
+    - vcpu: 0
+      host_cpus:
+          - 0
+          - 1
+          - 8
+    - vcpu: 1
+      host_cpus:
+          - 4
+          - 5
+          - 6
+    - vcpu: 2
+      host_cpus:
+          - 2
+          - 9
+          - 33
+features:
+    amx: true
+`)
+	i := CpusConfig{}
+	err := yaml.Unmarshal(response, &i)
+	if err != nil {
+		panic(err)
+	}
+
+	if actual := i.String(); actual != "boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
+		panic(fmt.Errorf("%s is invalid value", actual))
+	}
+}
+
+func TestMemoryConfig_String(t *testing.T) {
+	var response = []byte(`
+size: 4294967296
+mergeable: true
+shared: true
+hugepages: true
+hugepage_size: 1073741824
+hotplug_method: Acpi
+hotplug_size: 8589934592
+hotplugged_size: 1073741824
+prefault: true
+thp: true
+`)
+	i := MemoryConfig{}
+	err := yaml.Unmarshal(response, &i)
+	if err != nil {
+		panic(err)
+	}
+
+	if actual := i.String(); actual != "size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on" {
+		panic(fmt.Errorf("%s is invalid value", actual))
+	}
+}
 
 func TestVMInfo_Serialize(t *testing.T) {
 	var response = []byte(`{
@@ -369,94 +435,4 @@ func TestVMInfo_Serialize(t *testing.T) {
 		panic(err)
 	}
 	t.Logf("yaml() =\n %s", string(e2))
-
-	//t.Logf("json() = %v, want %v", string(got), string(tt.want))
-
-	//	type fields struct {
-	//		Name       string
-	//		Cpus       int
-	//		Mem        util.IECSize
-	//		Uuid       uuid.UUID
-	//		RootfsUuid uuid.UUID
-	//		Image      string
-	//		NetMacAddr util.MACAddress
-	//		NetIfName  string
-	//		Cmdline    []string
-	//		Disk       []string
-	//		Directory  []string
-	//	}
-	//	tests := []struct {
-	//		name   string
-	//		fields fields
-	//		want   []byte
-	//	}{
-	//		{
-	//			name: "yaml test",
-	//			fields: fields{
-	//				Name:       "test-mock",
-	//				Cpus:       2,
-	//				Mem:        util.MustLoadIECSize("4G"),
-	//				Uuid:       uuid.MustParse("87773d86-0030-4db4-9e90-e5a4314ff11b"),
-	//				RootfsUuid: uuid.MustParse("3a42a0c0-dfd2-40b2-b9eb-86842610a5c1"),
-	//				Image:      "test-image",
-	//				NetMacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
-	//				NetIfName:  "vmtap-01",
-	//				Cmdline: []string{
-	//					"console=hvc0",
-	//					"cpuidle.governor=haltpoll",
-	//					"clocksource=kvm-clock",
-	//					"net.ifnames=0",
-	//					"quiet",
-	//					"loglevel=3",
-	//				},
-	//				Disk:      []string{"data.img"},
-	//				Directory: []string{"configuration"},
-	//			},
-	//			want: []byte(`name: test-mock
-	//cpus: 2
-	//mem: 4G
-	//uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
-	//rootfs_uuid: 3a42a0c0-dfd2-40b2-b9eb-86842610a5c1
-	//image: test-image
-	//net_mac_addr: 2e:33:5f:11:1b:42
-	//net_if_name: vmtap-01
-	//cmdline:
-	//    - console=hvc0
-	//    - cpuidle.governor=haltpoll
-	//    - clocksource=kvm-clock
-	//    - net.ifnames=0
-	//    - quiet
-	//    - loglevel=3
-	//disk:
-	//    - data.img
-	//directory:
-	//    - configuration
-	//`),
-	//		},
-	//	}
-	//	for _, tt := range tests {
-	//		t.Run(tt.name, func(t *testing.T) {
-	//			i := &Hypervisor{
-	//				Name:       tt.fields.Name,
-	//				Cpus:       tt.fields.Cpus,
-	//				Mem:        tt.fields.Mem,
-	//				Uuid:       tt.fields.Uuid,
-	//				RootfsUuid: tt.fields.RootfsUuid,
-	//				Image:      tt.fields.Image,
-	//				NetMacAddr: tt.fields.NetMacAddr,
-	//				NetIfName:  tt.fields.NetIfName,
-	//				Cmdline:    tt.fields.Cmdline,
-	//				Disk:       tt.fields.Disk,
-	//				Directory:  tt.fields.Directory,
-	//			}
-	//			got, err := yaml.Marshal(i)
-	//			if err != nil {
-	//				panic(err)
-	//			}
-	//
-	//			if bytes.Compare(got, tt.want) != 0 {
-	//				t.Errorf("yaml() = %v, want %v", string(got), string(tt.want))
-	//			}
-	//		})
-	//	}
 }

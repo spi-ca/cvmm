@@ -6,10 +6,9 @@ import (
 	"strings"
 
 	"amuz.es/src/spi-ca/chmgr/internal/entry"
-
 	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-
 	"amuz.es/src/spi-ca/chmgr/internal/util"
+
 	flags "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -24,7 +23,6 @@ var (
 )
 
 func init() {
-	flags.String("pid-file", fmt.Sprintf("%s.pid", name), "specify a pid file")
 	flags.String("image-root", "/srv/vmm/images", "specify image repository path")
 
 	flags.String("image-kernel-filename", "vmlinuz", "specify image kernel filename")
@@ -117,8 +115,6 @@ func usage(reason string) {
 	}
 	_, _ = os.Stderr.WriteString(util.F(`usage:
 	{{.name}} boot NODE_NAME
-	{{.name}} pause NODE_NAME
-	{{.name}} resume NODE_NAME
 	{{.name}} power-off NODE_NAME
 	{{.name}} console NODE_NAME
 {{- range $val := .clientAction}}

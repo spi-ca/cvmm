@@ -1,7 +1,9 @@
 package hvm
 
 import (
+	"fmt"
 	"net"
+	"strings"
 
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"github.com/google/uuid"
@@ -347,3 +349,185 @@ type (
 		Local          bool   `json:"local,omitempty" yaml:"local,omitempty"`
 	}
 )
+
+func (c CpuTopology) String() string {
+	return fmt.Sprintf("%d:%d:%d:%d", c.ThreadsPerCore, c.CoresPerDie, c.DiesPerPackage, c.Packages)
+}
+
+func (c CpuAffinity) String() string {
+	return fmt.Sprintf("%d@[%s]", c.Vcpu, util.ConsecutiveRanges(c.HostCpus).String())
+}
+
+func (c CpuFeatures) String() string {
+	var args = []string{}
+	if c.Amx {
+		args = append(args, "amx")
+	}
+	return strings.Join(args, ",")
+}
+
+func (c CpusConfig) String() string {
+	var args []string
+	if c.BootVcpus > 0 {
+		args = append(args, fmt.Sprintf("boot=%d", c.BootVcpus))
+	}
+	if c.MaxVcpus > 0 {
+		args = append(args, fmt.Sprintf("max=%d", c.BootVcpus))
+	}
+	if c.Topology != nil {
+		args = append(args, fmt.Sprintf("topology=%s", c.Topology))
+	}
+	if c.KvmHyperv {
+		args = append(args, "kvm_hyperv=on")
+	}
+	if c.MaxPhysBits > 0 {
+		args = append(args, fmt.Sprintf("max_phys_bits=%d", c.MaxPhysBits))
+	}
+	if len(c.Affinity) > 0 {
+		var affinities []string
+		for _, a := range c.Affinity {
+			affinities = append(affinities, fmt.Sprintf("%s", a))
+		}
+		args = append(args, fmt.Sprintf("affinity=[%s]", strings.Join(affinities, ",")))
+	}
+	if c.Features != nil {
+		args = append(args, fmt.Sprintf("features=%s", c.Features))
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (m MemoryConfig) String() string {
+	var args []string
+
+	if m.Size > 0 {
+		args = append(args, fmt.Sprintf("size=%d", m.Size))
+	}
+
+	if m.Mergeable {
+		args = append(args, "mergeable=on")
+	}
+
+	if m.Shared {
+		args = append(args, "shared=on")
+	}
+
+	if m.Hugepages {
+		args = append(args, "hugepages=on")
+	}
+
+	if m.HugepageSize > 0 {
+		args = append(args, fmt.Sprintf("hugepage_size=%d", m.HugepageSize))
+	}
+
+	if len(m.HotplugMethod) > 0 {
+		args = append(args, fmt.Sprintf("hotplug_method=%s", m.HotplugMethod))
+	}
+
+	if m.HotplugSize > 0 {
+		args = append(args, fmt.Sprintf("hotplug_size=%d", m.HotplugSize))
+	}
+
+	if m.HotpluggedSize > 0 {
+		args = append(args, fmt.Sprintf("hotplugged_size=%d", m.HotpluggedSize))
+	}
+
+	if m.Prefault {
+		args = append(args, "prefault=on")
+	}
+
+	if m.Thp {
+		args = append(args, "thp=on")
+	}
+
+	// todo memoryzoneconfig
+
+	return strings.Join(args, ",")
+}
+
+func defaultVmConfig() VmConfig {
+	return VmConfig{
+		Cpus: &CpusConfig{
+			BootVcpus: 0,
+			MaxVcpus:  0,
+			Topology: &CpuTopology{
+				ThreadsPerCore: 0,
+				CoresPerDie:    0,
+				DiesPerPackage: 0,
+				Packages:       0,
+			},
+			KvmHyperv:   false,
+			MaxPhysBits: 0,
+			Affinity:    nil,
+			Features: &CpuFeatures{
+				Amx: false,
+			},
+		},
+		Memory: &MemoryConfig{
+			Size:           0,
+			HotplugSize:    0,
+			HotpluggedSize: 0,
+			Mergeable:      false,
+			HotplugMethod:  "",
+			Shared:         false,
+			Hugepages:      false,
+			HugepageSize:   0,
+			Prefault:       false,
+			Thp:            false,
+			Zones:          nil,
+		},
+		Payload: PayloadConfig{
+			Firmware:  "",
+			Kernel:    "",
+			Cmdline:   "",
+			Initramfs: "",
+		},
+		Disks: nil,
+		Net:   nil,
+		Rng: &RngConfig{
+			Src:   "",
+			Iommu: false,
+		},
+		Balloon: &BalloonConfig{
+			Size:              0,
+			DeflateOnOom:      false,
+			FreePageReporting: false,
+		},
+		Fs:   nil,
+		Pmem: nil,
+		Serial: &ConsoleConfig{
+			File:  "",
+			Mode:  "",
+			Iommu: false,
+		},
+		Console: &ConsoleConfig{
+			File:  "",
+			Mode:  "",
+			Iommu: false,
+		},
+		Devices: nil,
+		Vdpa:    nil,
+		Vsock: &VsockConfig{
+			CID:        0,
+			Socket:     "",
+			Iommu:      false,
+			PciSegment: 0,
+			ID:         "",
+		},
+		SgxEpc:   nil,
+		Numa:     nil,
+		Iommu:    false,
+		Watchdog: false,
+		Platform: &PlatformConfig{
+			NumPciSegments: 0,
+			IommuSegments:  nil,
+			SerialNumber:   "",
+			UUID:           nil,
+			OemStrings:     nil,
+			Tdx:            false,
+		},
+		Tpm: &TpmConfig{
+			Socket: "",
+		},
+	}
+}

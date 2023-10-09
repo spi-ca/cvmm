@@ -28,11 +28,11 @@ disk:
 directory:
 - configuration`)
 	cfg := &Hypervisor{
+		name:              "mock",
 		imageRoot:         "/srv/vmm/images",
-		nodeRoot:          "/srv/vmm/nodes",
-		volatileDirectory: "run",
+		nodeHome:          "/srv/vmm/nodes/mock",
+		volatileDirectory: "/srv/vmm/nodes/mock/run",
 	}
-	//LoadHyperVisor("/srv/vmm/images", "/srv/vmm/nodes", "run",)
 
 	d := yaml.NewDecoder(r)
 	err := d.Decode(cfg)

@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 )
 
 type (
@@ -241,7 +239,7 @@ func (c *clientImpl) VmCreate(ctx context.Context, config VmConfig) error {
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmConfig: %w", err)
+		return fmt.Errorf("failed to encode VmConfig: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, bytes.NewReader(reqBuf))
@@ -461,7 +459,7 @@ func (c *clientImpl) VmResize(ctx context.Context, config VmResize) error {
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmResize: %w", err)
+		return fmt.Errorf("failed to encode VmResize: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, bytes.NewReader(reqBuf))
@@ -493,7 +491,7 @@ func (c *clientImpl) VmResizeZone(ctx context.Context, config VmResizeZone) erro
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmResizeZone: %w", err)
+		return fmt.Errorf("failed to encode VmResizeZone: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, bytes.NewReader(reqBuf))
@@ -525,7 +523,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*Pci
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddDevice: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddDevice: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, bytes.NewReader(reqBuf))
@@ -568,7 +566,7 @@ func (c *clientImpl) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) 
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmRemoveDevice: %w", err)
+		return fmt.Errorf("failed to encode VmRemoveDevice: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, bytes.NewReader(reqBuf))
@@ -600,7 +598,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDevi
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddDisk: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddDisk: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, bytes.NewReader(reqBuf))
@@ -643,7 +641,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceIn
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddFs: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddFs: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, bytes.NewReader(reqBuf))
@@ -686,7 +684,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDevi
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddPmem: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddPmem: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, bytes.NewReader(reqBuf))
@@ -729,7 +727,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDevice
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddNet: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddNet: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, bytes.NewReader(reqBuf))
@@ -772,7 +770,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDe
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddVsock: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddVsock: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, bytes.NewReader(reqBuf))
@@ -815,7 +813,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDevi
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmAddVdpa: %w", err)
+		return nil, fmt.Errorf("failed to encode VmAddVdpa: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, bytes.NewReader(reqBuf))
@@ -858,7 +856,7 @@ func (c *clientImpl) VmSnapshot(ctx context.Context, config VmSnapshotConfig) er
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmSnapshot: %w", err)
+		return fmt.Errorf("failed to encode VmSnapshot: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSnapshot, bytes.NewReader(reqBuf))
@@ -892,7 +890,7 @@ func (c *clientImpl) VmCoredump(ctx context.Context, config VmCoredumpData) erro
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmCoredump: %w", err)
+		return fmt.Errorf("failed to encode VmCoredump: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, bytes.NewReader(reqBuf))
@@ -926,7 +924,7 @@ func (c *clientImpl) VmRestore(ctx context.Context, config RestoreConfig) error 
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmRestore: %w", err)
+		return fmt.Errorf("failed to encode VmRestore: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, bytes.NewReader(reqBuf))
@@ -958,7 +956,7 @@ func (c *clientImpl) VmReceiveMigration(ctx context.Context, config ReceiveMigra
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmReceiveMigration: %w", err)
+		return fmt.Errorf("failed to encode VmReceiveMigration: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, bytes.NewReader(reqBuf))
@@ -990,7 +988,7 @@ func (c *clientImpl) VmSendMigration(ctx context.Context, config SendMigrationDa
 
 	reqBuf, err := json.Marshal(&config)
 	if err != nil {
-		util.ErrLog.Printf("failed to encode VmSendMigration: %w", err)
+		return fmt.Errorf("failed to encode VmSendMigration: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, bytes.NewReader(reqBuf))
