@@ -19,11 +19,11 @@ type Hypervisor struct {
 
 	args args.Hypervisor
 
-	cli *client
+	cli *clientImpl
 }
 
-func (i *Hypervisor) load(manifestFilename string) error {
-	f, err := os.Open(i.NodeBasePath(manifestFilename))
+func (i *Hypervisor) load(manifestPath string) error {
+	f, err := os.Open(manifestPath)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (i *Hypervisor) DiskArgs(filePath string, readonly bool) string {
 }
 
 func (i *Hypervisor) VolatilePath(rest ...string) string {
-	args := []string{i.nodeHome, i.volatileDirectory}
+	args := []string{i.volatileDirectory}
 	args = append(args, rest...)
 	return filepath.Join(args...)
 }

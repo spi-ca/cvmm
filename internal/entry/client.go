@@ -1,16 +1,14 @@
 package entry
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/hvm"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 
 	"github.com/spf13/viper"
 )
@@ -62,7 +60,6 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 	}
 
 	defer h.Close()
-	started := time.Now()
 	//err := runner.Execute(ctx, srcPath, dstPath)
 	//
 	//
@@ -79,6 +76,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		client = h.GetClient()
 		resp   any
 	)
+
 	switch action {
 	case hvm.ClientActionVmmPing:
 		resp, err = client.VmmPing(ctx)
@@ -215,10 +213,12 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		}
 		err = client.VmSendMigration(ctx, req)
 	default:
-		panic(fmt.Errorf("unknown action %s", action))
+		util.ErrLog.Fatalf("unknown action %s", action)
 	}
 
-	ended := time.Now()
+	if err != nil {
+		util.ErrLog.Fatal(err)
+	}
 
 	if resp != nil {
 		defer os.Stdout.Sync()
@@ -228,9 +228,4 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		}
 	}
 
-	if err == nil {
-		util.InfoLog.Printf("chmgr/client(%s) had been ended in %s", nodeName, ended.Sub(started))
-	} else {
-		util.ErrLog.Fatal(err)
-	}
 }
