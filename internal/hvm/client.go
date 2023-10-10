@@ -116,7 +116,7 @@ func (c *clientImpl) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, clientUrlVmmPing, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmmPing, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
@@ -149,7 +149,7 @@ func (c *clientImpl) VmmShutdown(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmmShutdown, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmmShutdown, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -173,7 +173,7 @@ func (c *clientImpl) VmInfo(ctx context.Context) (*VmInfo, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, clientUrlVmInfo, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmInfo, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
@@ -193,7 +193,7 @@ func (c *clientImpl) VmInfo(ctx context.Context) (*VmInfo, error) {
 	obj := VmInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmInfo, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -206,7 +206,7 @@ func (c *clientImpl) VmCounters(ctx context.Context) (*VmCounters, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, clientUrlVmCounters, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmCounters, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
@@ -226,7 +226,7 @@ func (c *clientImpl) VmCounters(ctx context.Context) (*VmCounters, error) {
 	obj := VmCounters{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmCounters, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -244,7 +244,7 @@ func (c *clientImpl) VmCreate(ctx context.Context, config VmConfig) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCreate, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmCreate, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -269,7 +269,7 @@ func (c *clientImpl) VmDelete(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmDelete, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmDelete, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -293,7 +293,7 @@ func (c *clientImpl) VmBoot(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmBoot, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmBoot, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -319,7 +319,7 @@ func (c *clientImpl) VmPause(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmPause, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmPause, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -347,7 +347,7 @@ func (c *clientImpl) VmResume(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResume, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmResume, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -375,7 +375,7 @@ func (c *clientImpl) VmShutdown(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmShutdown, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmShutdown, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -403,7 +403,7 @@ func (c *clientImpl) VmReboot(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReboot, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmReboot, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -431,7 +431,7 @@ func (c *clientImpl) VmPowerButton(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmPowerButton, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmPowerButton, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
@@ -464,7 +464,7 @@ func (c *clientImpl) VmResize(ctx context.Context, config VmResize) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResize, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmResize, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -496,7 +496,7 @@ func (c *clientImpl) VmResizeZone(ctx context.Context, config VmResizeZone) erro
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmResizeZone, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmResizeZone, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -528,7 +528,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*Pci
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDevice, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddDevice, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -553,7 +553,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*Pci
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddDevice, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -571,7 +571,7 @@ func (c *clientImpl) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRemoveDevice, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmRemoveDevice, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -603,7 +603,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDevi
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddDisk, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddDisk, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -628,7 +628,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDevi
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddDisk, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -646,7 +646,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceIn
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddFs, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddFs, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -671,7 +671,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceIn
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddFs, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -689,7 +689,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDevi
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddPmem, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddPmem, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -714,7 +714,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDevi
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddPmem, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -732,7 +732,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDevice
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddNet, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddNet, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -757,7 +757,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDevice
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddNet, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -775,7 +775,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDe
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVsock, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddVsock, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -800,7 +800,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDe
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddVsock, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -818,7 +818,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDevi
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddVdpa, bytes.NewReader(reqBuf))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddVdpa, http request creation failed : %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -843,7 +843,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDevi
 	obj := PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute VmAddVdpa, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil
@@ -861,7 +861,7 @@ func (c *clientImpl) VmSnapshot(ctx context.Context, config VmSnapshotConfig) er
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSnapshot, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmSnapshot, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -895,7 +895,7 @@ func (c *clientImpl) VmCoredump(ctx context.Context, config VmCoredumpData) erro
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmCoredump, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmCoredump, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -929,7 +929,7 @@ func (c *clientImpl) VmRestore(ctx context.Context, config RestoreConfig) error 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmRestore, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmRestore, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -961,7 +961,7 @@ func (c *clientImpl) VmReceiveMigration(ctx context.Context, config ReceiveMigra
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmReceiveMigration, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmReceiveMigration, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -993,7 +993,7 @@ func (c *clientImpl) VmSendMigration(ctx context.Context, config SendMigrationDa
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmSendMigration, bytes.NewReader(reqBuf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute VmSendMigration, http request creation failed : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
