@@ -1,17 +1,17 @@
 package main
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
-	"github.com/creack/pty"
-	"github.com/spf13/viper"
-	"golang.org/x/sys/unix"
-	"io"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"github.com/creack/pty"
+	"github.com/spf13/viper"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -60,6 +60,7 @@ func main() {
 
 	var (
 		events [32]unix.EpollEvent
+		buf    [512]byte
 	)
 	msec := -1
 
@@ -85,10 +86,6 @@ func main() {
 			panic(errno)
 		}
 
-		//buf := [512]byte{}
-		writeBuf := util.NewRingBuffer(512)
-		readBuf := util.NewRingBuffer(512)
-
 		// Process events
 		for _, e := range events[:n] {
 			if (e.Events & unix.EPOLLIN) == 0 {
@@ -97,13 +94,21 @@ func main() {
 
 			switch fd := e.Fd; fd {
 			case stdinfd:
-				_, _ = io.CopyN(writeBuf, os.Stdin, 512)
-				//n, _ := os.Stdin.Read(buf[:])
-				//ptyMaster.Write(buf[:n])
+				n, _ := os.Stdin.Read(buf[:])
+				if n > 0 {
+					for offset := 0; offset < n; {
+						written, _ := ptyMaster.Write(buf[offset:n])
+						offset += written
+					}
+				}
 			case childstdmaster:
-				_, _ = io.CopyN(readBuf, ptyMaster, 512)
-				//n, _ := ptyMaster.Read(buf[:])
-				//os.Stdout.Write(buf[:n])
+				n, _ := ptyMaster.Read(buf[:])
+				if n > 0 {
+					for offset := 0; offset < n; {
+						written, _ := os.Stdout.Write(buf[offset:n])
+						offset += written
+					}
+				}
 			}
 		}
 

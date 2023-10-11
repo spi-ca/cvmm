@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"golang.org/x/sys/unix"
 	"io"
 	"os"
 	"os/signal"
@@ -39,7 +40,7 @@ func main() {
 	}()
 
 	// Expected Open from a variable.
-	t, err := os.OpenFile(path, os.O_RDWR|syscall.O_NOCTTY, 0) //nolint:gosec
+	t, err := os.OpenFile(path, os.O_RDWR|unix.O_NOCTTY, 0) //nolint:gosec
 	if err != nil {
 		panic(err)
 	}
@@ -82,7 +83,6 @@ func main() {
 
 		go func() { _, _ = io.Copy(os.Stdout, t) }()
 		go func() { util.CaptureEscapeKeySequence(os.Stdin, t); cancel() }()
-		<-ctx.Done()
 	} else {
 		closer := make(chan struct{})
 		go func() {
@@ -114,7 +114,7 @@ func main() {
 				}
 			}
 		}()
-		<-ctx.Done()
 	}
+	<-ctx.Done()
 
 }
