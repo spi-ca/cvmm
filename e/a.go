@@ -69,19 +69,22 @@ func main() {
 		panic(fmt.Errorf("SetNonblock tfd: %w", e))
 	}
 
-	err = addToEpoll(epfd, stdinfd, unix.EPOLLIN)
+	err = addToEpoll(epfd, stdinfd, unix.EPOLLIN|unix.EPOLLHUP)
 	if err != nil {
 		log.Fatalf("failed to start with pty: %v", err)
 	}
 
-	err = addToEpoll(epfd, tfd, unix.EPOLLIN)
+	err = addToEpoll(epfd, tfd, unix.EPOLLIN|unix.EPOLLHUP)
 	if err != nil {
 		log.Fatalf("failed to start with pty: %v", err)
 	}
 
 	var (
-		events [32]unix.EpollEvent
-		buf    [512]byte
+		events  [32]unix.EpollEvent
+		buf     [512]byte
+		msec    = -1
+		step    = 0
+		closing = false
 	)
 
 	//childstdmaster := int32(ptyMaster.Fd())
@@ -119,9 +122,6 @@ func main() {
 		}
 		defer func() { _ = term.Restore(int(stdinfd), oldState) }() // Best effort
 
-		msec := -1
-		step := 0
-
 		// Loop forever
 		for {
 			// Poll the file descriptor
@@ -145,11 +145,16 @@ func main() {
 			}
 
 			// Process events
+			written := 0
 			for _, e := range events[:n] {
 				if (e.Events & unix.EPOLLIN) == 0 {
 					continue
 				}
-
+				closing = closing || ((e.Events & unix.EPOLLHUP) != 0)
+				if closing {
+					util.InfoLog.Printf("stdin closed")
+					_ = removeToEpoll(epfd, e.Fd, unix.EPOLLIN|unix.EPOLLHUP)
+				}
 				switch fd := e.Fd; fd {
 				case stdinfd:
 					n, err := os.Stdin.Read(buf[:])
@@ -182,8 +187,9 @@ func main() {
 							}
 						}
 						for offset := 0; offset < n; {
-							written, err := t.Write(buf[offset:n])
-							offset += written
+							w, err := t.Write(buf[offset:n])
+							offset += w
+							written += w
 
 							if errors.Is(err, io.EOF) {
 								return
@@ -202,8 +208,9 @@ func main() {
 					}
 					if n > 0 {
 						for offset := 0; offset < n; {
-							written, err := os.Stdout.Write(buf[offset:n])
-							offset += written
+							w, err := os.Stdout.Write(buf[offset:n])
+							offset += w
+							written += w
 
 							if errors.Is(err, io.EOF) {
 								return
@@ -221,12 +228,12 @@ func main() {
 				return
 			default:
 			}
+
+			if closing && written == 0 {
+				break
+			}
 		}
-
 	} else {
-
-		msec := -1
-
 		// Loop forever
 		for {
 			// Poll the file descriptor
@@ -249,12 +256,18 @@ func main() {
 				panic(errno)
 			}
 
+			written := 0
+
 			// Process events
 			for _, e := range events[:n] {
 				if (e.Events & unix.EPOLLIN) == 0 {
 					continue
 				}
+				closing = closing || ((e.Events & unix.EPOLLHUP) != 0)
 
+				if closing {
+					util.InfoLog.Printf("stdin closed")
+				}
 				switch fd := e.Fd; fd {
 				case stdinfd:
 					n, err := os.Stdin.Read(buf[:])
@@ -264,10 +277,12 @@ func main() {
 					} else if err != nil {
 						panic(err)
 					}
+					written += n
+
 					if n > 0 {
 						for offset := 0; offset < n; {
-							written, err := t.Write(buf[offset:n])
-							offset += written
+							w, err := t.Write(buf[offset:n])
+							offset += w
 
 							if errors.Is(err, io.EOF) {
 								return
@@ -286,8 +301,8 @@ func main() {
 
 					if n > 0 {
 						for offset := 0; offset < n; {
-							written, err := os.Stdout.Write(buf[offset:n])
-							offset += written
+							w, err := os.Stdout.Write(buf[offset:n])
+							offset += w
 							if errors.Is(err, io.EOF) {
 								return
 							} else if err != nil {
@@ -304,9 +319,12 @@ func main() {
 				return
 			default:
 			}
+
+			if closing && written == 0 {
+				break
+			}
 		}
 	}
-
 }
 
 func addToEpoll(epoll int, fd int32, event int) error {

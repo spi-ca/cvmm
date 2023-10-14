@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"amuz.es/src/spi-ca/chmgr/internal/entry"
@@ -85,6 +86,25 @@ func main() {
 	//	entry.Starter(nodeName)
 
 	//case "stop":
+
+	case "console-file":
+		var (
+			rawPtyId string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			rawPtyId = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			usage("required argument missing")
+		}
+
+		ptyId, err := strconv.Atoi(rawPtyId)
+		if err != nil {
+			usage(fmt.Sprintf("invalid pty_id %s, %s", rawPtyId, err))
+		}
+
+		entry.ConsoleFile(name, ptyId)
 	case "client":
 		var (
 			rawClientAction string
@@ -117,6 +137,7 @@ func usage(reason string) {
 	{{.name}} boot NODE_NAME
 	{{.name}} power-off NODE_NAME
 	{{.name}} console NODE_NAME
+	{{.name}} console-file PTY_ID
 {{- range $val := .clientAction}}
 	{{$.name}} client {{$val.String}} NODE_NAME
 {{- end}}
