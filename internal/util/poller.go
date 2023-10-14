@@ -188,35 +188,7 @@ func (p *terminalPoll) Remove(fds ...int) error {
 	p.l.Lock()
 	defer p.l.Unlock()
 
-	epfd := p.epfd
-	if epfd == 0 {
-		return fmt.Errorf("epfd not opened")
-	}
-
-	var (
-		removed    []int
-		removeErrs error
-	)
-	fd := -1
-	for len(fds) > 0 {
-		fd, fds = fds[len(fds)-1], fds[:len(fds)-1]
-
-		ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
-		if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, fd, &ev); err != nil {
-			removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, epfd, err))
-			continue
-		}
-
-		removed = append(removed, fd)
-	}
-
-	for _, fd = range removed {
-		if _, added := p.handler[fd]; added {
-			delete(p.handler, fd)
-		}
-	}
-
-	return removeErrs
+	return p.removeInternal(fds...)
 }
 
 func (p *terminalPoll) Register(pr ...TerminalPollReader) error {
@@ -289,7 +261,7 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 			err error
 		)
 		if closed {
-			err = p.Remove(fd)
+			err = p.removeInternal(fd)
 			if err != nil {
 				ErrLog.Printf("%s", err)
 			}
@@ -316,4 +288,36 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 	default:
 		return closing
 	}
+}
+
+func (p *terminalPoll) removeInternal(fds ...int) error {
+	epfd := p.epfd
+	if epfd == 0 {
+		return fmt.Errorf("epfd not opened")
+	}
+
+	var (
+		removed    []int
+		removeErrs error
+	)
+	fd := -1
+	for len(fds) > 0 {
+		fd, fds = fds[len(fds)-1], fds[:len(fds)-1]
+
+		ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
+		if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, fd, &ev); err != nil {
+			removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, epfd, err))
+			continue
+		}
+
+		removed = append(removed, fd)
+	}
+
+	for _, fd = range removed {
+		if _, added := p.handler[fd]; added {
+			delete(p.handler, fd)
+		}
+	}
+
+	return removeErrs
 }
