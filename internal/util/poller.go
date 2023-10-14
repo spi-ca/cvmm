@@ -50,8 +50,8 @@ func NewEscapeHandler(fd int) TerminalPollReader {
 	}
 }
 
-func (h escapeHandler) FD() int { return h.fd }
-func (h escapeHandler) Handle(_ int, buf []byte, closed bool) bool {
+func (h *escapeHandler) FD() int { return h.fd }
+func (h *escapeHandler) Handle(_ int, buf []byte, closed bool) bool {
 	for _, b := range buf {
 		switch h.step {
 		case 0:
