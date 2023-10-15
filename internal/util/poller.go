@@ -4,17 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"io"
 	"runtime"
 	"sync"
-
-	"golang.org/x/sys/unix"
 )
 
 type (
 	TerminalPollReader interface {
 		FD() int
-		Handle(fd int, buf []byte, closed bool) (done bool)
+		Handle(fd int, buf []byte, isHup, closing bool) (done bool)
 	}
 
 	TerminalPoll interface {
@@ -51,7 +50,7 @@ func NewEscapeHandler(fd int) TerminalPollReader {
 }
 
 func (h *escapeHandler) FD() int { return h.fd }
-func (h *escapeHandler) Handle(_ int, buf []byte, closed bool) bool {
+func (h *escapeHandler) Handle(_ int, buf []byte, isHup, _ bool) bool {
 	for _, b := range buf {
 		switch h.step {
 		case 0:
@@ -68,7 +67,7 @@ func (h *escapeHandler) Handle(_ int, buf []byte, closed bool) bool {
 		default:
 		}
 	}
-	return closed
+	return isHup
 }
 
 func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
@@ -78,7 +77,7 @@ func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
 	}
 }
 func (c simpleCopier) FD() int { return c.fd }
-func (c simpleCopier) Handle(_ int, buf []byte, closed bool) bool {
+func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 	for offset := 0; offset < len(buf); {
 		w, err := c.w.Write(buf[offset:])
 		offset += w
@@ -92,7 +91,7 @@ func (c simpleCopier) Handle(_ int, buf []byte, closed bool) bool {
 		}
 	}
 
-	return closed
+	return isHup || closing && len(buf) == 0
 }
 
 func NewTerminalPoll() (TerminalPoll, error) {
@@ -254,19 +253,12 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 	// Process events
 	for _, e := range p.events[:n] {
 		fd := int(e.Fd)
-		closed := (e.Events & unix.EPOLLHUP) != 0
+		isHup := (e.Events & unix.EPOLLHUP) != 0
 
 		var (
 			n   int
 			err error
 		)
-		if closed {
-			err = p.removeInternal(fd)
-			if err != nil {
-				ErrLog.Printf("%s", err)
-			}
-		}
-
 		if (e.Events & unix.EPOLLIN) > 0 {
 			n, err = unix.Read(fd, buf[:])
 			if errors.Is(err, io.EOF) {
@@ -274,10 +266,16 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 				ErrLog.Printf("epoll_wait: error :%s ", err)
 			}
 		}
-
 		callbacks, _ := p.handler[fd]
 		for _, cb := range callbacks {
-			closing = cb.Handle(fd, buf[:n], closed) || closing
+			closing = cb.Handle(fd, buf[:n], isHup, closing) || closing
+		}
+
+		if isHup {
+			err = p.removeInternal(fd)
+			if err != nil {
+				ErrLog.Printf("%s", err)
+			}
 		}
 	}
 
