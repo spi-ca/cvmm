@@ -1,17 +1,19 @@
 package entry
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
+	"errors"
 	"fmt"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"syscall"
-
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"time"
 )
 
 func ConsoleFile(name string, ptyId int) {
@@ -88,6 +90,30 @@ func ConsoleFile(name string, ptyId int) {
 		defer terminalCloser()
 
 		handlers = append(handlers, util.NewEscapeHandler(stdinfd))
+	} else {
+		defer func() {
+			_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+			_, err = io.CopyN(os.Stdout, ttyFile, 80)
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			for {
+				_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+				writeBytes, err := io.Copy(os.Stdout, ttyFile)
+				if err != nil {
+					break
+				}
+				select {
+				case <-ctx.Done():
+					break
+				default:
+				}
+
+				if writeBytes == 0 {
+					break
+				}
+			}
+		}()
 	}
 
 	handlers = append(handlers, util.NewTerminalPollCopier(stdinfd, ttyFile))
