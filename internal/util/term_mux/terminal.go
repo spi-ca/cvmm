@@ -1,6 +1,7 @@
-package util
+package term_mux
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 	"os"
@@ -13,7 +14,7 @@ func PrepareTerminal(outer, inner int) func() {
 	// Set stdin in raw mode.
 	oldState, err := term.MakeRaw(outer)
 	if err != nil {
-		ErrLog.Printf("failed to initializing pty: %s", err)
+		util.ErrLog.Printf("failed to initializing pty: %s", err)
 		return func() {}
 	}
 
@@ -27,13 +28,13 @@ func PrepareTerminal(outer, inner int) func() {
 		for range ch {
 			ws, err := unix.IoctlGetWinsize(outer, unix.TIOCGWINSZ)
 			if err != nil {
-				ErrLog.Printf("error getting winsz: %s", err)
+				util.ErrLog.Printf("error getting winsz: %s", err)
 				continue
 			}
 
 			err = unix.IoctlSetWinsize(inner, unix.TIOCSWINSZ, ws)
 			if err != nil {
-				ErrLog.Printf("error resizing pty: %s", err)
+				util.ErrLog.Printf("error resizing pty: %s", err)
 			}
 		}
 	}()
@@ -45,7 +46,7 @@ func PrepareTerminal(outer, inner int) func() {
 		<-waiter
 		err = term.Restore(outer, oldState)
 		if err != nil {
-			ErrLog.Printf("failed to cleanup stderr: %s", err)
+			util.ErrLog.Printf("failed to cleanup stderr: %s", err)
 		}
 	}
 }

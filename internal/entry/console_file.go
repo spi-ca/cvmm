@@ -2,6 +2,7 @@ package entry
 
 import (
 	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/chmgr/internal/util/term_mux"
 	"context"
 	"errors"
 	"fmt"
@@ -58,7 +59,7 @@ func ConsoleFile(name string, ptyId int) {
 
 	stdinfd, tfd := int(os.Stdin.Fd()), int(ttyFile.Fd())
 
-	p, err := util.NewTerminalPoll()
+	p, err := term_mux.NewTerminalPoll()
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +74,7 @@ func ConsoleFile(name string, ptyId int) {
 		panic(err)
 	}
 
-	var handlers []util.TerminalPollReader
+	var handlers []term_mux.TerminalPollReader
 
 	isTerminal := term.IsTerminal(stdinfd)
 	if isTerminal {
@@ -86,10 +87,10 @@ func ConsoleFile(name string, ptyId int) {
 			_ = os.Stderr.Sync()
 		}()
 
-		terminalCloser := util.PrepareTerminal(stdinfd, tfd)
+		terminalCloser := term_mux.PrepareTerminal(stdinfd, tfd)
 		defer terminalCloser()
 
-		handlers = append(handlers, util.NewEscapeHandler(stdinfd))
+		handlers = append(handlers, term_mux.NewEscapeHandler(stdinfd))
 	} else {
 		defer func() {
 			_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
@@ -116,8 +117,8 @@ func ConsoleFile(name string, ptyId int) {
 		}()
 	}
 
-	handlers = append(handlers, util.NewTerminalPollCopier(stdinfd, ttyFile))
-	handlers = append(handlers, util.NewTerminalPollCopier(tfd, os.Stdout))
+	handlers = append(handlers, term_mux.NewTerminalPollCopier(stdinfd, ttyFile))
+	handlers = append(handlers, term_mux.NewTerminalPollCopier(tfd, os.Stdout))
 
 	err = p.Register(handlers...)
 	if err != nil {

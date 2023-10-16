@@ -1,6 +1,7 @@
-package util
+package term_mux
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"errors"
 	"fmt"
@@ -24,11 +25,9 @@ type (
 		Wait(ctx context.Context)
 	}
 	terminalPoll struct {
-		waitMsec int
+		kqfd int
 
-		epfd int
-
-		events  [32]unix.EpollEvent
+		events  [32]unix.Kevent_t
 		handler map[int][]TerminalPollReader
 
 		l sync.Mutex
@@ -83,10 +82,10 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 		offset += w
 
 		if errors.Is(err, io.EOF) {
-			InfoLog.Printf("closing")
+			util.InfoLog.Printf("closing")
 			return true
 		} else if err != nil {
-			ErrLog.Printf("failed to copy data: %s", err)
+			util.ErrLog.Printf("failed to copy data: %s", err)
 			return true
 		}
 	}
@@ -95,13 +94,13 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 }
 
 func NewTerminalPoll() (TerminalPoll, error) {
-	epfd, e := unix.EpollCreate1(unix.EPOLL_CLOEXEC)
+	kqfd, e := unix.Kqueue()
 	if e != nil {
 		return nil, fmt.Errorf("epoll_create1: %w", e)
 	}
 
 	return &terminalPoll{
-		epfd:    epfd,
+		kqfd:    kqfd,
 		handler: make(map[int][]TerminalPollReader),
 	}, nil
 }
@@ -109,21 +108,25 @@ func NewTerminalPoll() (TerminalPoll, error) {
 func (p *terminalPoll) Close() (err error) {
 	p.l.Lock()
 	defer p.l.Unlock()
-	epfd := p.epfd
-	if epfd == 0 {
+	kqfd := p.kqfd
+	if kqfd == 0 {
 		return nil
 	}
-	p.epfd = 0
+	p.kqfd = 0
 	defer func() {
-		err = errors.Join(err, unix.Close(epfd))
+		err = errors.Join(err, unix.Close(kqfd))
 	}()
 
 	for fd := range p.handler {
 		delete(p.handler, fd)
 
-		ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
-		if deleteErr := unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, fd, &ev); err != nil {
-			err = errors.Join(err, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, epfd, deleteErr))
+		ev := unix.Kevent_t{
+			Ident:  uint64(fd),
+			Filter: unix.EVFILT_READ,
+			Flags:  unix.EV_DELETE,
+		}
+		if _, deleteErr := unix.Kevent(kqfd, []unix.Kevent_t{ev}, nil, nil); err != nil {
+			err = errors.Join(err, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, kqfd, deleteErr))
 			continue
 		}
 	}
@@ -135,9 +138,9 @@ func (p *terminalPoll) Add(fds ...int) error {
 	p.l.Lock()
 	defer p.l.Unlock()
 
-	epfd := p.epfd
-	if epfd == 0 {
-		return fmt.Errorf("epfd not opened")
+	kqfd := p.kqfd
+	if kqfd == 0 {
+		return fmt.Errorf("kqfd not opened")
 	}
 
 	var (
@@ -153,9 +156,13 @@ func (p *terminalPoll) Add(fds ...int) error {
 			break
 		}
 
-		ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
-		if err = unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, fd, &ev); err != nil {
-			loopErrs = errors.Join(loopErrs, fmt.Errorf("failed to adding EPoll with fd(%d) epfs(%d) : %v", fd, epfd, err))
+		ev := unix.Kevent_t{
+			Ident:  uint64(fd),
+			Filter: unix.EVFILT_READ,
+			Flags:  unix.EV_ADD,
+		}
+		if _, err = unix.Kevent(kqfd, []unix.Kevent_t{ev}, nil, nil); err != nil {
+			loopErrs = errors.Join(loopErrs, fmt.Errorf("failed to adding Kevent with fd(%d) epfs(%d) : %v", fd, kqfd, err))
 			break
 		}
 		added = append(added, fd)
@@ -166,9 +173,13 @@ func (p *terminalPoll) Add(fds ...int) error {
 		for len(added) > 0 {
 			fd, added = added[len(added)-1], added[:len(added)-1]
 
-			ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
-			if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, fd, &ev); err != nil {
-				removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, epfd, err))
+			ev := unix.Kevent_t{
+				Ident:  uint64(fd),
+				Filter: unix.EVFILT_READ,
+				Flags:  unix.EV_DELETE,
+			}
+			if _, err := unix.Kevent(kqfd, []unix.Kevent_t{ev}, nil, nil); err != nil {
+				removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove Kevent with fd(%d) epfs(%d) : %v", fd, kqfd, err))
 			}
 		}
 	} else {
@@ -208,62 +219,58 @@ func (p *terminalPoll) Register(pr ...TerminalPollReader) error {
 }
 
 func (p *terminalPoll) Wait(ctx context.Context) {
-	epfd := p.epfd
-	if epfd == 0 {
-		//return fmt.Errorf("epfd not opened")
+	kqfd := p.kqfd
+	if kqfd == 0 {
+		//return fmt.Errorf("kqfd not opened")
 		return
 	}
-
-	p.waitMsec = -1
 
 	buf := [512]byte{}
 
 	closing := false
 	for !closing {
-		closing = p.wait(ctx, epfd, buf, closing)
+		closing = p.wait(ctx, kqfd, buf, closing)
 	}
 }
 
-func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closing bool) bool {
+func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closing bool) bool {
 	p.l.Lock()
 	defer p.l.Unlock()
 
 	// Poll the file descriptor
-	n, errno := unix.EpollWait(epfd, p.events[:], p.waitMsec)
+	n, errno := unix.Kevent(kqfd, nil, p.events[:], nil)
 	switch errno {
 	case nil:
 		if n >= len(p.events) {
-			ErrLog.Printf("epoll_wait: returned more than %d events", n)
+			util.ErrLog.Printf("epoll_wait: returned more than %d events", n)
 			return true
 		} else if n > 0 {
-			p.waitMsec = 0
 			break
 		}
 		// if n <=0
 		fallthrough
 	case unix.EINTR:
 		runtime.Gosched()
-		p.waitMsec = -1
 		return closing
 	default:
-		ErrLog.Printf("epoll_wait: error :%s ", errno)
+		util.ErrLog.Printf("epoll_wait: error :%s ", errno)
 		return true
 	}
 
 	// Process events
 	for _, e := range p.events[:n] {
-		fd := int(e.Fd)
-		isHup := (e.Events & unix.EPOLLHUP) != 0
+		fd := int(e.Ident)
+		isHup := (e.Flags & unix.EV_EOF) != 0
 
 		var (
 			n   int
 			err error
 		)
-		if (e.Events & unix.EPOLLIN) > 0 {
+		if (e.Filter & unix.EVFILT_READ) > 0 {
 			n, err = unix.Read(fd, buf[:])
 			if errors.Is(err, io.EOF) {
 			} else if err != nil {
-				ErrLog.Printf("epoll_wait: error :%s ", err)
+				util.ErrLog.Printf("epoll_wait: error :%s ", err)
 			}
 		}
 		callbacks, _ := p.handler[fd]
@@ -274,7 +281,7 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 		if isHup {
 			err = p.removeInternal(fd)
 			if err != nil {
-				ErrLog.Printf("%s", err)
+				util.ErrLog.Printf("%s", err)
 			}
 		}
 	}
@@ -289,9 +296,9 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 }
 
 func (p *terminalPoll) removeInternal(fds ...int) error {
-	epfd := p.epfd
-	if epfd == 0 {
-		return fmt.Errorf("epfd not opened")
+	kqfd := p.kqfd
+	if kqfd == 0 {
+		return fmt.Errorf("kqfd not opened")
 	}
 
 	var (
@@ -302,9 +309,13 @@ func (p *terminalPoll) removeInternal(fds ...int) error {
 	for len(fds) > 0 {
 		fd, fds = fds[len(fds)-1], fds[:len(fds)-1]
 
-		ev := unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)}
-		if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, fd, &ev); err != nil {
-			removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove EPoll with fd(%d) epfs(%d) : %v", fd, epfd, err))
+		ev := unix.Kevent_t{
+			Ident:  uint64(fd),
+			Filter: unix.EVFILT_READ,
+			Flags:  unix.EV_DELETE,
+		}
+		if _, err := unix.Kevent(kqfd, []unix.Kevent_t{ev}, nil, nil); err != nil {
+			removeErrs = errors.Join(removeErrs, fmt.Errorf("failed to remove Kevent with fd(%d) epfs(%d) : %v", fd, kqfd, err))
 			continue
 		}
 
