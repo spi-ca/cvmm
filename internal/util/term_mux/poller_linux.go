@@ -260,7 +260,7 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 			n   int
 			err error
 		)
-		if (e.Events & unix.EPOLLIN) > 0 {
+		if (e.Events & unix.EPOLLIN) != 0 {
 			n, err = unix.Read(fd, buf[:])
 			if errors.Is(err, io.EOF) {
 			} else if err != nil {

@@ -78,6 +78,7 @@ func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
 func (c simpleCopier) FD() int { return c.fd }
 func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 	for offset := 0; offset < len(buf); {
+
 		w, err := c.w.Write(buf[offset:])
 		offset += w
 
@@ -266,13 +267,14 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 			n   int
 			err error
 		)
-		if (e.Filter & unix.EVFILT_READ) > 0 {
+		if (e.Filter & unix.EVFILT_READ) != 0 {
 			n, err = unix.Read(fd, buf[:])
 			if errors.Is(err, io.EOF) {
 			} else if err != nil {
 				util.ErrLog.Printf("epoll_wait: error :%s ", err)
 			}
 		}
+
 		callbacks, _ := p.handler[fd]
 		for _, cb := range callbacks {
 			closing = cb.Handle(fd, buf[:n], isHup, closing) || closing
