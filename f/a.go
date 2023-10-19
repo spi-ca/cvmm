@@ -2,7 +2,6 @@ package main
 
 import (
 	"amuz.es/src/spi-ca/chmgr/internal/util"
-	"amuz.es/src/spi-ca/chmgr/internal/util/term_mux"
 	"context"
 	"errors"
 	"fmt"
@@ -48,7 +47,7 @@ func main() {
 
 	stdinfd, ptyfd := int(os.Stdin.Fd()), int(ptyMaster.Fd())
 
-	p, err := term_mux.NewTerminalPoll()
+	p, err := util.NewTerminalPoll()
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +62,7 @@ func main() {
 		panic(err)
 	}
 
-	var handlers []term_mux.TerminalPollReader
+	var handlers []util.TerminalPollReader
 
 	isTerminal := term.IsTerminal(stdinfd)
 	if isTerminal {
@@ -74,9 +73,9 @@ func main() {
 			_, _ = os.Stderr.Write([]byte{'\r', '\n'})
 			_ = os.Stderr.Sync()
 		}()
-		defer term_mux.PrepareTerminal(stdinfd, ptyfd)()
+		defer util.PrepareTerminal(stdinfd, ptyfd)()
 
-		handlers = append(handlers, term_mux.NewEscapeHandler(stdinfd))
+		handlers = append(handlers, util.NewEscapeHandler(stdinfd))
 	} else {
 		closer := make(chan struct{})
 		go func() {
@@ -109,8 +108,8 @@ func main() {
 		}()
 	}
 
-	handlers = append(handlers, term_mux.NewTerminalPollCopier(stdinfd, ptyMaster))
-	handlers = append(handlers, term_mux.NewTerminalPollCopier(ptyfd, os.Stdout))
+	handlers = append(handlers, util.NewTerminalPollCopier(stdinfd, ptyMaster))
+	handlers = append(handlers, util.NewTerminalPollCopier(ptyfd, os.Stdout))
 
 	err = p.Register(handlers...)
 	if err != nil {

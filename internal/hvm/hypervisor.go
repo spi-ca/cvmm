@@ -1,23 +1,14 @@
 package hvm
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"github.com/creack/pty"
-	"io"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
-	"time"
-
-	"golang.org/x/term"
-
 	"amuz.es/src/spi-ca/chmgr/internal/args"
 	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"context"
+	"fmt"
 	"gopkg.in/yaml.v3"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Hypervisor struct {
@@ -216,84 +207,5 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 	}
 
 	ptyPath := info.Config.Console.File
-
-	// Expected Open from a variable.
-	t, err := os.OpenFile(ptyPath, os.O_RDWR|syscall.O_NOCTTY, 0) //nolint:gosec
-	if err != nil {
-		return fmt.Errorf("failed to open console: %w", err)
-	}
-
-	defer func() { _ = t.Close() }() // Best effort.
-	if term.IsTerminal(int(os.Stdin.Fd())) {
-		util.InfoLog.Printf("opening console pty(%s)", ptyPath)
-
-		// Handle pty size.
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGWINCH)
-		go func() {
-			for range ch {
-				err = pty.InheritSize(os.Stdin, t)
-				if err != nil {
-					util.ErrLog.Printf("error resizing pty: %s", err)
-				}
-			}
-		}()
-
-		_, _ = t.Write([]byte{'\n', '\n'})
-		_ = t.Sync()
-		defer func() {
-			_, _ = os.Stderr.Write([]byte{'\r', '\n'})
-			_ = os.Stderr.Sync()
-			util.InfoLog.Printf("Bye!")
-		}()
-		util.InfoLog.Printf("Press ESC+( keystroke to exit this session.\r")
-
-		<-time.After(time.Second)
-
-		ch <- syscall.SIGWINCH                        // Initial resize.
-		defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
-
-		// Set stdin in raw mode.
-		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err != nil {
-			return fmt.Errorf("failed to open console: %w", err)
-		}
-		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort
-
-		go func() { _, _ = io.Copy(os.Stdout, t) }()
-		go func() { util.CaptureEscapeKeySequence(os.Stdin, t); cancel() }()
-	} else {
-		closer := make(chan struct{})
-		go func() {
-			defer close(closer)
-			_, _ = io.Copy(t, os.Stdin)
-		}()
-
-		go func() {
-			defer cancel()
-			_ = t.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
-			_, err = io.CopyN(os.Stdout, t, 80)
-			if errors.Is(err, io.EOF) {
-				return
-			}
-			for {
-				_ = t.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
-				writeBytes, err := io.Copy(os.Stdout, t)
-				if errors.Is(err, io.EOF) {
-					return
-				}
-				select {
-				case <-ctx.Done():
-					return
-				case <-closer:
-					if writeBytes == 0 {
-						return
-					}
-				default:
-				}
-			}
-		}()
-	}
-	<-ctx.Done()
-	return nil
+	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 }

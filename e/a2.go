@@ -1,7 +1,6 @@
 package main
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/util/term_mux"
 	"context"
 	"fmt"
 	"golang.org/x/term"
@@ -46,7 +45,7 @@ func main() {
 
 	stdinfd, tfd := int(os.Stdin.Fd()), int(t.Fd())
 
-	p, err := term_mux.NewTerminalPoll()
+	p, err := util.NewTerminalPoll()
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +60,7 @@ func main() {
 		panic(err)
 	}
 
-	var handlers []term_mux.TerminalPollReader
+	var handlers []util.TerminalPollReader
 
 	isTerminal := term.IsTerminal(stdinfd)
 	if isTerminal {
@@ -73,13 +72,13 @@ func main() {
 			_, _ = os.Stderr.Write([]byte{'\r', '\n'})
 			_ = os.Stderr.Sync()
 		}()
-		defer term_mux.PrepareTerminal(stdinfd, tfd)()
+		defer util.PrepareTerminal(stdinfd, tfd)()
 
-		handlers = append(handlers, term_mux.NewEscapeHandler(stdinfd))
+		handlers = append(handlers, util.NewEscapeHandler(stdinfd))
 	}
 
-	handlers = append(handlers, term_mux.NewTerminalPollCopier(stdinfd, t))
-	handlers = append(handlers, term_mux.NewTerminalPollCopier(tfd, os.Stdout))
+	handlers = append(handlers, util.NewTerminalPollCopier(stdinfd, t))
+	handlers = append(handlers, util.NewTerminalPollCopier(tfd, os.Stdout))
 
 	err = p.Register(handlers...)
 	if err != nil {

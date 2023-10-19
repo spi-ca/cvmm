@@ -1,7 +1,6 @@
-package term_mux
+package util
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"errors"
 	"fmt"
@@ -83,13 +82,13 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 		offset += w
 
 		if errors.Is(err, io.EOF) {
-			util.InfoLog.Printf("closing")
+			InfoLog.Printf("closing")
 			return true
 		} else if errors.Is(err, unix.EAGAIN) {
 			// 인터럽트 선점으로 인한 재시도 요청
 			// do nothing
 		} else if err != nil {
-			util.ErrLog.Printf("failed to copy data: %s", err)
+			ErrLog.Printf("failed to copy data: %s", err)
 			return true
 		}
 	}
@@ -246,7 +245,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 	switch errno {
 	case nil:
 		if n >= len(p.events) {
-			util.ErrLog.Printf("epoll_wait: returned more than %d events", n)
+			ErrLog.Printf("epoll_wait: returned more than %d events", n)
 			return true
 		} else if n > 0 {
 			break
@@ -257,7 +256,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 		runtime.Gosched()
 		return closing
 	default:
-		util.ErrLog.Printf("epoll_wait: error :%s ", errno)
+		ErrLog.Printf("epoll_wait: error :%s ", errno)
 		return true
 	}
 
@@ -274,7 +273,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 			n, err = unix.Read(fd, buf[:])
 			if errors.Is(err, io.EOF) {
 			} else if err != nil {
-				util.ErrLog.Printf("epoll_wait: error :%s ", err)
+				ErrLog.Printf("epoll_wait: error :%s ", err)
 			}
 		}
 
@@ -286,7 +285,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 		if isHup {
 			err = p.removeInternal(fd)
 			if err != nil {
-				util.ErrLog.Printf("%s", err)
+				ErrLog.Printf("%s", err)
 			}
 		}
 	}
