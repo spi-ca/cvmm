@@ -92,6 +92,12 @@ func ConsoleFile(name string, ptyId int) {
 
 		handlers = append(handlers, term_mux.NewEscapeHandler(stdinfd))
 	} else {
+		closer := make(chan struct{})
+		go func() {
+			defer close(closer)
+			_, _ = io.Copy(ttyFile, os.Stdin)
+		}()
+
 		defer func() {
 			_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
 			_, err = io.CopyN(os.Stdout, ttyFile, 80)
@@ -107,11 +113,11 @@ func ConsoleFile(name string, ptyId int) {
 				select {
 				case <-ctx.Done():
 					break
+				case <-closer:
+					if writeBytes == 0 {
+						break
+					}
 				default:
-				}
-
-				if writeBytes == 0 {
-					break
 				}
 			}
 		}()

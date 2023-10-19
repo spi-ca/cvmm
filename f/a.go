@@ -1,19 +1,22 @@
 package main
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"amuz.es/src/spi-ca/chmgr/internal/util/term_mux"
 	"context"
+	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"github.com/creack/pty"
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -50,7 +53,7 @@ func main() {
 		panic(err)
 	}
 	defer func() {
-		if pollerErr := p.Close(); pollerErr != nil {
+		if closeErr := p.Close(); closeErr != nil {
 			util.ErrLog.Printf("failed to close TerminalPoll: %s", pollerErr)
 		}
 	}()
@@ -74,6 +77,36 @@ func main() {
 		defer term_mux.PrepareTerminal(stdinfd, ptyfd)()
 
 		handlers = append(handlers, term_mux.NewEscapeHandler(stdinfd))
+	} else {
+		closer := make(chan struct{})
+		go func() {
+			defer close(closer)
+			_, _ = io.Copy(ptyMaster, os.Stdin)
+		}()
+
+		defer func() {
+			_ = ptyMaster.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+			_, err = io.CopyN(os.Stdout, ptyMaster, 80)
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			for {
+				_ = ptyMaster.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+				writeBytes, err := io.Copy(os.Stdout, ptyMaster)
+				if err != nil {
+					break
+				}
+				select {
+				case <-ctx.Done():
+					break
+				case <-closer:
+					if writeBytes == 0 {
+						break
+					}
+				default:
+				}
+			}
+		}()
 	}
 
 	handlers = append(handlers, term_mux.NewTerminalPollCopier(stdinfd, ptyMaster))

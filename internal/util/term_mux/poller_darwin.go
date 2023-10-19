@@ -85,6 +85,9 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 		if errors.Is(err, io.EOF) {
 			util.InfoLog.Printf("closing")
 			return true
+		} else if errors.Is(err, unix.EAGAIN) {
+			// 인터럽트 선점으로 인한 재시도 요청
+			// do nothing
 		} else if err != nil {
 			util.ErrLog.Printf("failed to copy data: %s", err)
 			return true
