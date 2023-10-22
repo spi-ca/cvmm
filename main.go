@@ -71,6 +71,19 @@ func main() {
 	//		usage()
 	//	}
 	//	entry.Starter(nodeName)
+	case "shutdown":
+		var (
+			nodeName string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			nodeName = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			fmt.Println("required arguments missing")
+			usage()
+		}
+		entry.Starter(nodeName)
 	case "console":
 		var (
 			nodeName string
@@ -132,8 +145,9 @@ func usage(reason string) {
 	}
 	_, _ = os.Stderr.WriteString(util.F(`usage:
 	{{.name}} boot NODE_NAME
-	{{.name}} power-off NODE_NAME
+	{{.name}} shutdown NODE_NAME
 	{{.name}} console NODE_NAME
+	{{.name}} ping NODE_NAME
 	{{.name}} console-file PTY_ID
 {{- range $val := .clientAction}}
 	{{$.name}} client {{$val.String}} NODE_NAME

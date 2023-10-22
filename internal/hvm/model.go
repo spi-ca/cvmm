@@ -368,6 +368,7 @@ func (c CpuFeatures) String() string {
 
 func (c CpusConfig) String() string {
 	var args []string
+
 	if c.BootVcpus > 0 {
 		args = append(args, fmt.Sprintf("boot=%d", c.BootVcpus))
 	}
@@ -396,9 +397,56 @@ func (c CpusConfig) String() string {
 
 	return strings.Join(args, ",")
 }
+func (m MemoryZoneConfig) String() string {
+	var args []string
+
+	if m.Size > 0 {
+		args = append(args, fmt.Sprintf("size=%d", m.Size))
+	}
+
+	if len(m.File) > 0 {
+		args = append(args, "file=%s", m.File)
+	}
+
+	if m.Shared {
+		args = append(args, "shared=on")
+	}
+
+	if m.Hugepages {
+		args = append(args, "hugepages=on")
+	}
+
+	if m.HugepageSize > 0 {
+		args = append(args, fmt.Sprintf("hugepage_size=%d", m.HugepageSize))
+	}
+
+	if m.HostNumaNode > 0 {
+		args = append(args, fmt.Sprintf("host_numa_node=%d", m.HostNumaNode))
+	}
+
+	if len(m.ID) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", m.ID))
+	}
+
+	if m.HotplugSize > 0 {
+		args = append(args, fmt.Sprintf("hotplug_size=%d", m.HotplugSize))
+	}
+
+	if m.HotpluggedSize > 0 {
+		args = append(args, fmt.Sprintf("hotplugged_size=%d", m.HotpluggedSize))
+	}
+
+	if m.Prefault {
+		args = append(args, "prefault=on")
+	}
+
+	return strings.Join(args, ",")
+}
 
 func (m MemoryConfig) String() string {
-	var args []string
+	var (
+		args, flags []string
+	)
 
 	if m.Size > 0 {
 		args = append(args, fmt.Sprintf("size=%d", m.Size))
@@ -440,11 +488,342 @@ func (m MemoryConfig) String() string {
 		args = append(args, "thp=on")
 	}
 
-	// todo memoryzoneconfig
+	if len(args) > 0 {
+		flags = append(flags, strings.Join(args, ","))
+	}
+
+	for _, cfg := range m.Zones {
+		config := cfg.String()
+		if len(config) > 0 {
+			flags = append(flags, fmt.Sprintf("--memory-zone %s", config))
+		}
+	}
+
+	return strings.Join(flags, " ")
+}
+
+func (p PayloadConfig) String() string {
+	var flags []string
+
+	if len(p.Firmware) > 0 {
+		flags = append(flags, fmt.Sprintf("--firmware %s", p.Firmware))
+	}
+
+	if len(p.Kernel) > 0 {
+		flags = append(flags, fmt.Sprintf("--kernel %s", p.Kernel))
+	}
+
+	if len(p.Cmdline) > 0 {
+		flags = append(flags, fmt.Sprintf("--cmdline %s", p.Cmdline))
+	}
+
+	if len(p.Initramfs) > 0 {
+		flags = append(flags, fmt.Sprintf("--initramfs %s", p.Initramfs))
+	}
+
+	return strings.Join(flags, " ")
+}
+
+func (r RateLimiterConfig) String() string {
+	var args []string
+
+	if t := r.Bandwidth; t != nil {
+		if t.Size > 0 {
+			args = append(args, fmt.Sprintf("bw_size=%d", t.Size))
+		}
+
+		if t.OneTimeBurst > 0 {
+			args = append(args, fmt.Sprintf("bw_one_time_burst=%d", t.OneTimeBurst))
+		}
+
+		if t.RefillTime > 0 {
+			args = append(args, fmt.Sprintf("bw_refill_time=%d", t.RefillTime))
+		}
+	}
+
+	if t := r.Ops; t != nil {
+		if t.Size > 0 {
+			args = append(args, fmt.Sprintf("ops_size=%d", t.Size))
+		}
+
+		if t.OneTimeBurst > 0 {
+			args = append(args, fmt.Sprintf("ops_one_time_burst=%d", t.OneTimeBurst))
+		}
+
+		if t.RefillTime > 0 {
+			args = append(args, fmt.Sprintf("ops_refill_time=%d", t.RefillTime))
+		}
+	}
 
 	return strings.Join(args, ",")
 }
 
+func (d DiskConfig) String() string {
+	var args []string
+
+	if len(d.Path) > 0 {
+		args = append(args, fmt.Sprintf("path=%s", d.Path))
+	}
+
+	if d.Readonly {
+		args = append(args, "readonly=on")
+	}
+
+	if d.Direct {
+		args = append(args, "direct=on")
+	}
+
+	if d.Iommu {
+		args = append(args, "iommu=on")
+	}
+
+	if d.NumQueues > 0 {
+		args = append(args, fmt.Sprintf("num_queues=%d", d.NumQueues))
+	}
+
+	if d.QueueSize > 0 {
+		args = append(args, fmt.Sprintf("queue_size=%d", d.QueueSize))
+	}
+
+	if d.VhostUser {
+		args = append(args, "vhost_user=on")
+	}
+
+	if len(d.VhostSocket) > 0 {
+		args = append(args, fmt.Sprintf("socket=%s", d.VhostSocket))
+	}
+
+	if d.RateLimiterConfig != nil {
+		config := d.RateLimiterConfig.String()
+		if len(config) > 0 {
+			args = append(args, config)
+		}
+	}
+
+	if len(d.ID) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", d.ID))
+	}
+
+	if d.PciSegment > 0 {
+		args = append(args, fmt.Sprintf("pci_segment=%d", d.PciSegment))
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (n NetConfig) String() string {
+	var args []string
+
+	if len(n.Tap) > 0 {
+		args = append(args, fmt.Sprintf("tap=%s", n.Tap))
+	}
+
+	if !n.IP.IsUnspecified() {
+		args = append(args, fmt.Sprintf("ip=%s", n.IP))
+	}
+
+	if !n.Mask.IsUnspecified() {
+		args = append(args, fmt.Sprintf("mask=%s", n.Mask))
+	}
+
+	if len(n.Mac) > 0 {
+		args = append(args, fmt.Sprintf("mac=%s", n.Mac))
+	}
+
+	// TODO fd? offload_tso, offload_ufo, offload_csum
+
+	if n.Iommu {
+		args = append(args, "iommu=on")
+	}
+
+	if n.NumQueues > 0 {
+		args = append(args, fmt.Sprintf("num_queues=%d", n.NumQueues))
+	}
+
+	if n.QueueSize > 0 {
+		args = append(args, fmt.Sprintf("queue_size=%d", n.QueueSize))
+	}
+
+	if len(n.ID) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", n.ID))
+	}
+
+	if n.VhostUser {
+		args = append(args, "vhost_user=on")
+	}
+
+	if len(n.VhostSocket) > 0 {
+		args = append(args, fmt.Sprintf("socket=%s", n.VhostSocket))
+	}
+
+	if len(n.VhostMode) > 0 {
+		args = append(args, fmt.Sprintf("vhost_mode=%s", n.VhostMode))
+	}
+
+	if n.RateLimiterConfig != nil {
+		config := n.RateLimiterConfig.String()
+		if len(config) > 0 {
+			args = append(args, config)
+		}
+	}
+
+	if n.PciSegment > 0 {
+		args = append(args, fmt.Sprintf("pci_segment=%d", n.PciSegment))
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (r RngConfig) String() string {
+	var args []string
+
+	if len(r.Src) > 0 {
+		args = append(args, fmt.Sprintf("src=%s", r.Src))
+	}
+
+	if r.Iommu {
+		args = append(args, "iommu=on")
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (b BalloonConfig) String() string {
+	var args []string
+
+	if b.Size > 0 {
+		args = append(args, fmt.Sprintf("size=%d", b.Size))
+	}
+
+	if b.DeflateOnOom {
+		args = append(args, "deflate_on_oom=on")
+	}
+
+	if b.FreePageReporting {
+		args = append(args, "free_page_reporting=on")
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (f FsConfig) String() string {
+	var args []string
+
+	if len(f.Tag) > 0 {
+		args = append(args, fmt.Sprintf("tag=%s", f.Tag))
+	}
+
+	if len(f.Socket) > 0 {
+		args = append(args, fmt.Sprintf("socket=%s", f.Socket))
+	}
+
+	if f.NumQueues > 0 {
+		args = append(args, fmt.Sprintf("num_queues=%d", f.NumQueues))
+	}
+
+	if f.QueueSize > 0 {
+		args = append(args, fmt.Sprintf("queue_size=%d", f.QueueSize))
+	}
+
+	if len(f.ID) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", f.ID))
+	}
+
+	if f.PciSegment > 0 {
+		args = append(args, fmt.Sprintf("pci_segment=%d", f.PciSegment))
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (p PmemConfig) String() string {
+	var args []string
+
+	if len(p.File) > 0 {
+		args = append(args, fmt.Sprintf("file=%s", p.File))
+	}
+
+	if p.Size > 0 {
+		args = append(args, fmt.Sprintf("size=%d", p.Size))
+	}
+
+	if p.Iommu {
+		args = append(args, "iommu=on")
+	}
+
+	if p.DiscardWrites {
+		args = append(args, "discard_writes=on")
+	}
+
+	if len(p.ID) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", p.ID))
+	}
+
+	if p.PciSegment > 0 {
+		args = append(args, fmt.Sprintf("pci_segment=%d", p.PciSegment))
+	}
+
+	return strings.Join(args, ",")
+}
+
+func (c ConsoleConfig) String() string {
+	var args []string
+
+	switch c.Mode {
+	case ConsoleModeOff:
+		args = append(args, "off")
+	case ConsoleModePty:
+		args = append(args, "pty")
+	case ConsoleModeTty:
+		args = append(args, "tty")
+	case ConsoleModeNull:
+		args = append(args, "null")
+	case ConsoleModeFile:
+		if len(c.File) > 0 {
+			args = append(args, fmt.Sprintf("file=%s", c.File))
+		}
+	}
+
+	if c.Iommu {
+		args = append(args, "iommu=on")
+	}
+
+	return strings.Join(args, ",")
+}
+
+/*
+		TODO '''
+	  --device          path=<device_path>, iommu=on|off, id=<device_id>,
+	                    pci_segment=<segment_id>
+	  --user-device     socket=<socket_path>, id=<device_id>,
+	                    pci_segment=<segment_id>
+	  --vdpa            path=<device_path>, num_queues=<number_of_queues>,
+	                    iommu=on|off, id=<device_id>, pci_segment=<segment_id>
+	  --vsock           cid=<context_id>, socket=<socket_path>, iommu=on|off,
+	                    id=<device_id>, pci_segment=<segment_id>
+	  --pvpanic         enable pvpanic device
+	  --numa            guest_numa_id=<node_id>, cpus=<cpus_id>,
+	                    distances=<list_of_distances_to_destination_nodes>,
+	                    memory_zones=<list_of_memory_zones>,
+	                    sgx_epc_sections=<list_of_sgx_epc_sections>
+	  --watchdog        enable virtio-watchdog
+	  -v, --verbosity   set the level of debugging output
+	  --log-file        path to log file
+	  --api-socket      path=<path/to/a/file>|fd=<fd>
+	  --dbus-service-name
+	                    well known name of the service
+	  --dbus-object-path
+	                    object path to serve the dbus interface
+	  --dbus-system-bus use the system bus instead of a session bus
+	  --event-monitor   path=<path/to/a/file>|fd=<fd>
+	  --restore         source_url=<source_url>, prefault=on|off
+	  --seccomp         seccomp configuration (true, false or log)
+	  --tpm             socket=<path/to/a/socket>
+	  --sgx-epc         id=<epc_section_identifier>, size=<epc_section_size>,
+	                    prefault=on|off
+	  -V, --version     print version information
+	  --help            display usage information
+*/
 func defaultVmConfig() VmConfig {
 	return VmConfig{
 		Cpus: &CpusConfig{

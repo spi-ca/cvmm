@@ -1,14 +1,15 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/args"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"amuz.es/src/spi-ca/chmgr/internal/args"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"gopkg.in/yaml.v3"
 )
 
 type Hypervisor struct {
@@ -38,6 +39,33 @@ func (i *Hypervisor) load(manifestPath string) error {
 
 	return nil
 }
+
+// TODO impl
+func (i *Hypervisor) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (i *Hypervisor) Info(ctx context.Context) (*VmInfo, error)         { return i.cli.VmInfo(ctx) }
+func (i *Hypervisor) Counters(ctx context.Context) (*VmCounters, error) { return i.cli.VmCounters(ctx) }
+
+// TODO impl
+func (i *Hypervisor) Boot(ctx context.Context) error { return i.cli.VmBoot(ctx) }
+
+// TODO impl
+func (i *Hypervisor) Pause(ctx context.Context) error { return i.cli.VmPause(ctx) }
+
+// TODO impl
+func (i *Hypervisor) Resume(ctx context.Context) error { return i.cli.VmResume(ctx) }
+
+// TODO impl
+func (i *Hypervisor) Shutdown(ctx context.Context) error { return i.cli.VmShutdown(ctx) }
+
+// TODO impl
+func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(ctx) }
+
+// TODO impl
+func (i *Hypervisor) PowerButton(ctx context.Context) error { return i.cli.VmPowerButton(ctx) }
+
 func (i *Hypervisor) Close()            { i.cli.Close() }
 func (i *Hypervisor) GetClient() Client { return i.cli }
 func (i *Hypervisor) ImageBasePath(rest ...string) string {
