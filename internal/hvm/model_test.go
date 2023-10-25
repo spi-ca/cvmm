@@ -7,6 +7,18 @@ import (
 	"testing"
 )
 
+func TestVmConfig_String(t *testing.T) {
+	i := DefaultVmConfig()
+	//err := yaml.Unmarshal(response, &i)
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	if actual := i.String(); actual != "boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
+		panic(fmt.Errorf("%s is invalid value", actual))
+	}
+}
+
 func TestCpusConfig_String(t *testing.T) {
 	var response = []byte(`
 boot_vcpus: 8
