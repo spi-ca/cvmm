@@ -1104,16 +1104,16 @@ func (c VmConfig) String() string {
 		}
 	}
 
-	if len(c.Disks) > 0 {
-
-		e := c.Memory
+	for _, e := range c.Disks {
 		if arg := e.String(); len(arg) > 0 {
 			args = append(args, arg)
 		}
 	}
 
-	if len(c.Net) > 0 {
-
+	for _, e := range c.Net {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
 	if c.Rng != nil {
@@ -1130,13 +1130,18 @@ func (c VmConfig) String() string {
 		}
 	}
 
-	if len(c.Fs) > 0 {
-
+	for _, e := range c.Fs {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
-	if len(c.Pmem) > 0 {
-
+	for _, e := range c.Pmem {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
+
 	if c.Serial != nil {
 		e := c.Serial
 		if arg := e.String(); len(arg) > 0 {
@@ -1151,12 +1156,16 @@ func (c VmConfig) String() string {
 		}
 	}
 
-	if len(c.Devices) > 0 {
-
+	for _, e := range c.Devices {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
-	if len(c.Vdpa) > 0 {
-
+	for _, e := range c.Vdpa {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
 	if c.Vsock != nil {
@@ -1166,8 +1175,10 @@ func (c VmConfig) String() string {
 		}
 	}
 
-	if len(c.Numa) > 0 {
-
+	for _, e := range c.Numa {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
 	if c.Watchdog {
@@ -1182,8 +1193,10 @@ func (c VmConfig) String() string {
 
 	}
 
-	if len(c.SgxEpc) > 0 {
-
+	for _, e := range c.SgxEpc {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
 	}
 
 	return strings.Join(args, " \\\n")
