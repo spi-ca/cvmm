@@ -131,12 +131,12 @@ type (
 	}
 
 	PlatformConfig struct {
-		NumPciSegments int        `json:"num_pci_segments,omitempty" yaml:"num_pci_segments,omitempty"`
-		IommuSegments  []int16    `json:"iommu_segments,omitempty" yaml:"iommu_segments,omitempty"`
-		SerialNumber   string     `json:"serial_number,omitempty" yaml:"serial_number,omitempty"`
-		UUID           *uuid.UUID `json:"uuid,omitempty" yaml:"uuid,omitempty"`
-		OemStrings     []string   `json:"oem_strings,omitempty" yaml:"oem_strings,omitempty"`
-		Tdx            bool       `json:"tdx,omitempty" yaml:"tdx,omitempty"`
+		NumPciSegments int       `json:"num_pci_segments,omitempty" yaml:"num_pci_segments,omitempty"`
+		IommuSegments  []int16   `json:"iommu_segments,omitempty" yaml:"iommu_segments,omitempty"`
+		SerialNumber   string    `json:"serial_number,omitempty" yaml:"serial_number,omitempty"`
+		UUID           uuid.UUID `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+		OemStrings     []string  `json:"oem_strings,omitempty" yaml:"oem_strings,omitempty"`
+		Tdx            bool      `json:"tdx,omitempty" yaml:"tdx,omitempty"`
 	}
 
 	MemoryZoneConfig struct {
@@ -438,16 +438,16 @@ func (p PlatformConfig) String() string {
 		args = append(args, fmt.Sprintf("serial_number=%s", p.SerialNumber))
 	}
 
-	if p.UUID != nil {
+	if p.UUID != uuid.Nil {
 		args = append(args, fmt.Sprintf("uuid=%s", p.UUID))
 	}
 
 	if len(p.OemStrings) > 0 {
-		args = append(args, fmt.Sprintf("oem_strings=[%s]", p.OemStrings))
+		args = append(args, fmt.Sprintf("oem_strings=%s", strings.Join(p.OemStrings, " ")))
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--platform [%s]", strings.Join(args, ","))
+		return fmt.Sprintf("--platform %s", strings.Join(args, ","))
 	} else {
 		return ""
 	}
@@ -681,11 +681,11 @@ func (n NetConfig) String() string {
 		args = append(args, fmt.Sprintf("tap=%s", n.Tap))
 	}
 
-	if !n.IP.IsUnspecified() {
+	if len(n.IP) > 0 && !n.IP.IsUnspecified() {
 		args = append(args, fmt.Sprintf("ip=%s", n.IP))
 	}
 
-	if !n.Mask.IsUnspecified() {
+	if len(n.Mask) > 0 && !n.Mask.IsUnspecified() {
 		args = append(args, fmt.Sprintf("mask=%s", n.Mask))
 	}
 
@@ -1066,6 +1066,141 @@ func (t SgxEpcConfig) String() string {
 	}
 }
 
+func (c VmConfig) Args() []string {
+	var args []string
+	/*
+		--pvpanic
+		--numa
+		--watchdog
+		--tpm
+		--sgx-epc
+	*/
+	{
+		e := c.Payload
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Cpus != nil {
+		e := c.Cpus
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Platform != nil {
+		e := c.Platform
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Memory != nil {
+		e := c.Memory
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Disks {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Net {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Rng != nil {
+		e := c.Rng
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Balloon != nil {
+		e := c.Balloon
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Fs {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Pmem {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Serial != nil {
+		e := c.Serial
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Console != nil {
+		e := c.Console
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Devices {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Vdpa {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Vsock != nil {
+		e := c.Vsock
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	for _, e := range c.Numa {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	if c.Watchdog {
+		args = append(args, "--watchdog")
+	}
+
+	if c.Tpm != nil {
+		e := c.Tpm
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+
+	}
+
+	for _, e := range c.SgxEpc {
+		if arg := e.String(); len(arg) > 0 {
+			args = append(args, arg)
+		}
+	}
+
+	return args
+}
+
 func (c VmConfig) String() string {
 	var args []string
 
@@ -1202,85 +1337,70 @@ func (c VmConfig) String() string {
 	return strings.Join(args, " \\\n")
 }
 
+/*
+cloud-hypervisor
+--api-socket path=/srv/vmm/nodes/test/run/monitor.sock
+*/
 func DefaultVmConfig() VmConfig {
 	return VmConfig{
-		Cpus: &CpusConfig{
-			BootVcpus: 8,
-			MaxVcpus:  8,
-		},
-		Memory: &MemoryConfig{
-			Size:      4096,
-			Mergeable: true,
-			Shared:    true,
-			Thp:       true,
-			Zones:     []MemoryZoneConfig{},
-		},
 		Payload: PayloadConfig{
-			Firmware:  "",
-			Kernel:    "vmlinuz",
-			Cmdline:   "verbose",
-			Initramfs: "initrdfs",
+			Firmware: "",
+			Kernel:   "/srv/vmm/images/test/vmlinuz",
+			Cmdline: strings.Join([]string{
+				"console=hvc0",
+				"cpuidle.governor=haltpoll",
+				"clocksource=kvm-clock",
+				"base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1",
+				"systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16",
+				"net.ifnames=0",
+				"verbose",
+				"loglevel=7",
+				"reboot=t",
+			}, " "),
+			Initramfs: "/srv/vmm/images/test/initramfs.img",
+		},
+
+		Platform: &PlatformConfig{
+			SerialNumber: "a6a7a918188645d5adb5aaabdca22f16",
+			UUID:         uuid.MustParse("a6a7a918-1886-45d5-adb5-aaabdca22f16"),
+			OemStrings:   []string{"amuzes-test"},
 		},
 		Disks: []DiskConfig{
 			{
-				Path:      "/dev/vda",
+				Path:      "/srv/vmm/images/test/root.img",
 				Readonly:  true,
 				Direct:    true,
-				NumQueues: 4,
+				NumQueues: 2,
 				QueueSize: 128,
 			},
 			{
-				Path:      "/dev/vdb",
-				Readonly:  true,
+				Path:      "/srv/vmm/nodes/test/data.img",
 				Direct:    true,
-				NumQueues: 4,
+				NumQueues: 2,
 				QueueSize: 128,
 			},
 		},
-		Net: nil,
-		Rng: &RngConfig{
-			Src:   "",
-			Iommu: false,
+		Cpus: &CpusConfig{BootVcpus: 2, MaxVcpus: 2},
+		Memory: &MemoryConfig{
+			Size:      2 * 1024 * 1024 * 1024,
+			Mergeable: true,
+			Shared:    true,
+			Thp:       true,
 		},
+		Console: &ConsoleConfig{Mode: ConsoleModePty},
+		Serial:  &SerialConfig{Mode: ConsoleModeOff},
+		Net: []NetConfig{
+			{
+				Tap:       "vmtap-tst",
+				NumQueues: 2,
+				QueueSize: 128,
+			},
+		},
+		Rng:      &RngConfig{Src: "/dev/urandom"},
+		Watchdog: true,
 		Balloon: &BalloonConfig{
 			Size:              0,
-			DeflateOnOom:      false,
-			FreePageReporting: false,
-		},
-		Fs:   nil,
-		Pmem: nil,
-		Serial: &SerialConfig{
-			File: "",
-			Mode: "",
-		},
-		Console: &ConsoleConfig{
-			File:  "",
-			Mode:  "",
-			Iommu: false,
-		},
-		Devices: nil,
-		Vdpa:    nil,
-		Vsock: &VsockConfig{
-			CID:        0,
-			Socket:     "",
-			Iommu:      false,
-			PciSegment: 0,
-			ID:         "",
-		},
-		SgxEpc:   nil,
-		Numa:     nil,
-		Iommu:    false,
-		Watchdog: false,
-		Platform: &PlatformConfig{
-			NumPciSegments: 0,
-			IommuSegments:  nil,
-			SerialNumber:   "",
-			UUID:           nil,
-			OemStrings:     nil,
-			Tdx:            false,
-		},
-		Tpm: &TpmConfig{
-			Socket: "",
+			FreePageReporting: true,
 		},
 	}
 }
