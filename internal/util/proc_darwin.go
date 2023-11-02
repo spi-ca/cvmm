@@ -65,3 +65,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 		}
 	}
 }
+
+func SetProcessName(_ string) error {
+	return errors.New("SetProcessName is not supported")
+}
