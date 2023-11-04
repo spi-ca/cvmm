@@ -16,16 +16,36 @@ func main() {
 	util.InfoLog.SetPrefix(fmt.Sprintf("%s[%d]&1>", viper.GetString("log.prefix"), os.Getpid()))
 	util.ErrLog.SetPrefix(fmt.Sprintf("%s[%d]&2>", viper.GetString("log.prefix"), os.Getpid()))
 
-	err := util.SetProcessName("hello")
+	psname, err := currentProcessname()
 	if err != nil {
 		panic(err)
 	}
 
-	cmd := exec.Command("sh", "-c", "ps | grep prctl")
-	err = cmd.Run()
+	util.InfoLog.Printf("ps: %s", psname)
+
+	err = util.SetProcessName("hello")
 	if err != nil {
 		panic(err)
 	}
 
-	<-time.After(time.Second)
+	psname, err = currentProcessname()
+	if err != nil {
+		panic(err)
+	}
+
+	util.InfoLog.Printf("ps: %s", psname)
+	<-time.After(60 * time.Second)
+}
+
+func currentProcessname() (string, error) {
+	pid := os.Getpid()
+
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("ps | grep -E \"^%d\"", pid))
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
 }
