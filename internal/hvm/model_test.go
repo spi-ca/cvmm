@@ -4,18 +4,53 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"strings"
 	"testing"
 )
 
 func TestVmConfig_String(t *testing.T) {
 	i := DefaultVmConfig()
-	//err := yaml.Unmarshal(response, &i)
-	//if err != nil {
-	//	panic(err)
-	//}
+	actual := i.String()
+	expected := `--kernel /srv/vmm/images/test/vmlinuz
+--cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
+--initramfs /srv/vmm/images/test/initramfs.img
+--cpus boot=2,max=2
+--platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
+--memory size=2147483648,mergeable=on,shared=on,thp=on
+--disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
+--disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
+--net tap=vmtap-tst,num_queues=2,queue_size=128
+--rng src=/dev/urandom
+--balloon free_page_reporting=on
+--serial off
+--console pty
+--watchdog
+--pvpanic`
+	if actual != expected {
+		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
+	}
+}
 
-	if actual := i.String(); actual != "boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
-		panic(fmt.Errorf("%s is invalid value", actual))
+func TestVmConfig_CommandArgs(t *testing.T) {
+	i := DefaultVmConfig()
+	actual := strings.Join(i.CommandArgs(), "\n")
+	expected := `--kernel /srv/vmm/images/test/vmlinuz
+--cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
+--initramfs /srv/vmm/images/test/initramfs.img
+--cpus boot=2,max=2
+--platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
+--memory size=2147483648,mergeable=on,shared=on,thp=on
+--disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
+--disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
+--net tap=vmtap-tst,num_queues=2,queue_size=128
+--rng src=/dev/urandom
+--balloon free_page_reporting=on
+--serial off
+--console pty
+--watchdog
+--pvpanic`
+	if actual != expected {
+		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
 	}
 }
 
@@ -55,7 +90,7 @@ features:
 		panic(err)
 	}
 
-	if actual := i.String(); actual != "boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
+	if actual := i.String(); actual != "--cpus boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
 		panic(fmt.Errorf("%s is invalid value", actual))
 	}
 }
@@ -79,7 +114,7 @@ thp: true
 		panic(err)
 	}
 
-	if actual := i.String(); actual != "size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on" {
+	if actual := i.String(); actual != "--memory size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on" {
 		panic(fmt.Errorf("%s is invalid value", actual))
 	}
 }
@@ -447,4 +482,24 @@ func TestVMInfo_Serialize(t *testing.T) {
 		panic(err)
 	}
 	t.Logf("yaml() =\n %s", string(e2))
+
+	actual := i.Config.String()
+	expected := `--kernel /srv/vmm/images/test/vmlinuz
+--cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
+--initramfs /srv/vmm/images/test/initramfs.img
+--cpus boot=2,max=2
+--platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
+--memory size=2147483648,mergeable=on,shared=on,thp=on
+--disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
+--disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
+--net tap=vmtap-tst,num_queues=2,queue_size=128
+--rng src=/dev/urandom
+--balloon free_page_reporting=on
+--serial off
+--console pty
+--watchdog
+--pvpanic`
+	if actual != expected {
+		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
+	}
 }

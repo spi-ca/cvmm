@@ -100,6 +100,7 @@ type (
 		Numa     []NumaConfig    `json:"numa,omitempty" yaml:"numa,omitempty"`
 		Iommu    bool            `json:"iommu,omitempty" yaml:"iommu,omitempty"`
 		Watchdog bool            `json:"watchdog,omitempty" yaml:"watchdog,omitempty"`
+		Pvpanic  bool            `json:"pvpanic,omitempty" yaml:"pvpanic,omitempty"`
 		Platform *PlatformConfig `json:"platform,omitempty" yaml:"platform,omitempty"`
 		Tpm      *TpmConfig      `json:"tpm,omitempty" yaml:"tpm,omitempty"`
 	}
@@ -355,6 +356,27 @@ type (
 	}
 )
 
+func (c CpusConfig) String() string       { return joinArgs(c.CommandArgs()) }
+func (p PlatformConfig) String() string   { return joinArgs(p.CommandArgs()) }
+func (m MemoryZoneConfig) String() string { return joinArgs(m.CommandArgs()) }
+func (m MemoryConfig) String() string     { return joinArgs(m.CommandArgs()) }
+func (p PayloadConfig) String() string    { return joinArgs(p.CommandArgs()) }
+func (d DiskConfig) String() string       { return joinArgs(d.CommandArgs()) }
+func (n NetConfig) String() string        { return joinArgs(n.CommandArgs()) }
+func (r RngConfig) String() string        { return joinArgs(r.CommandArgs()) }
+func (b BalloonConfig) String() string    { return joinArgs(b.CommandArgs()) }
+func (f FsConfig) String() string         { return joinArgs(f.CommandArgs()) }
+func (p PmemConfig) String() string       { return joinArgs(p.CommandArgs()) }
+func (c SerialConfig) String() string     { return joinArgs(c.CommandArgs()) }
+func (c ConsoleConfig) String() string    { return joinArgs(c.CommandArgs()) }
+func (d DeviceConfig) String() string     { return joinArgs(d.CommandArgs()) }
+func (v VdpaConfig) String() string       { return joinArgs(v.CommandArgs()) }
+func (v VsockConfig) String() string      { return joinArgs(v.CommandArgs()) }
+func (n NumaConfig) String() string       { return joinArgs(n.CommandArgs()) }
+func (t TpmConfig) String() string        { return joinArgs(t.CommandArgs()) }
+func (t SgxEpcConfig) String() string     { return joinArgs(t.CommandArgs()) }
+func (c VmConfig) String() string         { return joinArgs(c.CommandArgs()) }
+
 func (c CpuTopology) String() string {
 	return fmt.Sprintf("%d:%d:%d:%d", c.ThreadsPerCore, c.CoresPerDie, c.DiesPerPackage, c.Packages)
 }
@@ -371,7 +393,43 @@ func (c CpuFeatures) String() string {
 	return strings.Join(args, ",")
 }
 
-func (c CpusConfig) String() string {
+func (v NumaDistance) String() string { return fmt.Sprintf("%d@%d", v.Destination, v.Distance) }
+
+func (r RateLimiterConfig) String() string {
+	var args []string
+
+	if t := r.Bandwidth; t != nil {
+		if t.Size > 0 {
+			args = append(args, fmt.Sprintf("bw_size=%d", t.Size))
+		}
+
+		if t.OneTimeBurst > 0 {
+			args = append(args, fmt.Sprintf("bw_one_time_burst=%d", t.OneTimeBurst))
+		}
+
+		if t.RefillTime > 0 {
+			args = append(args, fmt.Sprintf("bw_refill_time=%d", t.RefillTime))
+		}
+	}
+
+	if t := r.Ops; t != nil {
+		if t.Size > 0 {
+			args = append(args, fmt.Sprintf("ops_size=%d", t.Size))
+		}
+
+		if t.OneTimeBurst > 0 {
+			args = append(args, fmt.Sprintf("ops_one_time_burst=%d", t.OneTimeBurst))
+		}
+
+		if t.RefillTime > 0 {
+			args = append(args, fmt.Sprintf("ops_refill_time=%d", t.RefillTime))
+		}
+	}
+
+	return strings.Join(args, ",")
+}
+func (c CpusConfig) CommandArgs() []string {
+
 	var args []string
 
 	if c.BootVcpus > 0 {
@@ -413,13 +471,13 @@ func (c CpusConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--cpus %s", strings.Join(args, ","))
+		return append([]string(nil), "--cpus", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (p PlatformConfig) String() string {
+func (p PlatformConfig) CommandArgs() []string {
 	var args []string
 
 	if p.NumPciSegments > 0 {
@@ -447,13 +505,13 @@ func (p PlatformConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--platform %s", strings.Join(args, ","))
+		return append([]string(nil), "--platform", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (m MemoryZoneConfig) String() string {
+func (m MemoryZoneConfig) CommandArgs() []string {
 	var args []string
 
 	if m.Size > 0 {
@@ -497,16 +555,14 @@ func (m MemoryZoneConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--memory-zone %s", strings.Join(args, ","))
+		return append([]string(nil), "--memory-zone", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (m MemoryConfig) String() string {
-	var (
-		args, flags []string
-	)
+func (m MemoryConfig) CommandArgs() []string {
+	var args []string
 
 	if m.Size > 0 {
 		args = append(args, fmt.Sprintf("size=%d", m.Size))
@@ -548,76 +604,41 @@ func (m MemoryConfig) String() string {
 		args = append(args, "thp=on")
 	}
 
+	flags := []string(nil)
 	if len(args) > 0 {
-		flags = append(flags, fmt.Sprintf("--memory %s", strings.Join(args, ",")))
+		flags = append(flags, "--memory", strings.Join(args, ","))
 	}
 
 	for _, cfg := range m.Zones {
-		if config := cfg.String(); len(config) > 0 {
-			flags = append(flags, config)
-		}
+		flags = append(flags, cfg.CommandArgs()...)
 	}
 
-	return strings.Join(flags, " \\\n")
+	return flags
 }
 
-func (p PayloadConfig) String() string {
+func (p PayloadConfig) CommandArgs() []string {
 	var flags []string
 
 	if len(p.Firmware) > 0 {
-		flags = append(flags, fmt.Sprintf("--firmware %s", p.Firmware))
+		flags = append(flags, "--firmware", p.Firmware)
 	}
 
 	if len(p.Kernel) > 0 {
-		flags = append(flags, fmt.Sprintf("--kernel %s", p.Kernel))
+		flags = append(flags, "--kernel", p.Kernel)
 	}
 
 	if len(p.Cmdline) > 0 {
-		flags = append(flags, fmt.Sprintf("--cmdline %s", p.Cmdline))
+		flags = append(flags, "--cmdline", p.Cmdline)
 	}
 
 	if len(p.Initramfs) > 0 {
-		flags = append(flags, fmt.Sprintf("--initramfs %s", p.Initramfs))
+		flags = append(flags, "--initramfs", p.Initramfs)
 	}
 
-	return strings.Join(flags, " \\\n")
+	return flags
 }
 
-func (r RateLimiterConfig) String() string {
-	var args []string
-
-	if t := r.Bandwidth; t != nil {
-		if t.Size > 0 {
-			args = append(args, fmt.Sprintf("bw_size=%d", t.Size))
-		}
-
-		if t.OneTimeBurst > 0 {
-			args = append(args, fmt.Sprintf("bw_one_time_burst=%d", t.OneTimeBurst))
-		}
-
-		if t.RefillTime > 0 {
-			args = append(args, fmt.Sprintf("bw_refill_time=%d", t.RefillTime))
-		}
-	}
-
-	if t := r.Ops; t != nil {
-		if t.Size > 0 {
-			args = append(args, fmt.Sprintf("ops_size=%d", t.Size))
-		}
-
-		if t.OneTimeBurst > 0 {
-			args = append(args, fmt.Sprintf("ops_one_time_burst=%d", t.OneTimeBurst))
-		}
-
-		if t.RefillTime > 0 {
-			args = append(args, fmt.Sprintf("ops_refill_time=%d", t.RefillTime))
-		}
-	}
-
-	return strings.Join(args, ",")
-}
-
-func (d DiskConfig) String() string {
+func (d DiskConfig) CommandArgs() []string {
 	var args []string
 
 	if len(d.Path) > 0 {
@@ -668,13 +689,13 @@ func (d DiskConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--disk %s", strings.Join(args, ","))
+		return append([]string(nil), "--disk", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (n NetConfig) String() string {
+func (n NetConfig) CommandArgs() []string {
 	var args []string
 
 	if len(n.Tap) > 0 {
@@ -735,13 +756,14 @@ func (n NetConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--net %s", strings.Join(args, ","))
+		return append([]string(nil), "--net", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (r RngConfig) String() string {
+func (r RngConfig) CommandArgs() []string {
+
 	var args []string
 
 	if len(r.Src) > 0 {
@@ -753,13 +775,14 @@ func (r RngConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--rng %s", strings.Join(args, ","))
+		return append([]string(nil), "--rng", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (b BalloonConfig) String() string {
+func (b BalloonConfig) CommandArgs() []string {
+
 	var args []string
 
 	if b.Size > 0 {
@@ -775,13 +798,13 @@ func (b BalloonConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--balloon %s", strings.Join(args, ","))
+		return append([]string(nil), "--balloon", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (f FsConfig) String() string {
+func (f FsConfig) CommandArgs() []string {
 	var args []string
 
 	if len(f.Tag) > 0 {
@@ -809,13 +832,13 @@ func (f FsConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--fs %s", strings.Join(args, ","))
+		return append([]string(nil), "--fs", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (p PmemConfig) String() string {
+func (p PmemConfig) CommandArgs() []string {
 	var args []string
 
 	if len(p.File) > 0 {
@@ -843,13 +866,13 @@ func (p PmemConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--pmem %s", strings.Join(args, ","))
+		return append([]string(nil), "--pmem", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (c SerialConfig) String() string {
+func (c SerialConfig) CommandArgs() []string {
 	var args []string
 
 	switch c.Mode {
@@ -868,13 +891,13 @@ func (c SerialConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--serial %s", strings.Join(args, ","))
+		return append([]string(nil), "--serial", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (c ConsoleConfig) String() string {
+func (c ConsoleConfig) CommandArgs() []string {
 	var args []string
 
 	switch c.Mode {
@@ -897,13 +920,13 @@ func (c ConsoleConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--console %s", strings.Join(args, ","))
+		return append([]string(nil), "--console", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (d DeviceConfig) String() string {
+func (d DeviceConfig) CommandArgs() []string {
 	var args []string
 
 	if len(d.Path) > 0 {
@@ -923,13 +946,13 @@ func (d DeviceConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--device %s", strings.Join(args, ","))
+		return append([]string(nil), "--device", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (v VdpaConfig) String() string {
+func (v VdpaConfig) CommandArgs() []string {
 	var args []string
 
 	if len(v.Path) > 0 {
@@ -953,13 +976,13 @@ func (v VdpaConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--vdpa %s", strings.Join(args, ","))
+		return append([]string(nil), "--vdpa", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (v VsockConfig) String() string {
+func (v VsockConfig) CommandArgs() []string {
 	var args []string
 
 	if v.CID > 0 {
@@ -983,17 +1006,13 @@ func (v VsockConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--vsock %s", strings.Join(args, ","))
+		return append([]string(nil), "--vsock", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (v NumaDistance) String() string {
-	return fmt.Sprintf("%d@%d", v.Destination, v.Distance)
-}
-
-func (n NumaConfig) String() string {
+func (n NumaConfig) CommandArgs() []string {
 	var args []string
 
 	if n.GuestNumaID > 0 {
@@ -1024,27 +1043,26 @@ func (n NumaConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--numa %s", strings.Join(args, ","))
+		return append([]string(nil), "--numa", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (t TpmConfig) String() string {
+func (t TpmConfig) CommandArgs() []string {
 	var args []string
-
 	if len(t.Socket) > 0 {
 		args = append(args, fmt.Sprintf("socket=%s", t.Socket))
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--tpm %s", strings.Join(args, ","))
+		return append([]string(nil), "--tpm", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (t SgxEpcConfig) String() string {
+func (t SgxEpcConfig) CommandArgs() []string {
 	var args []string
 
 	if len(t.ID) > 0 {
@@ -1060,281 +1078,136 @@ func (t SgxEpcConfig) String() string {
 	}
 
 	if len(args) > 0 {
-		return fmt.Sprintf("--sgx-epc %s", strings.Join(args, ","))
+		return append([]string(nil), "--sgx-epc", strings.Join(args, ","))
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (c VmConfig) Args() []string {
+func (c VmConfig) CommandArgs() []string {
 	var args []string
-	/*
-		--pvpanic
-		--numa
-		--watchdog
-		--tpm
-		--sgx-epc
-	*/
-	{
-		e := c.Payload
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
+
+	args = append(args, c.Payload.CommandArgs()...)
 
 	if c.Cpus != nil {
 		e := c.Cpus
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
 	}
 
 	if c.Platform != nil {
 		e := c.Platform
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
 	}
 
 	if c.Memory != nil {
 		e := c.Memory
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Disks {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Net {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Rng != nil {
 		e := c.Rng
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Balloon != nil {
 		e := c.Balloon
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Fs {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Pmem {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Serial != nil {
 		e := c.Serial
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Console != nil {
 		e := c.Console
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Devices {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Vdpa {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Vsock != nil {
 		e := c.Vsock
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	for _, e := range c.Numa {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
+		args = append(args, e.CommandArgs()...)
+
+	}
+
+	if c.Tpm != nil {
+		e := c.Tpm
+		args = append(args, e.CommandArgs()...)
+
+	}
+
+	for _, e := range c.SgxEpc {
+		args = append(args, e.CommandArgs()...)
+
 	}
 
 	if c.Watchdog {
 		args = append(args, "--watchdog")
 	}
 
-	if c.Tpm != nil {
-		e := c.Tpm
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-
+	if c.Pvpanic {
+		args = append(args, "--pvpanic")
 	}
-
-	for _, e := range c.SgxEpc {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
 	return args
 }
 
-func (c VmConfig) String() string {
-	var args []string
-
-	/*
-		--pvpanic
-		--numa
-		--watchdog
-		--tpm
-		--sgx-epc
-	*/
-	{
-		e := c.Payload
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
+func joinArgs(args []string) string {
+	builder := strings.Builder{}
+	for i, arg := range args {
+		switch i {
+		case 0:
+			//do nothing
+		default:
+			if strings.HasPrefix(arg, "--") {
+				builder.WriteRune('\n')
+			} else {
+				builder.WriteRune(' ')
+			}
 		}
+		builder.WriteString(arg)
 	}
 
-	if c.Cpus != nil {
-		e := c.Cpus
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Platform != nil {
-		e := c.Platform
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Memory != nil {
-		e := c.Memory
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Disks {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Net {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Rng != nil {
-		e := c.Rng
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Balloon != nil {
-		e := c.Balloon
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Fs {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Pmem {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Serial != nil {
-		e := c.Serial
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Console != nil {
-		e := c.Console
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Devices {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Vdpa {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Vsock != nil {
-		e := c.Vsock
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	for _, e := range c.Numa {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	if c.Watchdog {
-		args = append(args, "--watchdog")
-	}
-
-	if c.Tpm != nil {
-		e := c.Tpm
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-
-	}
-
-	for _, e := range c.SgxEpc {
-		if arg := e.String(); len(arg) > 0 {
-			args = append(args, arg)
-		}
-	}
-
-	return strings.Join(args, " \\\n")
+	return builder.String()
 }
 
 /*
@@ -1398,6 +1271,7 @@ func DefaultVmConfig() VmConfig {
 		},
 		Rng:      &RngConfig{Src: "/dev/urandom"},
 		Watchdog: true,
+		Pvpanic:  true,
 		Balloon: &BalloonConfig{
 			Size:              0,
 			FreePageReporting: true,
