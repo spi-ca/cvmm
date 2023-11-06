@@ -76,7 +76,6 @@ directory:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Config{
-				Name:       tt.fields.Name,
 				Cpus:       tt.fields.Cpus,
 				Mem:        tt.fields.Mem,
 				Uuid:       tt.fields.Uuid,
