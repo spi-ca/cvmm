@@ -5,13 +5,6 @@ rootfs_uuid: 3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1
 image: kube-master
 net_mac_addr: 2e:f4:5f:11:1b:56
 net_if_name: vmtap-km01
-cmdline:
-  - console=hvc0
-  - cpuidle.governor=haltpoll
-  - clocksource=kvm-clock
-  - net.ifnames=0
-  - quiet
-  - loglevel=3
 disk:
   - data.img
 directory:
