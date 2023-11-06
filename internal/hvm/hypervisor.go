@@ -133,6 +133,7 @@ func (i *Hypervisor) Start(
 		if err, ok = <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
+		util.InfoLog.Printf("hypervisor stopped")
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
