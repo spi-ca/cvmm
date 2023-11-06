@@ -71,19 +71,18 @@ func main() {
 	//		usage()
 	//	}
 	//	entry.Starter(nodeName)
-	case "shutdown":
-		var (
-			nodeName string
-		)
-		switch flags.NArg() {
-		case consumedArgs + 1:
-			nodeName = flags.Arg(consumedArgs + 0)
-			consumedArgs += 1
-		default:
-			fmt.Println("required arguments missing")
-			usage()
-		}
-		entry.Starter(nodeName)
+	//case "shutdown":
+	//	var (
+	//		nodeName string
+	//	)
+	//	switch flags.NArg() {
+	//	case consumedArgs + 1:
+	//		nodeName = flags.Arg(consumedArgs + 0)
+	//		consumedArgs += 1
+	//	default:
+	//		usage("required arguments missing")
+	//	}
+	//	entry.Starter(nodeName)
 	case "console":
 		var (
 			nodeName string
