@@ -117,11 +117,8 @@ func (i *Hypervisor) Start(
 	go i.submit(ctx, vmErrorChan, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
 	util.InfoLog.Printf("hypervisor started(api socket: %s)", i.cli.socketPath)
 
-	virtiofsInstances := len(virtiofscfgs)
 	virtiofsdErrorChan := i.virtiofsd.Execute(ctx, virtiofscfgs)
-	if virtiofsInstances > 0 {
-		util.InfoLog.Printf("virtiofsd started(#%d instnaces)", virtiofsInstances)
-	}
+	util.InfoLog.Printf("virtiofsd started(#%d instnaces)", len(virtiofscfgs))
 
 	var errs []error
 
@@ -145,9 +142,11 @@ func (i *Hypervisor) Start(
 	}
 
 	//remain virtiofsd errors
-	for selectorErr := range virtiofsdErrorChan {
-		util.InfoLog.Printf("virtiofsd stopped")
-		errs = append(errs, selectorErr)
+	if virtiofsdErrorChan != nil {
+		for selectorErr := range virtiofsdErrorChan {
+			util.InfoLog.Printf("virtiofsd stopped")
+			errs = append(errs, selectorErr)
+		}
 	}
 
 	return errors.Join(errs...)
