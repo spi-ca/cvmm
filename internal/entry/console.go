@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 	"context"
 	"fmt"
 	"os"
@@ -44,6 +45,7 @@ func Console(name, nodeName string) {
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
 		"\n---",
 	)
+	_ = sys.SetProcessName(fmt.Sprintf("node: %s", nodeName))
 
 	h, err := hvm.Load(
 		nodeName,

@@ -79,8 +79,6 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 }
 
 func SetProcessName(name string) error {
-	//bytes := append([]byte(name), 0)
-	//ptr := unsafe.Pointer(&bytes[0])
 
 	strptr, err := unix.BytePtrFromString(name)
 	if err != nil {
