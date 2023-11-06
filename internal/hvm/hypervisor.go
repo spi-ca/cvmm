@@ -1,14 +1,23 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/model"
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
+	"unicode"
 
+	"amuz.es/src/spi-ca/chmgr/internal/model"
 	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,10 +27,11 @@ type Hypervisor struct {
 	nodeHome          string `yaml:"-"`
 	volatileDirectory string `yaml:"-"`
 
-	virtiofsSocketTemplate *util.Format
-	args                   model.Config
+	args                      model.Config
+	cloudhypervisorBinaryPath string
 
-	cli *clientImpl
+	cli       *clientImpl
+	virtiofsd virtiofsdJoiner
 }
 
 func (i *Hypervisor) load(manifestPath string) error {
@@ -83,49 +93,59 @@ func (i *Hypervisor) VolatilePath(rest string) string {
 	return filepath.Join(i.volatileDirectory, rest)
 }
 
-func (i *Hypervisor) VirtiofsSocketPath(name string) string {
-	return i.VolatilePath(i.virtiofsSocketTemplate.R(util.FormatArgs{"directoryName": name}))
-}
+func (i *Hypervisor) Start(
+	ctx context.Context,
+	kernelFilename, initramfsFilename, rootfsFilename string,
+	virtiofsFilenameTemplate func(string) string,
+) error {
+	//virtiofsSocketPathResolver := func(name string) string { return i.VolatilePath(virtiofsFilenameTemplate(name)) }
+	//vmcfg := i.args.VMConfig(
+	//	i.name,
+	//	i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
+	//	i.ImageBasePath(rootfsFilename), i.NodeBasePath,
+	//	i.VirtiofsSocketPath,
+	//)
+	//// virtiofscfg
+	//virtiofscfgs := i.args.VirtiofsConfig(i.NodeBasePath, virtiofsSocketPathResolver)
 
-// todo move to VirtiofsConfig
-func (i *Hypervisor) VirtiofsArgs() []string {
-	var (
-		arguments []string
-	)
-
-	for _, filename := range i.args.Directory {
-		name := filepath.Base(filename)
-		cfg := &model.VirtiofsConfig{
-			Directory:      i.NodeBasePath(filename),
-			SocketPath:     i.VirtiofsSocketPath(name),
-			ThreadPoolSize: i.args.Cpus,
-		}
-
-		arguments = append(arguments, strings.Join(cfg.CommandArgs(), " "))
+	args := []string{
+		"--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath),
 	}
-	return arguments
+
+	vmErrorChan := make(chan error)
+	go i.submit(ctx, args, vmErrorChan)
+
+	// daemon started
+	return <-vmErrorChan
 }
 
-func (i *Hypervisor) CommandArgs(
-	kernelFilename,
-	initramfsFilename,
-	rootfsFilename,
-	monitorFilename,
-	virtiofsFilename string,
-) []string {
-	// TODO hypervisor
-	// vmcfg
-	_ = i.args.VMConfig(
-		i.name,
-		i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
-		i.ImageBasePath(rootfsFilename), i.NodeBasePath,
-		i.VirtiofsSocketPath,
-	)
-	// virtiofscfg
-	_ = i.args.VirtiofsConfig(i.NodeBasePath, i.VirtiofsSocketPath)
-
-	return nil
-}
+//func (i *Hypervisor) Boot(
+//	ctx context.Context,
+//	kernelFilename,
+//	initramfsFilename,
+//	rootfsFilename,
+//	apiSocketFilename string,
+//) chan<- error {
+//	apiSocketFilepath := i.VolatilePath(apiSocketFilename)
+//	//vmcfg := i.args.VMConfig(
+//	//	i.name,
+//	//	i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
+//	//	i.ImageBasePath(rootfsFilename), i.NodeBasePath,
+//	//	i.VirtiofsSocketPath,
+//	//)
+//	//// virtiofscfg
+//	//virtiofscfgs := i.args.VirtiofsConfig(i.NodeBasePath, i.VirtiofsSocketPath)
+//
+//	args := []string{
+//		"--api-socket", fmt.Sprintf("path=%s", apiSocketFilepath),
+//	}
+//
+//	vmErrorChan := make(chan error)
+//	go i.submit(ctx, args, vmErrorChan)
+//
+//	// daemon started
+//	return vmErrorChan
+//}
 
 func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(parentCtx)
@@ -138,4 +158,89 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 
 	ptyPath := info.Config.Console.File
 	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
+}
+
+func (i *Hypervisor) submit(ctx context.Context, args []string, errorChan chan<- error) {
+	defer func() {
+		if err := recover(); err != nil {
+			util.ErrLog.Printf("cloud-hypervisor panic: %v", err)
+		}
+		close(errorChan)
+	}()
+
+	started := time.Now()
+	err := i.invoke(ctx, args)
+	ended := time.Now()
+	if err != nil {
+		errorChan <- fmt.Errorf("cloud-hypervisor failed in %s: %w", ended.Sub(started), err)
+	}
+}
+
+func (i *Hypervisor) invoke(parentContext context.Context, args []string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	invoke := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, args...)
+	invoke.SysProcAttr = &syscall.SysProcAttr{}
+
+	if err := sys.ApplySysProAttrPGid(invoke.SysProcAttr); err != nil {
+		return fmt.Errorf("failed to set process group id: %w", err)
+	}
+
+	if err := sys.ApplySysProAttrPdeathsig(invoke.SysProcAttr, syscall.SIGTERM); err != nil {
+		return fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
+	}
+
+	stdout, _ := invoke.StdoutPipe()
+	stderr, _ := invoke.StderrPipe()
+
+	// On Linux, pdeathsig will kill the child process when the thread dies,
+	// not when the process dies. runtime.LockOSThread ensures that as long
+	// as this function is executing that OS thread will still be around
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := invoke.Start(); err != nil {
+		return fmt.Errorf("failed to start process(%s): %w", i.cloudhypervisorBinaryPath, err)
+	}
+
+	res := &util.ExecutionResult{PID: invoke.Process.Pid}
+
+	go func() {
+		select {
+		case <-parentContext.Done():
+			_ = invoke.Process.Signal(syscall.SIGTERM)
+		case <-ctx.Done():
+		}
+	}()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+	go i.handleStdout(res, stdout, wg.Done)
+	go i.handleStderr(res, stderr, wg.Done)
+	res.Err = invoke.Wait()
+	wg.Wait()
+
+	return res.HandleError()
+}
+
+func (i *Hypervisor) handleStdout(res *util.ExecutionResult, reader io.Reader, closer func()) {
+	defer closer()
+	prefix := fmt.Sprintf("[%d] ", res.PID)
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
+		util.InfoLog.Print(prefix, line)
+	}
+}
+
+func (i *Hypervisor) handleStderr(res *util.ExecutionResult, reader io.Reader, closer func()) {
+	defer closer()
+	prefix := fmt.Sprintf("[%d] ", res.PID)
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
+		res.AppendLogLine(line)
+		util.ErrLog.Print(prefix, line)
+	}
 }

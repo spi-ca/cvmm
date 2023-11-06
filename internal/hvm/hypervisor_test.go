@@ -40,9 +40,9 @@ directory:
 		panic(err)
 	}
 
-	for _, args := range cfg.VirtiofsArgs() {
-		fmt.Printf("v = %s\n", args)
-	}
+	//for _, args := range cfg.VirtiofsArgs() {
+	//	fmt.Printf("v = %s\n", args)
+	//}
 	fmt.Printf("v = %v\n", cfg)
 	fmt.Printf("v = %s\n",
 		strings.Join(
@@ -56,13 +56,6 @@ directory:
 			" \\\n\t",
 		),
 	)
-	//
-	//newFd, err := syscall.Open(".", syscall.O_TMPFILE|os.O_RDWR|os.O_CREATE|os.O_APPEND|syscall.O_CLOEXEC, 0o644)
-	//if err != nil {
-	//	_ = os.Rename(rotateFilename, filename)
-	//	return "", fmt.Errorf("failed to rename a file(%s): %w", filename, err)
-	//}
-
 	marshalled, err := yaml.Marshal(cfg)
 	if err != nil {
 		panic(err)

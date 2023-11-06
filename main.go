@@ -33,7 +33,7 @@ func init() {
 	flags.String("node-root", "/srv/vmm/nodes", "specify node repository path")
 	flags.String("manifest-filename", "config.yaml", "specify node manifest file path")
 	flags.String("cloudhypervisor-monitor-filename", "monitor.sock", "specify monitor socket filename")
-	flags.String("virtiofs-socket-filename", "virtiofs_{{.directoryName}}.sock", "specify virtiofs socket filename")
+	flags.String("virtiofs-socket-filename-template", "virtiofs_{{.directoryName}}.sock", "specify virtiofs socket filename")
 	flags.String("volatile-directory", "run", "specify volatile directory name")
 
 	flags.String("virtiofsd-path", "/usr/lib/virtiofsd", "specify virtiofsd binary path")
@@ -45,8 +45,6 @@ func init() {
 	_ = viper.BindFlagValues(util.PFlagViperReplacer{FlagSet: flags.CommandLine, Replacer: flagNameReplacer})
 }
 
-// GOGC=100
-// GOMEMLIMIT=32Mib
 func main() {
 
 	consumedArgs := 0
@@ -58,19 +56,18 @@ func main() {
 	consumedArgs++
 	//
 	switch action {
-	//case "start":
-	//	var (
-	//		nodeName string
-	//	)
-	//	switch flags.NArg() {
-	//	case consumedArgs + 1:
-	//		nodeName = flags.Arg(consumedArgs + 0)
-	//		consumedArgs += 1
-	//	default:
-	//		fmt.Println("required arguments missing")
-	//		usage()
-	//	}
-	//	entry.Starter(nodeName)
+	case "start":
+		var (
+			nodeName string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			nodeName = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			usage("required arguments missing")
+		}
+		entry.Start(name, nodeName)
 	//case "shutdown":
 	//	var (
 	//		nodeName string

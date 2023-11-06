@@ -1,17 +1,18 @@
 package entry
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"context"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"amuz.es/src/spi-ca/chmgr/internal/hvm"
+	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"github.com/spf13/viper"
 )
 
-func Tmpl(name, nodeName string) {
+func Start(name, nodeName string) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 시그널 처리
@@ -41,27 +42,35 @@ func Tmpl(name, nodeName string) {
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
 		"\n	cloudhypervisor.monitor.filename=", viper.GetString("cloudhypervisor.monitor.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
-		"\n	virtiofs.socket.filename=", viper.GetString("virtiofs.socket.filename"),
+		"\n	virtiofs.socket.filename.template=", viper.GetString("virtiofs.socket.filename.template"),
+		"\n	image.kernel.filename=", viper.GetString("image.kernel.filename"),
+		"\n	image.initramfs.filename=", viper.GetString("image.initramfs.filename"),
+		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
 		"\n---",
 	)
-
 	h, err := hvm.Load(
 		nodeName,
-		viper.GetString("image.root"),
-		viper.GetString("node.root"),
-		viper.GetString("volatile.directory"),
-		viper.GetString("manifest.filename"),
+		viper.GetString("image.root"), viper.GetString("node.root"),
+		viper.GetString("volatile.directory"), viper.GetString("manifest.filename"),
 		viper.GetString("cloudhypervisor.monitor.filename"),
-		viper.GetString("virtiofs.socket.filename"),
+		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
+		util.LookupBinary(viper.GetString("virtiofsd.path")),
 	)
-
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}
 
 	defer h.Close()
-	// todo some
 
+	virtiofsSocketTemplate := util.F(viper.GetString("virtiofs.socket.filename.template"))
+	virtiofsFilenameResolver := func(name string) string { return virtiofsSocketTemplate.R(util.FormatArgs{"directoryName": name}) }
+
+	err = h.Start(ctx,
+		viper.GetString("image.kernel.filename"),
+		viper.GetString("image.initramfs.filename"),
+		viper.GetString("image.rootfs.filename"),
+		virtiofsFilenameResolver,
+	)
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}

@@ -41,18 +41,16 @@ func Shutdown(name, nodeName string) {
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
 		"\n	cloudhypervisor.monitor.filename=", viper.GetString("cloudhypervisor.monitor.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
-		"\n	virtiofs.socket.filename=", viper.GetString("virtiofs.socket.filename"),
 		"\n---",
 	)
 
 	h, err := hvm.Load(
 		nodeName,
-		viper.GetString("image.root"),
-		viper.GetString("node.root"),
-		viper.GetString("volatile.directory"),
-		viper.GetString("manifest.filename"),
+		viper.GetString("image.root"), viper.GetString("node.root"),
+		viper.GetString("volatile.directory"), viper.GetString("manifest.filename"),
 		viper.GetString("cloudhypervisor.monitor.filename"),
-		viper.GetString("virtiofs.socket.filename"),
+		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
+		util.LookupBinary(viper.GetString("virtiofsd.path")),
 	)
 
 	if err != nil {
