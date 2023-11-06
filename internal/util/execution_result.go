@@ -1,12 +1,10 @@
-package returns
+package util
 
 import (
 	"fmt"
 	"os/exec"
 	"strings"
 	"syscall"
-
-	"amuz.es/src/spi-ca/chmgr/internal/util"
 )
 
 type ExecutionResult struct {
@@ -69,7 +67,7 @@ func (r *ExecutionResult) HandleError() error {
 
 	if exitcode == 0 {
 		if buf.Len() > 0 {
-			util.ErrLog.Print(buf.String())
+			ErrLog.Print(buf.String())
 		}
 		return nil
 	} else if err := r.Err; err != nil {

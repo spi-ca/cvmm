@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sys/unix"
 	"io"
 	"runtime"
 	"sync"
+
+	"golang.org/x/sys/unix"
 )
 
 type (
