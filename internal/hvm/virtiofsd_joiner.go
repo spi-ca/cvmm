@@ -23,6 +23,10 @@ type virtiofsdJoiner struct {
 }
 
 func (i *virtiofsdJoiner) Execute(ctx context.Context, configs []model.VirtiofsConfig) <-chan error {
+	if len(configs) == 0 {
+		return nil
+	}
+
 	errorChan := make(chan error, len(configs))
 	go i.dispatch(ctx, configs, errorChan)
 	return errorChan
