@@ -127,6 +127,7 @@ func (i *Hypervisor) Start(
 		if ok {
 			errs = append(errs, err)
 		}
+		util.InfoLog.Printf("virtiofsd stopped")
 
 		// wait hypervisor
 		if err, ok = <-vmErrorChan; ok {
@@ -141,9 +142,9 @@ func (i *Hypervisor) Start(
 
 	//remain virtiofsd errors
 	for selectorErr := range virtiofsdErrorChan {
+		util.InfoLog.Printf("virtiofsd stopped")
 		errs = append(errs, selectorErr)
 	}
-	util.InfoLog.Printf("virtiofsd stopped")
 
 	return errors.Join(errs...)
 }

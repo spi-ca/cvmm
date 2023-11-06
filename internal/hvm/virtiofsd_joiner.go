@@ -31,7 +31,7 @@ func (i *virtiofsdJoiner) Execute(ctx context.Context, configs []model.VirtiofsC
 func (i *virtiofsdJoiner) dispatch(ctx context.Context, configs []model.VirtiofsConfig, errorChan chan<- error) {
 	defer func() {
 		if err := recover(); err != nil {
-			util.ErrLog.Printf("panic on workerJoiner: %v", err)
+			util.ErrLog.Printf("panic on virtiofsdJoiner: %v", err)
 		}
 		close(errorChan)
 	}()
@@ -48,7 +48,7 @@ func (i *virtiofsdJoiner) submit(ctx context.Context, config model.VirtiofsConfi
 	defer closer()
 	defer func() {
 		if err := recover(); err != nil {
-			util.ErrLog.Printf("virtiofsd panic on worker: %v", err)
+			util.ErrLog.Printf("virtiofsd panic: %v", err)
 		}
 	}()
 
