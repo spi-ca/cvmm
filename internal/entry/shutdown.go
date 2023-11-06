@@ -41,6 +41,7 @@ func Shutdown(name, nodeName string) {
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
 		"\n	cloudhypervisor.monitor.filename=", viper.GetString("cloudhypervisor.monitor.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
+		"\n	virtiofs.socket.filename=", viper.GetString("virtiofs.socket.filename"),
 		"\n---",
 	)
 
@@ -51,6 +52,7 @@ func Shutdown(name, nodeName string) {
 		viper.GetString("volatile.directory"),
 		viper.GetString("manifest.filename"),
 		viper.GetString("cloudhypervisor.monitor.filename"),
+		viper.GetString("virtiofs.socket.filename"),
 	)
 
 	if err != nil {

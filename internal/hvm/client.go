@@ -1,6 +1,7 @@
 package hvm
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -15,11 +16,11 @@ import (
 
 type (
 	Client interface {
-		VmmPing(ctx context.Context) (*VmmPingResponse, error)
+		VmmPing(ctx context.Context) (*model.VmmPingResponse, error)
 		VmmShutdown(ctx context.Context) error
-		VmInfo(ctx context.Context) (*VmInfo, error)
-		VmCounters(ctx context.Context) (*VmCounters, error)
-		VmCreate(ctx context.Context, config VmConfig) error
+		VmInfo(ctx context.Context) (*model.VmInfo, error)
+		VmCounters(ctx context.Context) (*model.VmCounters, error)
+		VmCreate(ctx context.Context, config model.VmConfig) error
 		VmDelete(ctx context.Context) error
 		VmBoot(ctx context.Context) error
 		VmPause(ctx context.Context) error
@@ -27,21 +28,21 @@ type (
 		VmShutdown(ctx context.Context) error
 		VmReboot(ctx context.Context) error
 		VmPowerButton(ctx context.Context) error
-		VmResize(ctx context.Context, config VmResize) error
-		VmResizeZone(ctx context.Context, config VmResizeZone) error
-		VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error)
-		VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error
-		VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error)
-		VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error)
-		VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error)
-		VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error)
-		VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error)
-		VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error)
-		VmSnapshot(ctx context.Context, config VmSnapshotConfig) error
-		VmCoredump(ctx context.Context, config VmCoredumpData) error
-		VmRestore(ctx context.Context, config RestoreConfig) error
-		VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error
-		VmSendMigration(ctx context.Context, config SendMigrationData) error
+		VmResize(ctx context.Context, config model.VmResize) error
+		VmResizeZone(ctx context.Context, config model.VmResizeZone) error
+		VmAddDevice(ctx context.Context, config model.DeviceConfig) (*model.PciDeviceInfo, error)
+		VmRemoveDevice(ctx context.Context, config model.VmRemoveDevice) error
+		VmAddDisk(ctx context.Context, config model.DiskConfig) (*model.PciDeviceInfo, error)
+		VmAddFs(ctx context.Context, config model.FsConfig) (*model.PciDeviceInfo, error)
+		VmAddPmem(ctx context.Context, config model.PmemConfig) (*model.PciDeviceInfo, error)
+		VmAddNet(ctx context.Context, config model.NetConfig) (*model.PciDeviceInfo, error)
+		VmAddVsock(ctx context.Context, config model.VsockConfig) (*model.PciDeviceInfo, error)
+		VmAddVdpa(ctx context.Context, config model.VdpaConfig) (*model.PciDeviceInfo, error)
+		VmSnapshot(ctx context.Context, config model.VmSnapshotConfig) error
+		VmCoredump(ctx context.Context, config model.VmCoredumpData) error
+		VmRestore(ctx context.Context, config model.RestoreConfig) error
+		VmReceiveMigration(ctx context.Context, config model.ReceiveMigrationData) error
+		VmSendMigration(ctx context.Context, config model.SendMigrationData) error
 	}
 
 	clientImpl struct {
@@ -110,7 +111,7 @@ func (c *clientImpl) Close() {
 }
 
 // Ping the VMM to check for API server availability
-func (c *clientImpl) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
+func (c *clientImpl) VmmPing(ctx context.Context) (*model.VmmPingResponse, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -133,7 +134,7 @@ func (c *clientImpl) VmmPing(ctx context.Context) (*VmmPingResponse, error) {
 		return nil, fmt.Errorf("failed to execute VmmPing: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	obj := VmmPingResponse{}
+	obj := model.VmmPingResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func (c *clientImpl) VmmShutdown(ctx context.Context) error {
 }
 
 // Returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
-func (c *clientImpl) VmInfo(ctx context.Context) (*VmInfo, error) {
+func (c *clientImpl) VmInfo(ctx context.Context) (*model.VmInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -190,7 +191,7 @@ func (c *clientImpl) VmInfo(ctx context.Context) (*VmInfo, error) {
 		return nil, fmt.Errorf("failed to execute VmInfo: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := VmInfo{}
+	obj := model.VmInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmInfo, failed to decode JSON response : %w", err)
@@ -200,7 +201,7 @@ func (c *clientImpl) VmInfo(ctx context.Context) (*VmInfo, error) {
 }
 
 // Get counters from the VM
-func (c *clientImpl) VmCounters(ctx context.Context) (*VmCounters, error) {
+func (c *clientImpl) VmCounters(ctx context.Context) (*model.VmCounters, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -223,7 +224,7 @@ func (c *clientImpl) VmCounters(ctx context.Context) (*VmCounters, error) {
 		return nil, fmt.Errorf("failed to execute VmCounters: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := VmCounters{}
+	obj := model.VmCounters{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmCounters, failed to decode JSON response : %w", err)
@@ -233,7 +234,7 @@ func (c *clientImpl) VmCounters(ctx context.Context) (*VmCounters, error) {
 }
 
 // Create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
-func (c *clientImpl) VmCreate(ctx context.Context, config VmConfig) error {
+func (c *clientImpl) VmCreate(ctx context.Context, config model.VmConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -453,7 +454,7 @@ func (c *clientImpl) VmPowerButton(ctx context.Context) error {
 }
 
 // Resize the VM
-func (c *clientImpl) VmResize(ctx context.Context, config VmResize) error {
+func (c *clientImpl) VmResize(ctx context.Context, config model.VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -485,7 +486,7 @@ func (c *clientImpl) VmResize(ctx context.Context, config VmResize) error {
 }
 
 // Resize a memory zone
-func (c *clientImpl) VmResizeZone(ctx context.Context, config VmResizeZone) error {
+func (c *clientImpl) VmResizeZone(ctx context.Context, config model.VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -517,7 +518,7 @@ func (c *clientImpl) VmResizeZone(ctx context.Context, config VmResizeZone) erro
 }
 
 // Add a new device to the VM
-func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddDevice(ctx context.Context, config model.DeviceConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -550,7 +551,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*Pci
 		return nil, fmt.Errorf("failed to execute VmResizeZone: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddDevice, failed to decode JSON response : %w", err)
@@ -560,7 +561,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config DeviceConfig) (*Pci
 }
 
 // Remove a device from the VM
-func (c *clientImpl) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) error {
+func (c *clientImpl) VmRemoveDevice(ctx context.Context, config model.VmRemoveDevice) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -592,7 +593,7 @@ func (c *clientImpl) VmRemoveDevice(ctx context.Context, config VmRemoveDevice) 
 }
 
 // Add a new disk to the VM
-func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddDisk(ctx context.Context, config model.DiskConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -625,7 +626,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDevi
 		return nil, fmt.Errorf("failed to execute VmAddDisk: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddDisk, failed to decode JSON response : %w", err)
@@ -635,7 +636,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config DiskConfig) (*PciDevi
 }
 
 // Add a new virtio-fs device to the VM
-func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddFs(ctx context.Context, config model.FsConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -668,7 +669,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceIn
 		return nil, fmt.Errorf("failed to execute VmAddFs: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddFs, failed to decode JSON response : %w", err)
@@ -678,7 +679,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config FsConfig) (*PciDeviceIn
 }
 
 // Add a new pmem device to the VM
-func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddPmem(ctx context.Context, config model.PmemConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -711,7 +712,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDevi
 		return nil, fmt.Errorf("failed to execute VmAddPmem: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddPmem, failed to decode JSON response : %w", err)
@@ -721,7 +722,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config PmemConfig) (*PciDevi
 }
 
 // Add a new network device to the VM
-func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddNet(ctx context.Context, config model.NetConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -754,7 +755,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDevice
 		return nil, fmt.Errorf("failed to execute VmAddNet: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddNet, failed to decode JSON response : %w", err)
@@ -764,7 +765,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config NetConfig) (*PciDevice
 }
 
 // Add a new vsock device to the VM
-func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddVsock(ctx context.Context, config model.VsockConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -797,7 +798,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDe
 		return nil, fmt.Errorf("failed to execute VmAddVsock: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddVsock, failed to decode JSON response : %w", err)
@@ -807,7 +808,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config VsockConfig) (*PciDe
 }
 
 // Add a new vDPA device to the VM
-func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDeviceInfo, error) {
+func (c *clientImpl) VmAddVdpa(ctx context.Context, config model.VdpaConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -840,7 +841,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDevi
 		return nil, fmt.Errorf("failed to execute VmAddVdpa: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
 	}
 
-	obj := PciDeviceInfo{}
+	obj := model.PciDeviceInfo{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddVdpa, failed to decode JSON response : %w", err)
@@ -850,7 +851,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config VdpaConfig) (*PciDevi
 }
 
 // Returns a VM snapshot
-func (c *clientImpl) VmSnapshot(ctx context.Context, config VmSnapshotConfig) error {
+func (c *clientImpl) VmSnapshot(ctx context.Context, config model.VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -884,7 +885,7 @@ func (c *clientImpl) VmSnapshot(ctx context.Context, config VmSnapshotConfig) er
 }
 
 // Takes a VM coredump
-func (c *clientImpl) VmCoredump(ctx context.Context, config VmCoredumpData) error {
+func (c *clientImpl) VmCoredump(ctx context.Context, config model.VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -918,7 +919,7 @@ func (c *clientImpl) VmCoredump(ctx context.Context, config VmCoredumpData) erro
 }
 
 // Restore a VM from a snapshot
-func (c *clientImpl) VmRestore(ctx context.Context, config RestoreConfig) error {
+func (c *clientImpl) VmRestore(ctx context.Context, config model.RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -950,7 +951,7 @@ func (c *clientImpl) VmRestore(ctx context.Context, config RestoreConfig) error 
 }
 
 // Receive a VM migration from URL
-func (c *clientImpl) VmReceiveMigration(ctx context.Context, config ReceiveMigrationData) error {
+func (c *clientImpl) VmReceiveMigration(ctx context.Context, config model.ReceiveMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -982,7 +983,7 @@ func (c *clientImpl) VmReceiveMigration(ctx context.Context, config ReceiveMigra
 }
 
 // Send a VM migration to URL
-func (c *clientImpl) VmSendMigration(ctx context.Context, config SendMigrationData) error {
+func (c *clientImpl) VmSendMigration(ctx context.Context, config model.SendMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 

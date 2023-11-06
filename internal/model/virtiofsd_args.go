@@ -1,4 +1,4 @@
-package hvm
+package model
 
 import (
 	"strconv"
@@ -24,3 +24,5 @@ func (i *VirtiofsConfig) CommandArgs() []string {
 	args = append(args, "--socket-path", i.SocketPath)
 	return args
 }
+
+func (v VirtiofsConfig) String() string { return joinArgs(v.CommandArgs()) }

@@ -40,7 +40,7 @@ directory:
 		panic(err)
 	}
 
-	for _, args := range cfg.VirtiofsArgs("/srv/vmm/nodes") {
+	for _, args := range cfg.VirtiofsArgs() {
 		fmt.Printf("v = %s\n", args)
 	}
 	fmt.Printf("v = %v\n", cfg)

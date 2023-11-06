@@ -1,4 +1,4 @@
-package args
+package model
 
 import (
 	"bytes"
@@ -75,7 +75,7 @@ directory:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := &Hypervisor{
+			i := &Config{
 				Name:       tt.fields.Name,
 				Cpus:       tt.fields.Cpus,
 				Mem:        tt.fields.Mem,
