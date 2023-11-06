@@ -140,7 +140,7 @@ func usage(reason string) {
 		util.ErrLog.Println(reason)
 	}
 	_, _ = os.Stderr.WriteString(util.F(`usage:
-	{{.name}} boot NODE_NAME
+	{{.name}} start NODE_NAME
 	{{.name}} shutdown NODE_NAME
 	{{.name}} console NODE_NAME
 	{{.name}} ping NODE_NAME
