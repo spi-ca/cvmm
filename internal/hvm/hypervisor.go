@@ -3,6 +3,7 @@ package hvm
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -94,11 +95,12 @@ func (i *Hypervisor) VolatilePath(rest string) string {
 }
 
 func (i *Hypervisor) Start(
-	ctx context.Context,
+	parentCtx context.Context,
 	kernelFilename, initramfsFilename, rootfsFilename string,
 	virtiofsFilenameTemplate func(string) string,
 ) error {
-	//virtiofsSocketPathResolver := func(name string) string { return i.VolatilePath(virtiofsFilenameTemplate(name)) }
+
+	virtiofsSocketPathResolver := func(name string) string { return i.VolatilePath(virtiofsFilenameTemplate(name)) }
 	//vmcfg := i.args.VMConfig(
 	//	i.name,
 	//	i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
@@ -106,17 +108,39 @@ func (i *Hypervisor) Start(
 	//	i.VirtiofsSocketPath,
 	//)
 	//// virtiofscfg
-	//virtiofscfgs := i.args.VirtiofsConfig(i.NodeBasePath, virtiofsSocketPathResolver)
+	virtiofscfgs := i.args.VirtiofsConfig(i.NodeBasePath, virtiofsSocketPathResolver)
 
-	args := []string{
-		"--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath),
+	ctx, cancel := context.WithCancel(parentCtx)
+	defer cancel()
+
+	vmErrorChan := make(chan error, 1)
+	go i.submit(ctx, vmErrorChan, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
+	virtiofsdErrorChan := i.virtiofsd.Execute(ctx, virtiofscfgs)
+
+	var errs []error
+
+	select {
+	case err, ok := <-virtiofsdErrorChan:
+		if ok {
+			errs = append(errs, err)
+		}
+
+		// wait hypervisor
+		if err, ok = <-vmErrorChan; ok {
+			errs = append(errs, err)
+		}
+	case err, ok := <-vmErrorChan:
+		if ok {
+			errs = append(errs, err)
+		}
 	}
 
-	vmErrorChan := make(chan error)
-	go i.submit(ctx, args, vmErrorChan)
+	//remain virtiofsd errors
+	for selectorErr := range virtiofsdErrorChan {
+		errs = append(errs, selectorErr)
+	}
 
-	// daemon started
-	return <-vmErrorChan
+	return errors.Join(errs...)
 }
 
 //func (i *Hypervisor) Boot(
@@ -160,7 +184,7 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 }
 
-func (i *Hypervisor) submit(ctx context.Context, args []string, errorChan chan<- error) {
+func (i *Hypervisor) submit(ctx context.Context, errorChan chan<- error, args ...string) {
 	defer func() {
 		if err := recover(); err != nil {
 			util.ErrLog.Printf("cloud-hypervisor panic: %v", err)
