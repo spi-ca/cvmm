@@ -101,13 +101,14 @@ func (i *Hypervisor) Start(
 ) error {
 
 	virtiofsSocketPathResolver := func(name string) string { return i.VolatilePath(virtiofsFilenameTemplate(name)) }
-	//vmcfg := i.args.VMConfig(
-	//	i.name,
-	//	i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
-	//	i.ImageBasePath(rootfsFilename), i.NodeBasePath,
-	//	i.VirtiofsSocketPath,
-	//)
-	//// virtiofscfg
+	vmcfg := i.args.VMConfig(
+		i.name,
+		i.ImageBasePath(kernelFilename), i.ImageBasePath(initramfsFilename),
+		i.ImageBasePath(rootfsFilename), i.NodeBasePath,
+		virtiofsSocketPathResolver,
+	)
+	util.InfoLog.Printf("hypervisor config: %s", vmcfg)
+
 	virtiofscfgs := i.args.VirtiofsConfig(i.NodeBasePath, virtiofsSocketPathResolver)
 
 	ctx, cancel := context.WithCancel(parentCtx)
@@ -118,7 +119,9 @@ func (i *Hypervisor) Start(
 	util.InfoLog.Printf("hypervisor started(api socket: %s)", i.cli.socketPath)
 
 	virtiofsdErrorChan := i.virtiofsd.Execute(ctx, virtiofscfgs)
-	util.InfoLog.Printf("virtiofsd started(#%d instnaces)", len(virtiofscfgs))
+	if virtiofsdErrorChan != nil {
+		util.InfoLog.Printf("virtiofsd started(#%d instnaces)", len(virtiofscfgs))
+	}
 
 	var errs []error
 
