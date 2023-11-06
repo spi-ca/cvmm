@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 	"context"
 	"fmt"
 	"os"
@@ -48,6 +49,8 @@ func Start(name, nodeName string) {
 		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
 		"\n---",
 	)
+	_ = sys.SetProcessName(fmt.Sprintf("node: %s, void", nodeName))
+
 	h, err := hvm.Load(
 		nodeName,
 		viper.GetString("image.root"), viper.GetString("node.root"),
@@ -61,6 +64,7 @@ func Start(name, nodeName string) {
 	}
 
 	defer h.Close()
+	_ = sys.SetProcessName(fmt.Sprintf("node: %s, initial", nodeName))
 
 	virtiofsSocketTemplate := util.F(viper.GetString("virtiofs.socket.filename.template"))
 	virtiofsFilenameResolver := func(name string) string { return virtiofsSocketTemplate.R(util.FormatArgs{"directoryName": name}) }
@@ -74,4 +78,8 @@ func Start(name, nodeName string) {
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}
+
+	_ = sys.SetProcessName(fmt.Sprintf("node: %s, started", nodeName))
+
+	defer sys.SetProcessName(fmt.Sprintf("node: %s, teardown", nodeName))
 }
