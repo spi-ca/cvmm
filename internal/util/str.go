@@ -1,6 +1,7 @@
 package util
 
 import (
+	"path/filepath"
 	"strings"
 	"text/template"
 )
@@ -35,4 +36,21 @@ func (tmpl *Format) R(args FormatArgs) string {
 		panic(err)
 	}
 	return s
+}
+
+func AppendFileSuffix(tmpl, suffix string) string {
+	ext := filepath.Ext(tmpl)
+	prefix := tmpl[:len(tmpl)-len(ext)]
+
+	var b strings.Builder
+	b.WriteString(prefix)
+
+	if len(prefix) > 0 {
+		b.WriteByte('_')
+	}
+
+	b.WriteString(suffix)
+	b.WriteString(ext)
+
+	return b.String()
 }

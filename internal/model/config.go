@@ -2,6 +2,8 @@ package model
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -22,18 +24,38 @@ type Config struct {
 	Directory  []string        `json:"directory" yaml:"directory"`
 }
 
+func LoadConfig(path string) (*Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+
+	var cfg Config
+	d := yaml.NewDecoder(f)
+	err = d.Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
 func (i *Config) VirtiofsConfig(
-	virtiofsDirPathFormatter func(string) string,
-	virtiofsSocketPathFormatter func(string) string,
+	diskImageDirectoryPath string,
+	virtiofsSocketPathTemplate string,
 ) []VirtiofsConfig {
 	var cfgs []VirtiofsConfig
 
 	for _, dir := range i.Directory {
+		diskPath := dir
+		if !filepath.IsAbs(dir) {
+			diskPath = filepath.Join(diskImageDirectoryPath, dir)
+		}
 		name := filepath.Base(dir)
 
 		cfg := VirtiofsConfig{
-			Directory:      virtiofsDirPathFormatter(dir),
-			SocketPath:     virtiofsSocketPathFormatter(name),
+			Directory:      diskPath,
+			SocketPath:     util.AppendFileSuffix(virtiofsSocketPathTemplate, name),
 			ThreadPoolSize: i.Cpus,
 		}
 
@@ -47,19 +69,19 @@ func (i *Config) VMConfig(
 	kernelPath,
 	initramfsPath,
 	rootfsPath string,
-	diskFilenameFormatter func(string) string,
-	virtiofsSocketPathFormatter func(string) string,
+	diskImageDirectoryPath string,
+	virtiofsSocketPathTemplate string,
 ) VmConfig {
 	return VmConfig{
 		Payload:  i.PayloadConfig(kernelPath, initramfsPath),
 		Platform: i.PlatformConfig(name),
 		Cpus:     i.CpusConfig(),
 		Memory:   i.MemoryConfig(),
-		Disks:    i.DiskConfig(rootfsPath, diskFilenameFormatter),
+		Disks:    i.DiskConfig(rootfsPath, diskImageDirectoryPath),
 		Net:      i.NetConfig(),
 		Rng:      i.RngConfig(),
 		Balloon:  i.BalloonConfig(),
-		Fs:       i.FsConfig(virtiofsSocketPathFormatter),
+		Fs:       i.FsConfig(virtiofsSocketPathTemplate),
 		Pmem:     i.PmemConfig(),
 		Serial:   i.SerialConfig(),
 		Console:  i.ConsoleConfig(),
@@ -116,7 +138,7 @@ func (i *Config) imageConfig(imageFilePath string) DiskConfig {
 	}
 }
 
-func (i *Config) DiskConfig(imageFilePath string, diskFilenameFormatter func(string) string) []DiskConfig {
+func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string) []DiskConfig {
 	var (
 		cfgs []DiskConfig
 	)
@@ -125,7 +147,7 @@ func (i *Config) DiskConfig(imageFilePath string, diskFilenameFormatter func(str
 	for _, dir := range i.Disk {
 		diskPath := dir
 		if !filepath.IsAbs(dir) {
-			diskPath = diskFilenameFormatter(dir)
+			diskPath = filepath.Join(diskImageDirectoryPath, dir)
 		}
 		cfg := DiskConfig{
 			Path:      diskPath,
@@ -163,7 +185,7 @@ func (i *Config) BalloonConfig() *BalloonConfig {
 	}
 }
 
-func (i *Config) FsConfig(socketNameFormatter func(string) string) []FsConfig {
+func (i *Config) FsConfig(virtiofsSocketPathTemplate string) []FsConfig {
 	var (
 		cfgs []FsConfig
 	)
@@ -172,7 +194,7 @@ func (i *Config) FsConfig(socketNameFormatter func(string) string) []FsConfig {
 		name := filepath.Base(dir)
 		cfg := FsConfig{
 			Tag:       name,
-			Socket:    socketNameFormatter(name),
+			Socket:    util.AppendFileSuffix(virtiofsSocketPathTemplate, name),
 			NumQueues: 1, // virtiofs only supported single threaded
 			QueueSize: 1024,
 		}

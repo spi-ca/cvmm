@@ -44,8 +44,12 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		"\n	image.root=", viper.GetString("image.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
-		"\n	cloudhypervisor.monitor.filename=", viper.GetString("cloudhypervisor.monitor.filename"),
+		"\n	cloudhypervisor.api.filename=", viper.GetString("cloudhypervisor.api.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
+		"\n	virtiofs.socket.filename.template=", viper.GetString("virtiofs.socket.filename.template"),
+		"\n	image.kernel.filename=", viper.GetString("image.kernel.filename"),
+		"\n	image.initramfs.filename=", viper.GetString("image.initramfs.filename"),
+		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
 		"\n---",
 	)
 	_ = sys.SetProcessName(fmt.Sprintf("node: %s", nodeName))
@@ -54,7 +58,14 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		nodeName,
 		viper.GetString("image.root"), viper.GetString("node.root"),
 		viper.GetString("volatile.directory"), viper.GetString("manifest.filename"),
-		viper.GetString("cloudhypervisor.monitor.filename"),
+
+		viper.GetString("image.kernel.filename"),
+		viper.GetString("image.initramfs.filename"),
+		viper.GetString("image.rootfs.filename"),
+
+		viper.GetString("cloudhypervisor.api.filename"),
+		viper.GetString("virtiofs.socket.filename.template"),
+
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
 	)
