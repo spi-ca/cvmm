@@ -69,7 +69,10 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	vmErrorChan := make(chan error, 1)
 
 	cmd := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
-	go i.submit(ctx, "cloud-hypervisor", cmd, vmErrorChan)
+	go func() {
+		defer close(vmErrorChan)
+		i.submit(ctx, "cloud-hypervisor", cmd, vmErrorChan)
+	}()
 	util.InfoLog.Printf("hypervisor started(api socket: %s)", i.cli.socketPath)
 
 	virtiofsdErrorChan := chan error(nil)
@@ -153,7 +156,6 @@ func (i *Hypervisor) submit(ctx context.Context, name string, cmd *exec.Cmd, err
 		if err := recover(); err != nil {
 			util.ErrLog.Printf("%s panic: %v", name, err)
 		}
-		close(errorChan)
 	}()
 
 	started := time.Now()
