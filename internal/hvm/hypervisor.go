@@ -96,11 +96,13 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		if err, ok = <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
+		cancel()
 		util.InfoLog.Printf("hypervisor stopped")
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
 		}
+		cancel()
 		util.InfoLog.Printf("hypervisor stopped")
 	}
 
