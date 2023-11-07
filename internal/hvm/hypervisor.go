@@ -70,6 +70,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 
 	cmd := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
 	go func() {
+		defer util.InfoLog.Printf("hypervisor stopped")
 		defer close(vmErrorChan)
 		i.submit(ctx, "cloud-hypervisor", cmd, vmErrorChan)
 	}()
@@ -80,7 +81,6 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	if cfgs := i.virtiofsdcfg; len(cfgs) > 0 {
 		virtiofsdErrorChan = make(chan error, len(cfgs))
 		i.dispatchVirtiofsConfigs(ctx, virtiofsdErrorChan)
-		util.InfoLog.Printf("virtiofsd started(#%d instnaces)", len(i.virtiofsdcfg))
 	}
 
 	var errs []error
@@ -90,20 +90,16 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		if ok {
 			errs = append(errs, err)
 		}
-		util.InfoLog.Printf("virtiofsd stopped")
-
 		// wait hypervisor
 		if err, ok = <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
 		cancel()
-		util.InfoLog.Printf("hypervisor stopped")
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
 		}
 		cancel()
-		util.InfoLog.Printf("hypervisor stopped")
 	}
 
 	//remain virtiofsd errors
@@ -147,6 +143,8 @@ func (i *Hypervisor) dispatchVirtiofsConfigs(ctx context.Context, errorChan chan
 		cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
 		go func() {
 			defer wg.Done()
+			util.InfoLog.Printf("virtiofsd[%s] started", name)
+			defer util.InfoLog.Printf("virtiofsd[%s] started", name)
 			i.submit(ctx, name, cmd, errorChan)
 		}()
 	}
