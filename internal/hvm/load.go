@@ -26,7 +26,7 @@ func Load(
 
 	h.cli = newClient(apiSocketPath)
 
-	manifestFilePath := filepath.Join(volatileBasePath, manifestFilename)
+	manifestFilePath := filepath.Join(nodeBasePath, manifestFilename)
 
 	args, err := model.LoadConfig(manifestFilePath)
 	if err != nil {
