@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 	"unicode"
 
 	"amuz.es/src/spi-ca/chmgr/internal/model"
@@ -21,11 +20,13 @@ import (
 )
 
 type Hypervisor struct {
-	name         string
+	name string
+
 	vmcfg        model.VmConfig
 	virtiofsdcfg []model.VirtiofsConfig
 
 	cloudhypervisorBinaryPath string
+	cloudhypervisorPidPath    string
 	virtiofsdBinaryPath       string
 
 	cli *clientImpl
@@ -35,7 +36,6 @@ type Hypervisor struct {
 func (i *Hypervisor) Ping(ctx context.Context) error {
 	return nil
 }
-
 func (i *Hypervisor) Info(ctx context.Context) (*model.VmInfo, error) { return i.cli.VmInfo(ctx) }
 func (i *Hypervisor) Counters(ctx context.Context) (*model.VmCounters, error) {
 	return i.cli.VmCounters(ctx)
@@ -58,21 +58,34 @@ func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(c
 
 // TODO impl
 func (i *Hypervisor) PowerButton(ctx context.Context) error { return i.cli.VmPowerButton(ctx) }
-
-func (i *Hypervisor) Close()            { i.cli.Close() }
-func (i *Hypervisor) GetClient() Client { return i.cli }
-
+func (i *Hypervisor) Close()                                { i.cli.Close() }
+func (i *Hypervisor) GetClient() Client                     { return i.cli }
 func (i *Hypervisor) Start(parentCtx context.Context) error {
-	ctx, cancel := context.WithCancel(parentCtx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	vmErrorChan := make(chan error, 1)
 
 	cmd := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
+	cmd.Cancel = func() error {
+		return cmd.Process.Signal(syscall.SIGTERM)
+	}
+
+	if sys.IsPidFileActive(i.cloudhypervisorPidPath) {
+		return fmt.Errorf("hypervisor already running")
+	}
+
+	_ = os.Remove(i.cli.socketPath)
+	defer os.Remove(i.cli.socketPath)
+
 	go func() {
-		defer util.InfoLog.Printf("hypervisor stopped")
 		defer close(vmErrorChan)
-		i.submit(ctx, "cloud-hypervisor", cmd, vmErrorChan)
+		defer util.InfoLog.Printf("hypervisor stopped")
+
+		err := i.invoke(cmd, i.cloudhypervisorPidPath)
+		if err != nil {
+			vmErrorChan <- fmt.Errorf("hypervisor failed: %w", err)
+		}
 	}()
 	util.InfoLog.Printf("hypervisor started(api socket: %s)", i.cli.socketPath)
 
@@ -80,33 +93,39 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 
 	if cfgs := i.virtiofsdcfg; len(cfgs) > 0 {
 		virtiofsdErrorChan = make(chan error, len(cfgs))
-		i.dispatchVirtiofsConfigs(ctx, virtiofsdErrorChan)
+		go i.dispatchVirtiofsConfigs(ctx, virtiofsdErrorChan)
 	}
 
 	var errs []error
 
 	select {
-	case err, ok := <-virtiofsdErrorChan:
-		if ok {
-			errs = append(errs, err)
-		}
-		// wait hypervisor
-		if err, ok = <-vmErrorChan; ok {
-			errs = append(errs, err)
-		}
+	case <-parentCtx.Done():
+		// parent wants stop the hypervisor
 		cancel()
+		// wait hypervisor
+		if err, ok := <-vmErrorChan; ok {
+			errs = append(errs, err)
+		}
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
 		}
 		cancel()
+	case err, ok := <-virtiofsdErrorChan:
+		if ok {
+			errs = append(errs, err)
+		}
+		cancel()
+		// wait hypervisor
+		if err, ok = <-vmErrorChan; ok {
+			errs = append(errs, err)
+		}
 	}
 
 	//remain virtiofsd errors
 	if virtiofsdErrorChan != nil {
-		for selectorErr := range virtiofsdErrorChan {
-			util.InfoLog.Printf("virtiofsd stopped")
-			errs = append(errs, selectorErr)
+		for range virtiofsdErrorChan {
+			// wait sibling virtiofsd finished
 		}
 	}
 
@@ -132,6 +151,7 @@ func (i *Hypervisor) dispatchVirtiofsConfigs(ctx context.Context, errorChan chan
 			util.ErrLog.Printf("panic on virtiofsdWaiter: %v", err)
 		}
 		close(errorChan)
+		util.InfoLog.Printf("all virtiofsd stopped")
 	}()
 
 	cfgs := i.virtiofsdcfg
@@ -141,34 +161,30 @@ func (i *Hypervisor) dispatchVirtiofsConfigs(ctx context.Context, errorChan chan
 	for _, cfg := range cfgs {
 		name := fmt.Sprintf("virtiofsd-%s", cfg.Directory)
 		cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
+		cmd.Cancel = func() error {
+			return cmd.Process.Signal(syscall.SIGTERM)
+		}
+
 		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					util.ErrLog.Printf("%s panic: %v", name, err)
+				}
+			}()
+
 			defer wg.Done()
 			util.InfoLog.Printf("virtiofsd[%s] started", name)
-			defer util.InfoLog.Printf("virtiofsd[%s] started", name)
-			i.submit(ctx, name, cmd, errorChan)
+			defer util.InfoLog.Printf("virtiofsd[%s] stopped", name)
+			err := i.invoke(cmd, "")
+			if err != nil {
+				errorChan <- fmt.Errorf("%s failed: %w", name, err)
+			}
 		}()
 	}
 	wg.Wait()
 }
 
-func (i *Hypervisor) submit(ctx context.Context, name string, cmd *exec.Cmd, errorChan chan<- error) {
-	defer func() {
-		if err := recover(); err != nil {
-			util.ErrLog.Printf("%s panic: %v", name, err)
-		}
-	}()
-
-	started := time.Now()
-	err := i.invoke(ctx, cmd)
-	ended := time.Now()
-	if err != nil {
-		errorChan <- fmt.Errorf("%s failed in %s: %w", name, ended.Sub(started), err)
-	}
-}
-
-func (i *Hypervisor) invoke(parentContext context.Context, cmd *exec.Cmd) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *Hypervisor) invoke(cmd *exec.Cmd, pidPath string) error {
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 
@@ -195,18 +211,19 @@ func (i *Hypervisor) invoke(parentContext context.Context, cmd *exec.Cmd) error 
 
 	res := &util.ExecutionResult{PID: cmd.Process.Pid}
 
-	go func() {
-		select {
-		case <-parentContext.Done():
-			_ = cmd.Process.Signal(syscall.SIGTERM)
-		case <-ctx.Done():
-		}
-	}()
-
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go i.handleStdout(res, stdout, wg.Done)
 	go i.handleStderr(res, stderr, wg.Done)
+
+	if len(pidPath) > 0 {
+		pidClean, err := sys.AcquirePidFile(pidPath, cmd.Process.Pid)
+		if err != nil {
+			return fmt.Errorf("failed to start process(%s): %w", cmd.Path, err)
+		}
+		defer pidClean()
+	}
+
 	res.Err = cmd.Wait()
 	wg.Wait()
 

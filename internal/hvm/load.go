@@ -1,9 +1,10 @@
 package hvm
 
 import (
+	"path/filepath"
+
 	"amuz.es/src/spi-ca/chmgr/internal/model"
 	"amuz.es/src/spi-ca/chmgr/internal/util"
-	"path/filepath"
 )
 
 func Load(
@@ -11,18 +12,24 @@ func Load(
 	imageRoot, nodeRoot, volatileDirectory,
 	manifestFilename,
 	kernelFilename, initramfsFilename, rootfsFilename,
-	apiSocketFilename, virtiofsdSocketFilenameTemplate,
+	apiPidFilename, apiSocketFilename,
+	virtiofsdSocketFilenameTemplate,
 	cloudhypervisorBinaryPath, virtiofsdBinaryPath string) (*Hypervisor, error) {
-	h := &Hypervisor{
-		name:                      name,
-		cloudhypervisorBinaryPath: cloudhypervisorBinaryPath,
-		virtiofsdBinaryPath:       virtiofsdBinaryPath,
-	}
 
 	nodeBasePath := filepath.Join(nodeRoot, name)
 	volatileBasePath := filepath.Join(nodeBasePath, volatileDirectory)
-	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
+
+	apiPidPath := filepath.Join(volatileBasePath, apiPidFilename)
 	apiSocketPath := filepath.Join(volatileBasePath, apiSocketFilename)
+
+	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
+
+	h := &Hypervisor{
+		name:                      name,
+		cloudhypervisorBinaryPath: cloudhypervisorBinaryPath,
+		cloudhypervisorPidPath:    apiPidPath,
+		virtiofsdBinaryPath:       virtiofsdBinaryPath,
+	}
 
 	h.cli = newClient(apiSocketPath)
 

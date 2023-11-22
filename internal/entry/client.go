@@ -1,12 +1,13 @@
 package entry
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
 
 	"amuz.es/src/spi-ca/chmgr/internal/hvm"
 	"amuz.es/src/spi-ca/chmgr/internal/model"
@@ -44,6 +45,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		"\n	image.root=", viper.GetString("image.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
+		"\n	cloudhypervisor.pid.filename=", viper.GetString("cloudhypervisor.pid.filename"),
 		"\n	cloudhypervisor.api.filename=", viper.GetString("cloudhypervisor.api.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
 		"\n	virtiofs.socket.filename.template=", viper.GetString("virtiofs.socket.filename.template"),
@@ -63,6 +65,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		viper.GetString("image.initramfs.filename"),
 		viper.GetString("image.rootfs.filename"),
 
+		viper.GetString("cloudhypervisor.pid.filename"),
 		viper.GetString("cloudhypervisor.api.filename"),
 		viper.GetString("virtiofs.socket.filename.template"),
 

@@ -2,10 +2,11 @@ package model
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"github.com/google/uuid"
@@ -41,8 +42,8 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 func (i *Config) VirtiofsConfig(
-	diskImageDirectoryPath string,
-	virtiofsSocketPathTemplate string,
+	diskImageDirectoryPath,
+	virtiofsdSocketPathTemplate string,
 ) []VirtiofsConfig {
 	var cfgs []VirtiofsConfig
 
@@ -55,7 +56,7 @@ func (i *Config) VirtiofsConfig(
 
 		cfg := VirtiofsConfig{
 			Directory:      diskPath,
-			SocketPath:     util.AppendFileSuffix(virtiofsSocketPathTemplate, name),
+			SocketPath:     util.AppendFileSuffix(virtiofsdSocketPathTemplate, name),
 			ThreadPoolSize: i.Cpus,
 		}
 
@@ -68,7 +69,7 @@ func (i *Config) VMConfig(
 	name,
 	kernelPath,
 	initramfsPath,
-	rootfsPath string,
+	rootfsPath,
 	diskImageDirectoryPath string,
 	virtiofsSocketPathTemplate string,
 ) VmConfig {

@@ -1,6 +1,8 @@
 package util
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -33,7 +35,12 @@ func (r *ExecutionResult) LastLogLine() []string {
 
 func (r *ExecutionResult) HandleError() error {
 	exitcode := 0
-	if err := r.Err; err != nil {
+	if err := r.Err; err == nil {
+		// do nothing
+	} else if errors.Is(err, context.Canceled) {
+		// do nothing
+		r.Err = nil
+	} else {
 		// try to get the exit code
 		if exitError, ok := err.(*exec.ExitError); ok {
 			ws := exitError.Sys().(syscall.WaitStatus)

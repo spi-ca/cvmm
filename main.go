@@ -32,8 +32,10 @@ func init() {
 
 	flags.String("node-root", "/srv/vmm/nodes", "specify node repository path")
 	flags.String("manifest-filename", "config.yaml", "specify node manifest file path")
-	flags.String("cloudhypervisor-api-filename", "api.sock", "specify api socket filename")
+	flags.String("cloudhypervisor-api-filename", "cloudhypervisor.sock", "specify api socket filename")
+	flags.String("cloudhypervisor-pid-filename", "cloudhypervisor.pid", "specify cloudhypervisor pid filename")
 	flags.String("virtiofs-socket-filename-template", "virtiofs.sock", "specify virtiofs socket filename")
+	flags.String("virtiofs-pid-filename-template", "virtiofs.pid", "specify virtiofs pid filename")
 	flags.String("volatile-directory", "run", "specify volatile directory name")
 
 	flags.String("virtiofsd-path", "/usr/lib/virtiofsd", "specify virtiofsd binary path")
