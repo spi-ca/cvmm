@@ -3,7 +3,6 @@ module amuz.es/src/spi-ca/cvmm
 go 1.21
 
 require (
-	github.com/creack/pty v1.1.20
 	github.com/google/uuid v1.4.0
 	github.com/moby/sys/mount v0.3.3
 	github.com/sony/gobreaker v0.5.0

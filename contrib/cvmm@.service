@@ -7,8 +7,6 @@ After=network.target syslog.target modprobe@tun.service modprobe@zfs.service mod
 RequiresMountsFor=/srv/vmm/images
 
 [Service]
-User=hvm
-Group=kvm
 Type=simple
 Slice=machine.slice
 RestartSec=7m
@@ -19,7 +17,10 @@ AmbientCapabilities=CAP_NET_ADMIN CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSET
 Environment=GOMEMLIMIT=32MiB
 Environment=GOGC=100
 WorkingDirectory=/srv/vmm/nodes
-ExecStart=/usr/bin/cvmm start %I
+ExecStart=/usr/bin/cvmm \
+    --runas-user hvm \
+    --runas-group kvm \
+    start %I
 Restart=on-failure
 
 [Install]

@@ -90,7 +90,7 @@ func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(c
 
 func (i *Hypervisor) Close()            { i.cli.Close() }
 func (i *Hypervisor) GetClient() Client { return i.cli }
-func (i *Hypervisor) Start(parentCtx context.Context) error {
+func (i *Hypervisor) Start(parentCtx context.Context, hypervisorRunAsUser, hypervisorRunAsGroup uint32) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -105,6 +105,23 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	cmd := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
 	cmd.Cancel = func() error {
 		return cmd.Process.Signal(syscall.SIGTERM)
+	}
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+
+	if err = sys.ApplySysProAttrPGid(cmd.SysProcAttr); err != nil {
+		return fmt.Errorf("failed to set process group id: %w", err)
+	}
+
+	if err = sys.ApplySysProAttrPdeathsig(cmd.SysProcAttr, syscall.SIGTERM); err != nil {
+		return fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
+	}
+
+	if hypervisorRunAsUser > 0 || hypervisorRunAsGroup > 0 {
+		cmd.SysProcAttr.Credential = &syscall.Credential{
+			Uid: hypervisorRunAsUser,
+			Gid: hypervisorRunAsGroup,
+		}
 	}
 
 	if sys.IsPidFileActive(i.cloudhypervisorPidPath) {
@@ -184,17 +201,6 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 }
 
 func (i *Hypervisor) invoke(cmd *exec.Cmd, pidPath string) error {
-
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-
-	if err := sys.ApplySysProAttrPGid(cmd.SysProcAttr); err != nil {
-		return fmt.Errorf("failed to set process group id: %w", err)
-	}
-
-	if err := sys.ApplySysProAttrPdeathsig(cmd.SysProcAttr, syscall.SIGTERM); err != nil {
-		return fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
-	}
-
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -301,6 +307,18 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 					cmd.Cancel = func() error {
 						_ = os.Remove(cfg.SocketPath)
 						return cmd.Process.Signal(syscall.SIGTERM)
+					}
+
+					cmd.SysProcAttr = &syscall.SysProcAttr{}
+
+					if err = sys.ApplySysProAttrPGid(cmd.SysProcAttr); err != nil {
+						util.ErrLog.Printf("failed to set process group id: %s", err)
+						return
+					}
+
+					if err = sys.ApplySysProAttrPdeathsig(cmd.SysProcAttr, syscall.SIGTERM); err != nil {
+						util.ErrLog.Printf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
+						return
 					}
 
 					util.InfoLog.Printf("virtiofsd[%s] started", name)

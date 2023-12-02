@@ -18,7 +18,6 @@ func Load(
 	cloudhypervisorBinaryPath, virtiofsdBinaryPath string,
 	consoleRedirectToStd bool,
 ) (*Hypervisor, error) {
-
 	nodeBasePath := filepath.Join(nodeRoot, name)
 	volatileBasePath := filepath.Join(nodeBasePath, volatileDirectory)
 
@@ -54,10 +53,6 @@ func Load(
 		cfg.NetIfName = fmt.Sprintf("vmtap-%s", name)
 	}
 
-	if len(cfg.NetMacAddr) == 0 {
-		kvmAddr := util.GenerateKvmMACAddress()
-		cfg.NetMacAddr = kvmAddr
-	}
 	util.InfoLog.Printf("network interface(%s): %s", cfg.NetIfName, cfg.NetMacAddr)
 
 	h.vmcfg = cfg.VMConfig(
