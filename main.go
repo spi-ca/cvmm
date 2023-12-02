@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"strings"
 
-	"amuz.es/src/spi-ca/chmgr/internal/entry"
-	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/entry"
+	"amuz.es/src/spi-ca/cvmm/internal/hvm"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 
 	flags "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 const (
-	name = "chmgr"
+	name = "cvmm"
 )
 
 var (
@@ -32,7 +32,7 @@ func init() {
 
 	flags.String("node-root", "/srv/vmm/nodes", "specify node repository path")
 	flags.String("manifest-filename", "config.yaml", "specify node manifest file path")
-	flags.String("pid-filename", "chmgr.pid", "specify pid filename")
+	flags.String("pid-filename", "cvmm.pid", "specify pid filename")
 	flags.String("cloudhypervisor-api-filename", "cloudhypervisor.sock", "specify api socket filename")
 	flags.String("cloudhypervisor-pid-filename", "cloudhypervisor.pid", "specify cloudhypervisor pid filename")
 	flags.String("virtiofs-socket-filename-template", "virtiofs.sock", "specify virtiofs socket filename")

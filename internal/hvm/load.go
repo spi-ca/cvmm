@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"amuz.es/src/spi-ca/chmgr/internal/model"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/model"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 )
 
 func Load(

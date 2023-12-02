@@ -1,4 +1,4 @@
-module amuz.es/src/spi-ca/chmgr
+module amuz.es/src/spi-ca/cvmm
 
 go 1.21
 

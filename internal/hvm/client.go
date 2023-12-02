@@ -1,7 +1,7 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/model"
+	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"

@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 	"github.com/google/uuid"
 )
 

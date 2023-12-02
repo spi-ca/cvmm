@@ -1,7 +1,7 @@
 package entry
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 	"context"
 	"fmt"
 	"os"

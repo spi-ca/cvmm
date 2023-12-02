@@ -15,9 +15,9 @@ import (
 	"time"
 	"unicode"
 
-	"amuz.es/src/spi-ca/chmgr/internal/model"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
-	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
+	"amuz.es/src/spi-ca/cvmm/internal/model"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 	"github.com/sony/gobreaker"
 	"golang.org/x/sys/unix"
 )

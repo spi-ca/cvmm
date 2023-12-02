@@ -1,14 +1,14 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/chmgr/internal/model"
+	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 )
 
 func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus model.NodeStatus, errorChan chan<- error) {

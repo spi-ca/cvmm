@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
+	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 
-	"amuz.es/src/spi-ca/chmgr/internal/hvm"
-	"amuz.es/src/spi-ca/chmgr/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/hvm"
+	"amuz.es/src/spi-ca/cvmm/internal/util"
 	"github.com/spf13/viper"
 )
 
