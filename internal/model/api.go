@@ -563,7 +563,7 @@ func (m MemoryZoneConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--memory-zone", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -616,7 +616,9 @@ func (m MemoryConfig) CommandArgs() []string {
 	if len(args) > 0 {
 		flags = append(flags, "--memory", strings.Join(args, ","))
 	}
-
+	if len(m.Zones) > 0 {
+		flags = append(flags, "--memory-zone")
+	}
 	for _, cfg := range m.Zones {
 		flags = append(flags, cfg.CommandArgs()...)
 	}
@@ -697,7 +699,7 @@ func (d DiskConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--disk", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -764,7 +766,7 @@ func (n NetConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--net", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -840,7 +842,7 @@ func (f FsConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--fs", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -874,7 +876,7 @@ func (p PmemConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--pmem", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -962,7 +964,7 @@ func (d DeviceConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--device", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -992,7 +994,7 @@ func (v VdpaConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--vdpa", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -1067,7 +1069,7 @@ func (n NumaConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--numa", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -1102,7 +1104,7 @@ func (t SgxEpcConfig) CommandArgs() []string {
 	}
 
 	if len(args) > 0 {
-		return append([]string(nil), "--sgx-epc", strings.Join(args, ","))
+		return append([]string(nil), strings.Join(args, ","))
 	} else {
 		return nil
 	}
@@ -1129,9 +1131,17 @@ func (c VmConfig) CommandArgs() []string {
 
 	}
 
+	if len(c.Disks) > 0 {
+		args = append(args, "--disk")
+
+	}
 	for _, e := range c.Disks {
 		args = append(args, e.CommandArgs()...)
 
+	}
+
+	if len(c.Net) > 0 {
+		args = append(args, "--memory-zone")
 	}
 
 	for _, e := range c.Net {
@@ -1151,9 +1161,17 @@ func (c VmConfig) CommandArgs() []string {
 
 	}
 
+	if len(c.Fs) > 0 {
+		args = append(args, "--fs")
+	}
+
 	for _, e := range c.Fs {
 		args = append(args, e.CommandArgs()...)
 
+	}
+
+	if len(c.Pmem) > 0 {
+		args = append(args, "--pmem")
 	}
 
 	for _, e := range c.Pmem {
@@ -1173,9 +1191,17 @@ func (c VmConfig) CommandArgs() []string {
 
 	}
 
+	if len(c.Devices) > 0 {
+		args = append(args, "--device")
+	}
+
 	for _, e := range c.Devices {
 		args = append(args, e.CommandArgs()...)
 
+	}
+
+	if len(c.Vdpa) > 0 {
+		args = append(args, "--vdpa")
 	}
 
 	for _, e := range c.Vdpa {
@@ -1189,6 +1215,10 @@ func (c VmConfig) CommandArgs() []string {
 
 	}
 
+	if len(c.Numa) > 0 {
+		args = append(args, "--numa")
+	}
+
 	for _, e := range c.Numa {
 		args = append(args, e.CommandArgs()...)
 
@@ -1198,6 +1228,10 @@ func (c VmConfig) CommandArgs() []string {
 		e := c.Tpm
 		args = append(args, e.CommandArgs()...)
 
+	}
+
+	if len(c.SgxEpc) > 0 {
+		args = append(args, "--sgx-epc")
 	}
 
 	for _, e := range c.SgxEpc {
