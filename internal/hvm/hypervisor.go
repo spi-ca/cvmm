@@ -90,11 +90,9 @@ func (i *Hypervisor) Shutdown(ctx context.Context) {
 	process.Kill()
 }
 
-// TODO impl
 func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(ctx) }
-
-func (i *Hypervisor) Close()            { i.cli.Close() }
-func (i *Hypervisor) GetClient() Client { return i.cli }
+func (i *Hypervisor) Close()                           { i.cli.Close() }
+func (i *Hypervisor) GetClient() Client                { return i.cli }
 func (i *Hypervisor) Start(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -130,7 +128,6 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	}
 
 	_ = os.Remove(i.cli.socketPath)
-	defer os.Remove(i.cli.socketPath)
 
 	go func() {
 		defer close(vmErrorChan)
@@ -303,7 +300,6 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 			for recoil {
 				b.Execute(func() (_ interface{}, err error) {
 					_ = os.Remove(cfg.SocketPath)
-					defer os.Remove(cfg.SocketPath)
 
 					cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
 					cmd.Cancel = func() error {

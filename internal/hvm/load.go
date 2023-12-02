@@ -71,6 +71,10 @@ func Load(
 		cfg.NetIfName = fmt.Sprintf("vmtap-%s", name)
 	}
 
+	if len(cfg.NetMacAddr) == 0 {
+		cfg.NetMacAddr = util.GenerateKvmMACAddress()
+	}
+
 	util.InfoLog.Printf("network interface(%s): %s", cfg.NetIfName, cfg.NetMacAddr)
 
 	h.vmcfg = cfg.VMConfig(
