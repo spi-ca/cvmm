@@ -258,8 +258,9 @@ type (
 	}
 
 	SerialConfig struct {
-		File string      `json:"file,omitempty" yaml:"file,omitempty"`
-		Mode ConsoleMode `json:"mode" yaml:"mode"`
+		File   string      `json:"file,omitempty" yaml:"file,omitempty"`
+		Socket string      `json:"socket,omitempty" yaml:"socket,omitempty"`
+		Mode   ConsoleMode `json:"mode" yaml:"mode"`
 	}
 
 	ConsoleConfig struct {
@@ -895,6 +896,10 @@ func (c SerialConfig) CommandArgs() []string {
 		if len(c.File) > 0 {
 			args = append(args, fmt.Sprintf("file=%s", c.File))
 		}
+	case ConsoleModeSocket:
+		if len(c.Socket) > 0 {
+			args = append(args, fmt.Sprintf("socket=%s", c.Socket))
+		}
 	}
 
 	if len(args) > 0 {
@@ -919,6 +924,10 @@ func (c ConsoleConfig) CommandArgs() []string {
 	case ConsoleModeFile:
 		if len(c.File) > 0 {
 			args = append(args, fmt.Sprintf("file=%s", c.File))
+		}
+	case ConsoleModeSocket:
+		if len(c.Socket) > 0 {
+			args = append(args, fmt.Sprintf("socket=%s", c.Socket))
 		}
 	}
 
