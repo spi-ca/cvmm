@@ -68,3 +68,16 @@ func Test_MACAddress_Rand(t *testing.T) {
 
 	log.Printf("-> %s", addr)
 }
+
+func Test_MACAddress_GenerateIfName(t *testing.T) {
+	chksum := [3]byte{
+		0x02,
+		0x38,
+		0xf0,
+	}
+	addr := MACAddress{
+		52, 54, 00, chksum[0], chksum[1], chksum[2],
+	}
+
+	log.Printf("-> %s", addr.GenerateIfName("vmtap-"))
+}

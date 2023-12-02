@@ -71,10 +71,7 @@ func (ts *MACAddress) GenerateIfName(prefix string) string {
 
 	buf.WriteString(prefix)
 
-	for i, b := range *ts {
-		if i > 0 {
-			buf.WriteByte(':')
-		}
+	for _, b := range (*ts)[3:] {
 		buf.WriteByte(macHexDigit[b>>4])
 		buf.WriteByte(macHexDigit[b&0xF])
 	}
