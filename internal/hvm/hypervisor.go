@@ -150,7 +150,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	}
 	recoilerClosedChan := make(chan struct{})
 	go i.virtiofsdRecoiler(ctx, recoilerClosedChan)
-	go i.hypervisorStatusMonitor(ctx)
+	go i.hypervisorStatusMonitor(parentCtx)
 
 	if err := i.cli.VmBoot(ctx); err != nil {
 		return err
