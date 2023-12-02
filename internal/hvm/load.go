@@ -3,10 +3,11 @@ package hvm
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
+	"syscall"
 
 	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"amuz.es/src/spi-ca/cvmm/internal/util"
+	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 )
 
 func Load(
@@ -18,7 +19,7 @@ func Load(
 	virtiofsdSocketFilenameTemplate,
 	cloudhypervisorBinaryPath, virtiofsdBinaryPath string,
 	consoleRedirectToStd bool,
-	runAs string,
+	runAsUser string,
 ) (*Hypervisor, error) {
 	nodeBasePath := filepath.Join(nodeRoot, name)
 	volatileBasePath := filepath.Join(nodeBasePath, volatileDirectory)
@@ -29,13 +30,18 @@ func Load(
 
 	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
 
-	runAsUser, runAsGroup := "", ""
-	if len(runAs) == 0 {
+	var (
+		runAs     *syscall.Credential
+		groupName = ""
+
+		err error
+	)
+	if len(runAsUser) == 0 {
 		// do nothing
-	} else if splitted := strings.SplitN(runAs, ":", 2); len(splitted) != 2 {
-		return nil, fmt.Errorf("runAs \"%s\" is invalid format", runAs)
-	} else {
-		runAsUser, runAsGroup = splitted[0], splitted[1]
+	} else if runAs, err = sys.LookupCredentials(runAsUser); err != nil {
+		return nil, err
+	} else if groupName, err = sys.LookupGroupName(runAs.Gid); err != nil {
+		return nil, err
 	}
 
 	h := &Hypervisor{
@@ -44,8 +50,7 @@ func Load(
 		cloudhypervisorBinaryPath: cloudhypervisorBinaryPath,
 		cloudhypervisorPidPath:    apiPidPath,
 		virtiofsdBinaryPath:       virtiofsdBinaryPath,
-		runAsUser:                 runAsUser,
-		runAsGroup:                runAsGroup,
+		runAs:                     runAs,
 	}
 
 	h.cli = newClient(apiSocketPath)
@@ -76,7 +81,7 @@ func Load(
 	)
 	util.InfoLog.Printf("hypervisor config: %s", h.vmcfg)
 
-	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, runAsGroup)
+	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, groupName)
 	util.InfoLog.Printf("virtiofs config: %s", h.virtiofsdcfg)
 
 	return h, nil

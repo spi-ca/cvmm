@@ -41,9 +41,7 @@ type Hypervisor struct {
 	cloudhypervisorBinaryPath string
 	cloudhypervisorPidPath    string
 	virtiofsdBinaryPath       string
-
-	runAsUser  string
-	runAsGroup string
+	runAs                     *syscall.Credential
 
 	cli *clientImpl
 }
@@ -125,18 +123,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	}
 
 	cmd.SysProcAttr.AmbientCaps = []uintptr{unix.CAP_NET_ADMIN}
-
-	if runAsUid, runAsgid, lookupErr := i.lookupUidGid(); lookupErr == nil {
-		cmd.SysProcAttr.Credential = &syscall.Credential{
-			Uid: runAsUid,
-			Gid: runAsgid,
-		}
-
-	} else if errors.Is(lookupErr, errRunAsNotSpecified) {
-		// do nothing
-	} else {
-		return err
-	}
+	cmd.SysProcAttr.Credential = i.runAs
 
 	if sys.IsPidFileActive(i.cloudhypervisorPidPath) {
 		return fmt.Errorf("hypervisor already running")
@@ -409,39 +396,5 @@ func (i *Hypervisor) hypervisorStatusMonitor(ctx context.Context) {
 			}
 
 		}
-	}
-}
-
-func (i *Hypervisor) lookupUidGid() (uint32, uint32, error) {
-
-	var runAsUid, runAsGid uint32
-	unspecified := 0
-
-	if name := i.runAsUser; len(name) > 0 {
-		parsed, err := sys.LookupUid(name)
-		if err != nil {
-			return 0, 0, err
-		}
-		runAsUid = parsed
-	} else {
-		runAsUid = uint32(os.Getuid())
-		unspecified++
-	}
-
-	if name := i.runAsGroup; len(name) > 0 {
-		parsed, err := sys.LookupGid(name)
-		if err != nil {
-			return 0, 0, err
-		}
-		runAsGid = parsed
-	} else {
-		runAsGid = uint32(os.Getgid())
-		unspecified++
-	}
-
-	if unspecified == 2 {
-		return runAsUid, runAsGid, errRunAsNotSpecified
-	} else {
-		return runAsUid, runAsGid, nil
 	}
 }
