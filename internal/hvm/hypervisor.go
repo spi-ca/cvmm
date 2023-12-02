@@ -124,11 +124,14 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		return fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
 	}
 
+	cmd.SysProcAttr.AmbientCaps = []uintptr{unix.CAP_NET_ADMIN}
+
 	if runAsUid, runAsgid, lookupErr := i.lookupUidGid(); lookupErr == nil {
 		cmd.SysProcAttr.Credential = &syscall.Credential{
 			Uid: runAsUid,
 			Gid: runAsgid,
 		}
+
 	} else if errors.Is(lookupErr, errRunAsNotSpecified) {
 		// do nothing
 	} else {
@@ -330,6 +333,17 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 					if err = sys.ApplySysProAttrPdeathsig(cmd.SysProcAttr, syscall.SIGTERM); err != nil {
 						util.ErrLog.Printf("failed to set pdeathsig(%s): %s", syscall.SIGTERM, err)
 						return
+					}
+					cmd.SysProcAttr.AmbientCaps = []uintptr{
+						unix.CAP_CHOWN,
+						unix.CAP_DAC_OVERRIDE,
+						unix.CAP_FOWNER,
+						unix.CAP_FSETID,
+						unix.CAP_SETGID,
+						unix.CAP_SETUID,
+						unix.CAP_MKNOD,
+						unix.CAP_SETFCAP,
+						unix.CAP_DAC_READ_SEARCH,
 					}
 
 					util.InfoLog.Printf("virtiofsd[%s] started", name)
