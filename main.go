@@ -39,8 +39,7 @@ func init() {
 	flags.String("virtiofs-pid-filename-template", "virtiofs.pid", "specify virtiofs pid filename")
 	flags.String("volatile-directory", "run", "specify volatile directory name")
 
-	flags.String("runas-user", "", "run as user while executing hypervisor")
-	flags.String("runas-group", "", "run as user while executing hypervisor")
+	flags.String("runas", "", "run as user while executing hypervisor. user:group")
 
 	flags.Bool("console", false, "redirect console to stdin/stdout")
 

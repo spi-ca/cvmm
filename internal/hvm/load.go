@@ -3,6 +3,7 @@ package hvm
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"amuz.es/src/spi-ca/cvmm/internal/util"
@@ -17,6 +18,7 @@ func Load(
 	virtiofsdSocketFilenameTemplate,
 	cloudhypervisorBinaryPath, virtiofsdBinaryPath string,
 	consoleRedirectToStd bool,
+	runAs string,
 ) (*Hypervisor, error) {
 	nodeBasePath := filepath.Join(nodeRoot, name)
 	volatileBasePath := filepath.Join(nodeBasePath, volatileDirectory)
@@ -27,12 +29,23 @@ func Load(
 
 	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
 
+	runAsUser, runAsGroup := "", ""
+	if len(runAs) == 0 {
+		// do nothing
+	} else if splitted := strings.SplitN(runAs, ":", 2); len(splitted) != 2 {
+		return nil, fmt.Errorf("runAs \"%s\" is invalid format", runAs)
+	} else {
+		runAsUser, runAsGroup = splitted[0], splitted[1]
+	}
+
 	h := &Hypervisor{
 		name:                      name,
 		pidPath:                   pidPath,
 		cloudhypervisorBinaryPath: cloudhypervisorBinaryPath,
 		cloudhypervisorPidPath:    apiPidPath,
 		virtiofsdBinaryPath:       virtiofsdBinaryPath,
+		runAsUser:                 runAsUser,
+		runAsGroup:                runAsGroup,
 	}
 
 	h.cli = newClient(apiSocketPath)
@@ -63,7 +76,7 @@ func Load(
 	)
 	util.InfoLog.Printf("hypervisor config: %s", h.vmcfg)
 
-	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate)
+	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, runAsGroup)
 	util.InfoLog.Printf("virtiofs config: %s", h.virtiofsdcfg)
 
 	return h, nil

@@ -51,30 +51,11 @@ func Start(name, nodeName string) {
 		"\n	image.kernel.filename=", viper.GetString("image.kernel.filename"),
 		"\n	image.initramfs.filename=", viper.GetString("image.initramfs.filename"),
 		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
-		"\n	runas-user=", viper.GetString("runas.user"),
-		"\n	runas-group=", viper.GetString("runas.group"),
+		"\n	runas=", viper.GetString("runas"),
 		"\n---",
 	)
 
 	_ = sys.SetProcessName(fmt.Sprintf("node: %s", nodeName))
-
-	var uid, gid uint32
-
-	if name := viper.GetString("runas.user"); len(name) > 0 {
-		parsed, err := sys.LookupUid(name)
-		if err != nil {
-			util.ErrLog.Fatal(err)
-		}
-		uid = parsed
-	}
-
-	if name := viper.GetString("runas.group"); len(name) > 0 {
-		parsed, err := sys.LookupGid(name)
-		if err != nil {
-			util.ErrLog.Fatal(err)
-		}
-		gid = parsed
-	}
 
 	h, err := hvm.Load(
 		nodeName,
@@ -93,6 +74,8 @@ func Start(name, nodeName string) {
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
 		viper.GetBool("console"),
+
+		viper.GetString("runas"),
 	)
 	if err != nil {
 		util.ErrLog.Fatal(err)
@@ -100,7 +83,7 @@ func Start(name, nodeName string) {
 
 	defer h.Close()
 
-	err = h.Start(ctx, uid, gid)
+	err = h.Start(ctx)
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}

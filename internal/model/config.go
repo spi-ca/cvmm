@@ -43,7 +43,8 @@ func LoadConfig(path string) (*Config, error) {
 }
 func (i *Config) VirtiofsConfig(
 	diskImageDirectoryPath,
-	virtiofsdSocketPathTemplate string,
+	virtiofsdSocketPathTemplate,
+	hypervisorRunAsGroup string,
 ) []VirtiofsConfig {
 	var cfgs []VirtiofsConfig
 
@@ -57,6 +58,7 @@ func (i *Config) VirtiofsConfig(
 		cfg := VirtiofsConfig{
 			Directory:      diskPath,
 			SocketPath:     util.AppendFileSuffix(virtiofsdSocketPathTemplate, name),
+			SocketGroup:    hypervisorRunAsGroup,
 			ThreadPoolSize: i.Cpus,
 		}
 

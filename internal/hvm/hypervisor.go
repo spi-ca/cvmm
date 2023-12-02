@@ -27,6 +27,10 @@ const (
 	shutdownDeadline       = 30 * time.Second
 )
 
+var (
+	errRunAsNotSpecified = errors.New("runas not specified")
+)
+
 type Hypervisor struct {
 	name string
 
@@ -37,6 +41,9 @@ type Hypervisor struct {
 	cloudhypervisorBinaryPath string
 	cloudhypervisorPidPath    string
 	virtiofsdBinaryPath       string
+
+	runAsUser  string
+	runAsGroup string
 
 	cli *clientImpl
 }
@@ -90,7 +97,7 @@ func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(c
 
 func (i *Hypervisor) Close()            { i.cli.Close() }
 func (i *Hypervisor) GetClient() Client { return i.cli }
-func (i *Hypervisor) Start(parentCtx context.Context, hypervisorRunAsUser, hypervisorRunAsGroup uint32) error {
+func (i *Hypervisor) Start(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -117,11 +124,15 @@ func (i *Hypervisor) Start(parentCtx context.Context, hypervisorRunAsUser, hyper
 		return fmt.Errorf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
 	}
 
-	if hypervisorRunAsUser > 0 || hypervisorRunAsGroup > 0 {
+	if runAsUid, runAsgid, lookupErr := i.lookupUidGid(); lookupErr == nil {
 		cmd.SysProcAttr.Credential = &syscall.Credential{
-			Uid: hypervisorRunAsUser,
-			Gid: hypervisorRunAsGroup,
+			Uid: runAsUid,
+			Gid: runAsgid,
 		}
+	} else if errors.Is(lookupErr, errRunAsNotSpecified) {
+		// do nothing
+	} else {
+		return err
 	}
 
 	if sys.IsPidFileActive(i.cloudhypervisorPidPath) {
@@ -317,7 +328,7 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 					}
 
 					if err = sys.ApplySysProAttrPdeathsig(cmd.SysProcAttr, syscall.SIGTERM); err != nil {
-						util.ErrLog.Printf("failed to set pdeathsig(%s): %w", syscall.SIGTERM, err)
+						util.ErrLog.Printf("failed to set pdeathsig(%s): %s", syscall.SIGTERM, err)
 						return
 					}
 
@@ -384,5 +395,39 @@ func (i *Hypervisor) hypervisorStatusMonitor(ctx context.Context) {
 			}
 
 		}
+	}
+}
+
+func (i *Hypervisor) lookupUidGid() (uint32, uint32, error) {
+
+	var runAsUid, runAsGid uint32
+	unspecified := 0
+
+	if name := i.runAsUser; len(name) > 0 {
+		parsed, err := sys.LookupUid(name)
+		if err != nil {
+			return 0, 0, err
+		}
+		runAsUid = parsed
+	} else {
+		runAsUid = uint32(os.Getuid())
+		unspecified++
+	}
+
+	if name := i.runAsGroup; len(name) > 0 {
+		parsed, err := sys.LookupGid(name)
+		if err != nil {
+			return 0, 0, err
+		}
+		runAsGid = parsed
+	} else {
+		runAsGid = uint32(os.Getgid())
+		unspecified++
+	}
+
+	if unspecified == 2 {
+		return runAsUid, runAsGid, errRunAsNotSpecified
+	} else {
+		return runAsUid, runAsGid, nil
 	}
 }

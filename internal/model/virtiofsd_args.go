@@ -7,6 +7,7 @@ import (
 type VirtiofsConfig struct {
 	Directory      string
 	SocketPath     string
+	SocketGroup    string
 	ThreadPoolSize int
 }
 
@@ -22,6 +23,11 @@ func (i *VirtiofsConfig) CommandArgs() []string {
 	args = append(args, "--inode-file-handles=prefer")
 	args = append(args, "--shared-dir", i.Directory)
 	args = append(args, "--socket-path", i.SocketPath)
+	if len(i.SocketGroup) > 0 {
+		args = append(args, "--socket-group", i.SocketGroup)
+
+	}
+
 	return args
 }
 

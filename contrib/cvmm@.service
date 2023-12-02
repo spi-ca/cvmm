@@ -16,8 +16,7 @@ Environment=GOMEMLIMIT=32MiB
 Environment=GOGC=100
 WorkingDirectory=/srv/vmm/nodes
 ExecStart=/usr/bin/cvmm \
-    --runas-user hvm \
-    --runas-group kvm \
+    --runas hvm:kvm \
     start %I
 Restart=on-failure
 

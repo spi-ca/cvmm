@@ -50,6 +50,7 @@ func Shutdown(name, nodeName string) {
 		"\n	image.kernel.filename=", viper.GetString("image.kernel.filename"),
 		"\n	image.initramfs.filename=", viper.GetString("image.initramfs.filename"),
 		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
+		"\n	runas=", viper.GetString("runas"),
 		"\n---",
 	)
 
@@ -72,6 +73,8 @@ func Shutdown(name, nodeName string) {
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
 		viper.GetBool("console"),
+
+		viper.GetString("runas"),
 	)
 
 	if err != nil {
