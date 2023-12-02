@@ -1,7 +1,6 @@
 package hvm
 
 import (
-	"fmt"
 	"path/filepath"
 	"syscall"
 
@@ -67,12 +66,12 @@ func Load(
 	initramfsPath := filepath.Join(imageBasePath, initramfsFilename)
 	rootfsPath := filepath.Join(imageBasePath, rootfsFilename)
 
-	if len(cfg.NetIfName) == 0 {
-		cfg.NetIfName = fmt.Sprintf("vmtap-%s", name)
-	}
-
 	if len(cfg.NetMacAddr) == 0 {
 		cfg.NetMacAddr = util.GenerateKvmMACAddress()
+	}
+
+	if len(cfg.NetIfName) == 0 {
+		cfg.NetIfName = cfg.NetMacAddr.GenerateIfName("vmtap-")
 	}
 
 	util.InfoLog.Printf("network interface(%s): %s", cfg.NetIfName, cfg.NetMacAddr)

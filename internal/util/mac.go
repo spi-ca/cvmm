@@ -66,6 +66,21 @@ func (ts *MACAddress) UnmarshalText(b []byte) error {
 	*ts = parsed
 	return nil
 }
+func (ts *MACAddress) GenerateIfName(prefix string) string {
+	buf := new(strings.Builder)
+
+	buf.WriteString(prefix)
+
+	for i, b := range *ts {
+		if i > 0 {
+			buf.WriteByte(':')
+		}
+		buf.WriteByte(macHexDigit[b>>4])
+		buf.WriteByte(macHexDigit[b&0xF])
+	}
+
+	return buf.String()
+}
 
 func GenerateKvmMACAddress() MACAddress {
 	at := strconv.FormatInt(time.Now().UnixMilli(), 10)
