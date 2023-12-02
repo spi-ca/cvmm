@@ -1,5 +1,5 @@
 [Unit]
-Description=cloud-virtual-machine-manager node %I
+Description=cloud-virtual-machine-manager node %i
 Wants=modprobe@tun.service modprobe@kvm.service modprobe@zfs.service
 PartOf=machines.target
 Before=machines.target
@@ -17,7 +17,7 @@ Environment=GOGC=100
 WorkingDirectory=/srv/vmm/nodes
 ExecStart=/usr/bin/cvmm \
     --runas hvm \
-    start %I
+    start %i
 KillMode=mixed
 Restart=on-failure
 
