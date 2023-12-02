@@ -1,7 +1,6 @@
 package hvm
 
 import (
-	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -12,6 +11,8 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+
+	"amuz.es/src/spi-ca/cvmm/internal/model"
 )
 
 type (
@@ -32,6 +33,7 @@ type (
 		VmResizeZone(ctx context.Context, config model.VmResizeZone) error
 		VmAddDevice(ctx context.Context, config model.DeviceConfig) (*model.PciDeviceInfo, error)
 		VmRemoveDevice(ctx context.Context, config model.VmRemoveDevice) error
+		VmAddUserDevice(ctx context.Context, config model.VmAddUserDevice) (*model.PciDeviceInfo, error)
 		VmAddDisk(ctx context.Context, config model.DiskConfig) (*model.PciDeviceInfo, error)
 		VmAddFs(ctx context.Context, config model.FsConfig) (*model.PciDeviceInfo, error)
 		VmAddPmem(ctx context.Context, config model.PmemConfig) (*model.PciDeviceInfo, error)
@@ -68,6 +70,7 @@ const (
 	clientUrlVmResize           = "http://localhost/api/v1/vm.resize"
 	clientUrlVmResizeZone       = "http://localhost/api/v1/vm.resize-zone"
 	clientUrlVmAddDevice        = "http://localhost/api/v1/vm.add-device"
+	clientUrlVmAddUserevice     = "http://localhost/api/v1/vm.add-user-device"
 	clientUrlVmRemoveDevice     = "http://localhost/api/v1/vm.remove-device"
 	clientUrlVmAddDisk          = "http://localhost/api/v1/vm.add-disk"
 	clientUrlVmAddFs            = "http://localhost/api/v1/vm.add-fs"
@@ -555,6 +558,49 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config model.DeviceConfig)
 	err = json.NewDecoder(resp.Body).Decode(&obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddDevice, failed to decode JSON response : %w", err)
+	}
+
+	return &obj, nil
+}
+
+// Add a new device to the VM
+func (c *clientImpl) VmAddUserDevice(ctx context.Context, config model.VmAddUserDevice) (*model.PciDeviceInfo, error) {
+	c.wg.Add(1)
+	defer c.wg.Done()
+
+	reqBuf, err := json.Marshal(&config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode VmAddUserDevice: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddUserevice, bytes.NewReader(reqBuf))
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute VmAddUserDevice, http request creation failed : %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.cli.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute VmAddUserDevice, https request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		break
+	case http.StatusNoContent:
+		return nil, nil
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("failed to execute VmAddUserDevice")
+	default:
+		return nil, fmt.Errorf("failed to execute VmAddUserDevice: http error(%d) %s", resp.StatusCode, c.readResponseMessage(resp))
+	}
+
+	obj := model.PciDeviceInfo{}
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute VmAddUserDevice, failed to decode JSON response : %w", err)
 	}
 
 	return &obj, nil

@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 
 	"amuz.es/src/spi-ca/cvmm/internal/util"
@@ -262,9 +263,10 @@ type (
 	}
 
 	ConsoleConfig struct {
-		File  string      `json:"file,omitempty" yaml:"file,omitempty"`
-		Mode  ConsoleMode `json:"mode" yaml:"mode"`
-		Iommu bool        `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+		File   string      `json:"file,omitempty" yaml:"file,omitempty"`
+		Socket string      `json:"socket,omitempty" yaml:"socket,omitempty"`
+		Mode   ConsoleMode `json:"mode" yaml:"mode"`
+		Iommu  bool        `json:"iommu,omitempty" yaml:"iommu,omitempty"`
 	}
 
 	DeviceConfig struct {
@@ -313,6 +315,7 @@ type (
 		Distances      []NumaDistance `json:"distances,omitempty" yaml:"distances,omitempty"`
 		MemoryZones    []string       `json:"memory_zones,omitempty" yaml:"memory_zones,omitempty"`
 		SgxEpcSections []string       `json:"sgx_epc_sections,omitempty" yaml:"sgx_epc_sections,omitempty"`
+		PciSegments    []int32        `json:"pci_segments,omitempty" yaml:"pci_segments,omitempty"`
 	}
 
 	VmResize struct {
@@ -353,6 +356,10 @@ type (
 	SendMigrationData struct {
 		DestinationURL string `json:"destination_url" yaml:"destination_url"`
 		Local          bool   `json:"local,omitempty" yaml:"local,omitempty"`
+	}
+
+	VmAddUserDevice struct {
+		Socket string `json:"socket" yaml:"socket"`
 	}
 )
 
@@ -1040,6 +1047,14 @@ func (n NumaConfig) CommandArgs() []string {
 
 	if len(n.SgxEpcSections) > 0 {
 		args = append(args, fmt.Sprintf("sgx_epc_sections=[%s]", strings.Join(n.SgxEpcSections, ",")))
+	}
+
+	if len(n.PciSegments) > 0 {
+		segs := make([]string, 0, len(n.PciSegments))
+		for _, segId := range n.PciSegments {
+			segs = append(segs, strconv.Itoa(int(segId)))
+		}
+		args = append(args, fmt.Sprintf("pci_segments=[%s]", strings.Join(segs, ",")))
 	}
 
 	if len(args) > 0 {

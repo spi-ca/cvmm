@@ -12,6 +12,7 @@ const (
 	ConsoleModePty     ConsoleMode = "Pty"
 	ConsoleModeTty     ConsoleMode = "Tty"
 	ConsoleModeFile    ConsoleMode = "File"
+	ConsoleModeSocket  ConsoleMode = "Socket"
 	ConsoleModeNull    ConsoleMode = "Null"
 )
 
@@ -25,6 +26,8 @@ func ConsoleModeNameOf(value string) (ConsoleMode, error) {
 		return ConsoleModeTty, nil
 	case string(ConsoleModeFile):
 		return ConsoleModeFile, nil
+	case string(ConsoleModeSocket):
+		return ConsoleModeSocket, nil
 	case string(ConsoleModeNull):
 		return ConsoleModeNull, nil
 	default:
@@ -41,6 +44,8 @@ func (ts ConsoleMode) IsValid() bool {
 	case ConsoleModeTty:
 		fallthrough
 	case ConsoleModeFile:
+		fallthrough
+	case ConsoleModeSocket:
 		fallthrough
 	case ConsoleModeNull:
 		return true

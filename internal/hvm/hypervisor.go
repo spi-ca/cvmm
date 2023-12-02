@@ -109,6 +109,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 
 	cmd := exec.CommandContext(ctx, i.cloudhypervisorBinaryPath, "--api-socket", fmt.Sprintf("path=%s", i.cli.socketPath))
 	cmd.Cancel = func() error {
+		_ = os.Remove(i.cli.socketPath)
 		return cmd.Process.Signal(syscall.SIGTERM)
 	}
 
@@ -130,7 +131,6 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	}
 
 	_ = os.Remove(i.cli.socketPath)
-	defer os.Remove(i.cli.socketPath)
 
 	go func() {
 		defer close(vmErrorChan)
@@ -305,6 +305,7 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 					_ = os.Remove(cfg.SocketPath)
 					cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
 					cmd.Cancel = func() error {
+						_ = os.Remove(cfg.SocketPath)
 						return cmd.Process.Signal(syscall.SIGTERM)
 					}
 
