@@ -18,6 +18,7 @@ WorkingDirectory=/srv/vmm/nodes
 ExecStart=/usr/bin/cvmm \
     --runas hvm \
     start %I
+KillMode=mixed
 Restart=on-failure
 
 [Install]
