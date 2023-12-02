@@ -152,6 +152,13 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
 		}
 		resp, err = client.VmAddDevice(ctx, req)
+	case hvm.ClientActionVmAddUserDevice:
+		req := model.VmAddUserDevice{}
+		err = yaml.NewDecoder(os.Stdin).Decode(&req)
+		if err != nil {
+			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		}
+		resp, err = client.VmAddUserDevice(ctx, req)
 	case hvm.ClientActionVmRemoveDevice:
 		req := model.VmRemoveDevice{}
 		err = yaml.NewDecoder(os.Stdin).Decode(&req)
@@ -248,7 +255,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		defer os.Stdout.Sync()
 		err = yaml.NewEncoder(os.Stdout).Encode(resp)
 		if err != nil {
-			util.ErrLog.Printf("failed to marshal response: %w", err)
+			panic(fmt.Errorf("failed to marshal response for %s: %w", action, err))
 		}
 	}
 

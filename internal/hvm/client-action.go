@@ -23,6 +23,7 @@ const (
 	ClientActionVmResize           ClientAction = "vm-resize"
 	ClientActionVmResizeZone       ClientAction = "vm-resize-zone"
 	ClientActionVmAddDevice        ClientAction = "vm-add-device"
+	ClientActionVmAddUserDevice    ClientAction = "vm-add-user-device"
 	ClientActionVmRemoveDevice     ClientAction = "vm-remove-device"
 	ClientActionVmAddDisk          ClientAction = "vm-add-disk"
 	ClientActionVmAddFs            ClientAction = "vm-add-fs"
@@ -54,6 +55,7 @@ func ClientActions() []ClientAction {
 		ClientActionVmResize,
 		ClientActionVmResizeZone,
 		ClientActionVmAddDevice,
+		ClientActionVmAddUserDevice,
 		ClientActionVmRemoveDevice,
 		ClientActionVmAddDisk,
 		ClientActionVmAddFs,
@@ -99,6 +101,8 @@ func ClientActionNameOf(value string) (ClientAction, error) {
 	case string(ClientActionVmResizeZone):
 		return ClientActionVmResizeZone, nil
 	case string(ClientActionVmAddDevice):
+		return ClientActionVmAddUserDevice, nil
+	case string(ClientActionVmAddUserDevice):
 		return ClientActionVmAddDevice, nil
 	case string(ClientActionVmRemoveDevice):
 		return ClientActionVmRemoveDevice, nil
@@ -160,6 +164,8 @@ func (ts ClientAction) IsValid() bool {
 	case ClientActionVmResizeZone:
 		return true
 	case ClientActionVmAddDevice:
+		return true
+	case ClientActionVmAddUserDevice:
 		return true
 	case ClientActionVmRemoveDevice:
 		return true
