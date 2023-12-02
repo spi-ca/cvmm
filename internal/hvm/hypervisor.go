@@ -173,7 +173,6 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		if err, ok := <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
-
 		// parent wants stop the hypervisor
 	case err, ok := <-vmErrorChan:
 		if ok {
@@ -306,7 +305,6 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 					_ = os.Remove(cfg.SocketPath)
 					cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
 					cmd.Cancel = func() error {
-						_ = os.Remove(cfg.SocketPath)
 						return cmd.Process.Signal(syscall.SIGTERM)
 					}
 
