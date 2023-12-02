@@ -42,6 +42,8 @@ func Console(name, nodeName string) {
 		"\n	image.root=", viper.GetString("image.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
+		"\n	pid.filename=", viper.GetString("pid.filename"),
+		"\n	console=", viper.GetBool("console"),
 		"\n	cloudhypervisor.pid.filename=", viper.GetString("cloudhypervisor.pid.filename"),
 		"\n	cloudhypervisor.api.filename=", viper.GetString("cloudhypervisor.api.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
@@ -63,12 +65,14 @@ func Console(name, nodeName string) {
 		viper.GetString("image.initramfs.filename"),
 		viper.GetString("image.rootfs.filename"),
 
+		viper.GetString("pid.filename"),
 		viper.GetString("cloudhypervisor.pid.filename"),
 		viper.GetString("cloudhypervisor.api.filename"),
 		viper.GetString("virtiofs.socket.filename.template"),
 
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
+		viper.GetBool("console"),
 	)
 
 	if err != nil {

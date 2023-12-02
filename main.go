@@ -32,11 +32,13 @@ func init() {
 
 	flags.String("node-root", "/srv/vmm/nodes", "specify node repository path")
 	flags.String("manifest-filename", "config.yaml", "specify node manifest file path")
+	flags.String("pid-filename", "chmgr.pid", "specify pid filename")
 	flags.String("cloudhypervisor-api-filename", "cloudhypervisor.sock", "specify api socket filename")
 	flags.String("cloudhypervisor-pid-filename", "cloudhypervisor.pid", "specify cloudhypervisor pid filename")
 	flags.String("virtiofs-socket-filename-template", "virtiofs.sock", "specify virtiofs socket filename")
 	flags.String("virtiofs-pid-filename-template", "virtiofs.pid", "specify virtiofs pid filename")
 	flags.String("volatile-directory", "run", "specify volatile directory name")
+	flags.Bool("console", false, "redirect console to stdin/stdout")
 
 	flags.String("virtiofsd-path", "/usr/lib/virtiofsd", "specify virtiofsd binary path")
 	flags.String("cloudhypervisor-path", "/usr/bin/cloud-hypervisor", "specify cloud-hypervisor binary path")
@@ -70,18 +72,18 @@ func main() {
 			usage("required arguments missing")
 		}
 		entry.Start(name, nodeName)
-	//case "shutdown":
-	//	var (
-	//		nodeName string
-	//	)
-	//	switch flags.NArg() {
-	//	case consumedArgs + 1:
-	//		nodeName = flags.Arg(consumedArgs + 0)
-	//		consumedArgs += 1
-	//	default:
-	//		usage("required arguments missing")
-	//	}
-	//	entry.Starter(nodeName)
+	case "shutdown":
+		var (
+			nodeName string
+		)
+		switch flags.NArg() {
+		case consumedArgs + 1:
+			nodeName = flags.Arg(consumedArgs + 0)
+			consumedArgs += 1
+		default:
+			usage("required arguments missing")
+		}
+		entry.Shutdown(name, nodeName)
 	case "console":
 		var (
 			nodeName string

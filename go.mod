@@ -6,6 +6,7 @@ require (
 	github.com/creack/pty v1.1.20
 	github.com/google/uuid v1.4.0
 	github.com/moby/sys/mount v0.3.3
+	github.com/sony/gobreaker v0.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.17.0
 	golang.org/x/sys v0.14.0

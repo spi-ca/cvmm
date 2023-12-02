@@ -12,11 +12,19 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 	"unicode"
 
 	"amuz.es/src/spi-ca/chmgr/internal/model"
 	"amuz.es/src/spi-ca/chmgr/internal/util"
 	"amuz.es/src/spi-ca/chmgr/internal/util/sys"
+	"github.com/sony/gobreaker"
+	"golang.org/x/sys/unix"
+)
+
+const (
+	availableAwaitingLimit = 30
+	shutdownDeadline       = 30 * time.Second
 )
 
 type Hypervisor struct {
@@ -25,6 +33,7 @@ type Hypervisor struct {
 	vmcfg        model.VmConfig
 	virtiofsdcfg []model.VirtiofsConfig
 
+	pidPath                   string
 	cloudhypervisorBinaryPath string
 	cloudhypervisorPidPath    string
 	virtiofsdBinaryPath       string
@@ -34,35 +43,62 @@ type Hypervisor struct {
 
 // TODO impl
 func (i *Hypervisor) Ping(ctx context.Context) error {
-	return nil
+	_, err := i.cli.VmmPing(ctx)
+	return err
 }
 func (i *Hypervisor) Info(ctx context.Context) (*model.VmInfo, error) { return i.cli.VmInfo(ctx) }
 func (i *Hypervisor) Counters(ctx context.Context) (*model.VmCounters, error) {
 	return i.cli.VmCounters(ctx)
 }
 
-// TODO impl
-func (i *Hypervisor) Boot(ctx context.Context) error { return i.cli.VmBoot(ctx) }
+func (i *Hypervisor) Shutdown(ctx context.Context) {
+	pid, err := sys.ReadPidFile(i.pidPath)
+	if err != nil {
+		util.ErrLog.Printf("Failed to read a pid file: %s\n", i.pidPath)
+		return
+	}
 
-// TODO impl
-func (i *Hypervisor) Pause(ctx context.Context) error { return i.cli.VmPause(ctx) }
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		util.ErrLog.Printf("Failed to find process: %s\n", err)
+		return
+	}
 
-// TODO impl
-func (i *Hypervisor) Resume(ctx context.Context) error { return i.cli.VmResume(ctx) }
+	err = process.Signal(unix.SIGTERM)
+	if err == nil {
+		shutdownCtx, shutdownDone := context.WithTimeout(ctx, shutdownDeadline)
+		defer shutdownDone()
 
-// TODO impl
-func (i *Hypervisor) Shutdown(ctx context.Context) error { return i.cli.VmShutdown(ctx) }
+		err = sys.WaitUntilProcessFinished(shutdownCtx, pid)
+		switch err {
+		case nil:
+			return
+		case context.DeadlineExceeded:
+			util.ErrLog.Printf("termination timeout(%s) exceed: %s\n", shutdownDeadline, err)
+		case context.Canceled:
+			// do nothing
+		default:
+			util.ErrLog.Printf("termination awaiting failed: %s\n", err)
+		}
+	}
+
+	process.Kill()
+}
 
 // TODO impl
 func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(ctx) }
 
-// TODO impl
-func (i *Hypervisor) PowerButton(ctx context.Context) error { return i.cli.VmPowerButton(ctx) }
-func (i *Hypervisor) Close()                                { i.cli.Close() }
-func (i *Hypervisor) GetClient() Client                     { return i.cli }
+func (i *Hypervisor) Close()            { i.cli.Close() }
+func (i *Hypervisor) GetClient() Client { return i.cli }
 func (i *Hypervisor) Start(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	pidClean, err := sys.AcquirePidFile(i.pidPath, os.Getpid())
+	if err != nil {
+		return fmt.Errorf("failed to acquire a pid: %w", err)
+	}
+	defer pidClean()
 
 	vmErrorChan := make(chan error, 1)
 
@@ -87,47 +123,49 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 			vmErrorChan <- fmt.Errorf("hypervisor failed: %w", err)
 		}
 	}()
-	util.InfoLog.Printf("hypervisor started(api socket: %s)", i.cli.socketPath)
 
-	virtiofsdErrorChan := chan error(nil)
-
-	if cfgs := i.virtiofsdcfg; len(cfgs) > 0 {
-		virtiofsdErrorChan = make(chan error, len(cfgs))
-		go i.dispatchVirtiofsConfigs(ctx, virtiofsdErrorChan)
+	if err := i.waitForHypervisorAvailable(ctx); err != nil {
+		return err
 	}
+
+	util.InfoLog.Printf("hypervisor started(pid: %d, i socket: %s)", cmd.Process.Pid, i.cli.socketPath)
+
+	if err := i.cli.VmCreate(ctx, i.vmcfg); err != nil {
+		return err
+	}
+	recoilerClosedChan := make(chan struct{})
+	go i.virtiofsdRecoiler(ctx, recoilerClosedChan)
+	go i.hypervisorStatusMonitor(ctx)
+
+	if err := i.cli.VmBoot(ctx); err != nil {
+		return err
+	}
+	util.InfoLog.Printf("hypervisor boot")
 
 	var errs []error
 
 	select {
 	case <-parentCtx.Done():
-		// parent wants stop the hypervisor
-		cancel()
+		if err := i.cli.VmPowerButton(ctx); err != nil {
+			errs = append(errs, err)
+		} else {
+			util.InfoLog.Printf("hypervisor shutdown requested")
+		}
 		// wait hypervisor
 		if err, ok := <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
+
+		// parent wants stop the hypervisor
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
 		}
-		cancel()
-	case err, ok := <-virtiofsdErrorChan:
-		if ok {
-			errs = append(errs, err)
-		}
-		cancel()
-		// wait hypervisor
-		if err, ok = <-vmErrorChan; ok {
-			errs = append(errs, err)
-		}
 	}
 
-	//remain virtiofsd errors
-	if virtiofsdErrorChan != nil {
-		for range virtiofsdErrorChan {
-			// wait sibling virtiofsd finished
-		}
-	}
+	cancel()
+
+	<-recoilerClosedChan
 
 	return errors.Join(errs...)
 }
@@ -143,45 +181,6 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 
 	ptyPath := info.Config.Console.File
 	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
-}
-
-func (i *Hypervisor) dispatchVirtiofsConfigs(ctx context.Context, errorChan chan<- error) {
-	defer func() {
-		if err := recover(); err != nil {
-			util.ErrLog.Printf("panic on virtiofsdWaiter: %v", err)
-		}
-		close(errorChan)
-		util.InfoLog.Printf("all virtiofsd stopped")
-	}()
-
-	cfgs := i.virtiofsdcfg
-
-	wg := &sync.WaitGroup{}
-	wg.Add(len(cfgs))
-	for _, cfg := range cfgs {
-		name := fmt.Sprintf("virtiofsd-%s", cfg.Directory)
-		cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
-		cmd.Cancel = func() error {
-			return cmd.Process.Signal(syscall.SIGTERM)
-		}
-
-		go func() {
-			defer func() {
-				if err := recover(); err != nil {
-					util.ErrLog.Printf("%s panic: %v", name, err)
-				}
-			}()
-
-			defer wg.Done()
-			util.InfoLog.Printf("virtiofsd[%s] started", name)
-			defer util.InfoLog.Printf("virtiofsd[%s] stopped", name)
-			err := i.invoke(cmd, "")
-			if err != nil {
-				errorChan <- fmt.Errorf("%s failed: %w", name, err)
-			}
-		}()
-	}
-	wg.Wait()
 }
 
 func (i *Hypervisor) invoke(cmd *exec.Cmd, pidPath string) error {
@@ -248,5 +247,124 @@ func (i *Hypervisor) handleStderr(res *util.ExecutionResult, reader io.Reader, c
 		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
 		res.AppendLogLine(line)
 		util.ErrLog.Print(prefix, line)
+	}
+}
+
+func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct{}) {
+	close(closer)
+
+	cfgs := i.virtiofsdcfg
+
+	if len(cfgs) <= 0 {
+		return
+	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(cfgs))
+
+	for idx := range cfgs {
+		go func(cfg model.VirtiofsConfig) {
+			name := fmt.Sprintf("virtiofsd-%s", cfg.Directory)
+			defer func() {
+				if err := recover(); err != nil {
+					util.ErrLog.Printf("%s panic: %v", name, err)
+				}
+				wg.Done()
+			}()
+
+			b := gobreaker.NewCircuitBreaker(gobreaker.Settings{
+				Name:        name,
+				MaxRequests: 2,
+				Interval:    100 * time.Millisecond,
+				Timeout:     3 * time.Second,
+				ReadyToTrip: func(counts gobreaker.Counts) bool {
+					failureRatio := counts.TotalFailures
+					failureRatio *= 100
+					failureRatio /= counts.Requests
+					return counts.Requests >= 3 && failureRatio >= 60
+				},
+				OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+					if from == gobreaker.StateClosed && to == gobreaker.StateOpen {
+						util.ErrLog.Print("endpoint unavailable")
+					} else if from == gobreaker.StateHalfOpen && to == gobreaker.StateClosed {
+						util.ErrLog.Print("endpoint is returning available")
+					}
+				},
+			})
+
+			recoil := true
+
+			for recoil {
+				b.Execute(func() (_ interface{}, err error) {
+					_ = os.Remove(cfg.SocketPath)
+					cmd := exec.CommandContext(ctx, i.virtiofsdBinaryPath, cfg.CommandArgs()...)
+					cmd.Cancel = func() error {
+						_ = os.Remove(cfg.SocketPath)
+						return cmd.Process.Signal(syscall.SIGTERM)
+					}
+
+					util.InfoLog.Printf("virtiofsd[%s] started", name)
+
+					if err = i.invoke(cmd, ""); err != nil {
+						util.ErrLog.Printf("virtiofsd[%s] failed: %s", name, err)
+					} else {
+						util.InfoLog.Printf("virtiofsd[%s] stopped", name)
+					}
+
+					select {
+					case <-ctx.Done():
+						recoil = false
+					default:
+					}
+					return
+				})
+			}
+		}(cfgs[idx])
+	}
+
+	wg.Wait()
+}
+
+func (i *Hypervisor) waitForHypervisorAvailable(ctx context.Context) error {
+	var err error
+	for iter := 0; iter < availableAwaitingLimit; iter++ {
+		if _, err = i.cli.VmmPing(ctx); err == nil {
+			break
+		}
+		<-time.After(time.Second)
+	}
+
+	if err != nil {
+		return fmt.Errorf("hypervisor unavailable: %w", err)
+	}
+	return nil
+}
+
+func (i *Hypervisor) hypervisorStatusMonitor(ctx context.Context) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	previousStatus := model.NodeStatusCreated
+
+	util.InfoLog.Printf("hypervisor status : %s", previousStatus)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if _, err := i.cli.VmmPing(ctx); err != nil {
+				util.InfoLog.Printf("hypervisor unavilable: %s", err)
+				return
+			} else if info, err := i.cli.VmInfo(ctx); err != nil {
+				util.InfoLog.Printf("failed to get hypervisor info: %s", err)
+				return
+			} else if previousStatus != info.State {
+				util.InfoLog.Printf("hypervisor status : %s", info.State)
+				previousStatus = info.State
+			} else {
+				previousStatus = info.State
+			}
+
+		}
 	}
 }

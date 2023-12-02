@@ -72,7 +72,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 		// Check for done signal
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
 		}
 	}

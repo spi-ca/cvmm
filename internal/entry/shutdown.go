@@ -41,6 +41,8 @@ func Shutdown(name, nodeName string) {
 		"\n	image.root=", viper.GetString("image.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
+		"\n	pid.filename=", viper.GetString("pid.filename"),
+		"\n	console=", viper.GetBool("console"),
 		"\n	cloudhypervisor.pid.filename=", viper.GetString("cloudhypervisor.pid.filename"),
 		"\n	cloudhypervisor.api.filename=", viper.GetString("cloudhypervisor.api.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
@@ -62,12 +64,14 @@ func Shutdown(name, nodeName string) {
 		viper.GetString("image.initramfs.filename"),
 		viper.GetString("image.rootfs.filename"),
 
+		viper.GetString("pid.filename"),
 		viper.GetString("cloudhypervisor.pid.filename"),
 		viper.GetString("cloudhypervisor.api.filename"),
 		viper.GetString("virtiofs.socket.filename.template"),
 
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
+		viper.GetBool("console"),
 	)
 
 	if err != nil {
@@ -75,83 +79,5 @@ func Shutdown(name, nodeName string) {
 	}
 
 	defer h.Close()
-	err = h.OpenConsole(ctx)
-	if err != nil {
-		util.ErrLog.Fatal(err)
-	}
-
-	h.GetClient()
-
-	//todo impl
-	//status, err := mgr.QueryStatus()
-	//if err != nil {
-	//	return
-	//}
-	//
-	//if !status.Running {
-	//	logger.Infof("cpu halted, so not initiate shutdown")
-	//	return
-	//}
-	//
-	//logger.Infof("current vm status %v", status.Status)
-	//err = mgr.SystemPowerdown()
-	//if err != nil {
-	//	return
-	//}
-	//logger.Infof("initiated shutdown")
-	//
-	//pid := viper.GetInt("vm_shutdown_pid")
-	//shutdownTimeout := viper.GetDuration("vm_shutdown_timeout")
-	//if pid < 0 {
-	//	return
-	//}
-	//
-	//var (
-	//	shutdownDeadline              = time.Now().Add(shutdownTimeout)
-	//	shutdownContext, shutdownDone = context.WithDeadline(context.Background(), shutdownDeadline)
-	//	cleanFinished                 atomic.Bool
-	//)
-	//go func() {
-	//	defer shutdownDone()
-	//
-	//	process, err := os.FindProcess(pid)
-	//	if err != nil {
-	//		cleanFinished.Store(true)
-	//		logger.Errorf("Failed to find process: %s\n", err)
-	//		return
-	//	}
-	//
-	//	ticker := time.NewTicker(300 * time.Millisecond)
-	//	defer ticker.Stop()
-	//
-	//	for {
-	//		select {
-	//		case <-ticker.C:
-	//			err := process.Signal(syscall.Signal(0))
-	//			if err == nil {
-	//				continue
-	//			} else if err == os.ErrProcessDone {
-	//				cleanFinished.Store(true)
-	//				logger.Infof("process finished")
-	//				return
-	//			} else {
-	//				fmt.Printf("process.Signal on pid %d returned: %v\n", pid, err)
-	//				return
-	//			}
-	//		case <-shutdownContext.Done():
-	//			return
-	//		}
-	//	}
-	//}()
-	//
-	//logger.Infof("wait until pid(%d) finished", pid)
-	//<-shutdownContext.Done()
-	//if cleanFinished.Load() {
-	//	return
-	//}
-	//err = mgr.Quit()
-	//if err != nil {
-	//	return
-	//}
-	//logger.Infof("initiated quit")
+	h.Shutdown(ctx)
 }

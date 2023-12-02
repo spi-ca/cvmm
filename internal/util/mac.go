@@ -1,8 +1,11 @@
 package util
 
 import (
+	"crypto/md5"
 	"net"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type MACAddress net.HardwareAddr
@@ -62,4 +65,12 @@ func (ts *MACAddress) UnmarshalText(b []byte) error {
 
 	*ts = parsed
 	return nil
+}
+
+func GenerateKvmMACAddress() MACAddress {
+	at := strconv.FormatInt(time.Now().UnixMilli(), 10)
+	chksum := md5.Sum([]byte(at))
+	return MACAddress{
+		0x52, 0x54, 0x00, chksum[0], chksum[1], chksum[2],
+	}
 }

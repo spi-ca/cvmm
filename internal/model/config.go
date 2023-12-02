@@ -72,6 +72,7 @@ func (i *Config) VMConfig(
 	rootfsPath,
 	diskImageDirectoryPath string,
 	virtiofsSocketPathTemplate string,
+	consoleHasStd bool,
 ) VmConfig {
 	return VmConfig{
 		Payload:  i.PayloadConfig(kernelPath, initramfsPath),
@@ -85,7 +86,7 @@ func (i *Config) VMConfig(
 		Fs:       i.FsConfig(virtiofsSocketPathTemplate),
 		Pmem:     i.PmemConfig(),
 		Serial:   i.SerialConfig(),
-		Console:  i.ConsoleConfig(),
+		Console:  i.ConsoleConfig(consoleHasStd),
 		Devices:  i.DeviceConfig(),
 		Vdpa:     i.VdpaConfig(),
 		Vsock:    i.VsockConfig(),
@@ -152,7 +153,7 @@ func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string)
 		}
 		cfg := DiskConfig{
 			Path:      diskPath,
-			Readonly:  true,
+			Readonly:  false,
 			Direct:    true,
 			NumQueues: i.Cpus,
 			QueueSize: 128,
@@ -210,9 +211,13 @@ func (i *Config) SerialConfig() *SerialConfig {
 		Mode: ConsoleModeOff,
 	}
 }
-func (i *Config) ConsoleConfig() *ConsoleConfig {
+func (i *Config) ConsoleConfig(std bool) *ConsoleConfig {
+	mode := ConsoleModePty
+	if std {
+		mode = ConsoleModeTty
+	}
 	return &ConsoleConfig{
-		Mode: ConsoleModePty,
+		Mode: mode,
 	}
 }
 func (i *Config) PmemConfig() []PmemConfig     { return nil }
@@ -228,16 +233,11 @@ func (i *Config) TpmConfig() *TpmConfig        { return nil }
 func (i *Config) MachineId() string { return strings.ReplaceAll(i.Uuid.String(), "-", "") }
 
 func (i *Config) KernelCommandline() string {
-	args := append([]string(nil), i.Cmdline...)
-	args = append(args,
+	args := append([]string(nil),
 		fmt.Sprintf("base=UUID=%s", i.RootfsUuid.String()),
 		fmt.Sprintf("systemd.machine_id=%s", i.MachineId()),
 		"console=hvc0",
-		"cpuidle.governor=haltpoll",
-		"clocksource=kvm-clock",
-		"net.ifnames=0",
-		"quiet",
-		"loglevel=3",
 	)
+	args = append(args, i.Cmdline...)
 	return strings.Join(args, " ")
 }
