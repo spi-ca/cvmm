@@ -1298,17 +1298,11 @@ func DefaultVmConfig() VmConfig {
 		},
 		Disks: []DiskConfig{
 			{
-				Path:      "/srv/vmm/images/test/root.img",
-				Readonly:  true,
-				Direct:    true,
-				NumQueues: 2,
-				QueueSize: 128,
+				Path:     "/srv/vmm/images/test/root.img",
+				Readonly: true,
 			},
 			{
-				Path:      "/srv/vmm/nodes/test/data.img",
-				Direct:    true,
-				NumQueues: 2,
-				QueueSize: 128,
+				Path: "/srv/vmm/nodes/test/data.img",
 			},
 		},
 		Cpus: &CpusConfig{BootVcpus: 2, MaxVcpus: 2},

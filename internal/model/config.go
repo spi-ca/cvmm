@@ -134,11 +134,8 @@ func (i *Config) MemoryConfig() *MemoryConfig {
 
 func (i *Config) imageConfig(imageFilePath string) DiskConfig {
 	return DiskConfig{
-		Path:      imageFilePath,
-		Readonly:  true,
-		Direct:    true,
-		NumQueues: i.Cpus,
-		QueueSize: 128,
+		Path:     imageFilePath,
+		Readonly: true,
 	}
 }
 
@@ -154,11 +151,8 @@ func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string)
 			diskPath = filepath.Join(diskImageDirectoryPath, dir)
 		}
 		cfg := DiskConfig{
-			Path:      diskPath,
-			Readonly:  false,
-			Direct:    true,
-			NumQueues: i.Cpus,
-			QueueSize: 128,
+			Path:     diskPath,
+			Readonly: false,
 		}
 		cfgs = append(cfgs, cfg)
 	}
