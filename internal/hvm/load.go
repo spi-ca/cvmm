@@ -1,6 +1,8 @@
 package hvm
 
 import (
+	"errors"
+	"os"
 	"path/filepath"
 	"syscall"
 
@@ -72,6 +74,14 @@ func Load(
 
 	if len(cfg.NetIfName) == 0 {
 		cfg.NetIfName = cfg.NetMacAddr.GenerateIfName("vmtap-")
+	}
+
+	if len(initramfsPath) == 0 {
+		// do nothing
+	} else if stat, err := os.Stat(initramfsPath); errors.Is(err, os.ErrNotExist) {
+		initramfsPath = ""
+	} else if stat.IsDir() {
+		initramfsPath = ""
 	}
 
 	util.InfoLog.Printf("network interface(%s): %s", cfg.NetIfName, cfg.NetMacAddr)

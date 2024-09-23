@@ -72,7 +72,7 @@ func (i *Config) VMConfig(
 	kernelPath,
 	initramfsPath,
 	rootfsPath,
-	diskImageDirectoryPath string,
+	diskImageDirectoryPath,
 	virtiofsSocketPathTemplate string,
 	consoleHasStd bool,
 ) VmConfig {
