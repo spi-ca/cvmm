@@ -106,6 +106,8 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		resp, err = client.VmmPing(ctx)
 	case hvm.ClientActionVmmShutdown:
 		err = client.VmmShutdown(ctx)
+	case hvm.ClientActionVmmNmi:
+		err = client.VmmNmi(ctx)
 	case hvm.ClientActionVmInfo:
 		resp, err = client.VmInfo(ctx)
 	case hvm.ClientActionVmCounters:

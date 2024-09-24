@@ -19,6 +19,7 @@ type (
 	Client interface {
 		VmmPing(ctx context.Context) (*model.VmmPingResponse, error)
 		VmmShutdown(ctx context.Context) error
+		VmmNmi(ctx context.Context) error
 		VmInfo(ctx context.Context) (*model.VmInfo, error)
 		VmCounters(ctx context.Context) (*model.VmCounters, error)
 		VmCreate(ctx context.Context, config model.VmConfig) error
@@ -57,6 +58,7 @@ type (
 const (
 	clientUrlVmmPing            = "http://localhost/api/v1/vmm.ping"
 	clientUrlVmmShutdown        = "http://localhost/api/v1/vmm.shutdown"
+	clientUrlVmmNmi             = "http://localhost/api/v1/vmm.nmi"
 	clientUrlVmInfo             = "http://localhost/api/v1/vm.info"
 	clientUrlVmCounters         = "http://localhost/api/v1/vm.counters"
 	clientUrlVmCreate           = "http://localhost/api/v1/vm.create"
@@ -152,6 +154,30 @@ func (c *clientImpl) VmmShutdown(ctx context.Context) error {
 	defer c.wg.Done()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmmShutdown, nil)
+	if err != nil {
+		return fmt.Errorf("failed to execute VmmShutdown, http request creation failed : %w", err)
+	}
+
+	resp, err := c.cli.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute VmmShutdown, https request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	default:
+		return fmt.Errorf("failed to execute VmmShutdown: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+}
+
+// raise a NMI event the cloud-hypervisor VMM.
+func (c *clientImpl) VmmNmi(ctx context.Context) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmmNmi, nil)
 	if err != nil {
 		return fmt.Errorf("failed to execute VmmShutdown, http request creation failed : %w", err)
 	}

@@ -83,34 +83,42 @@ type (
 
 	// VmConfig is presentation structure for the Virtual machine configuration
 	VmConfig struct {
-		Cpus     *CpusConfig     `json:"cpus,omitempty" yaml:"cpus,omitempty"`
-		Memory   *MemoryConfig   `json:"memory,omitempty" yaml:"memory,omitempty"`
-		Payload  PayloadConfig   `json:"payload" yaml:"payload"`
-		Disks    []DiskConfig    `json:"disks,omitempty" yaml:"disks,omitempty"`
-		Net      []NetConfig     `json:"net,omitempty" yaml:"net,omitempty"`
-		Rng      *RngConfig      `json:"rng,omitempty" yaml:"rng,omitempty"`
-		Balloon  *BalloonConfig  `json:"balloon,omitempty" yaml:"balloon,omitempty"`
-		Fs       []FsConfig      `json:"fs,omitempty" yaml:"fs,omitempty"`
-		Pmem     []PmemConfig    `json:"pmem,omitempty" yaml:"pmem,omitempty"`
-		Serial   *SerialConfig   `json:"serial,omitempty" yaml:"serial,omitempty"`
-		Console  *ConsoleConfig  `json:"console,omitempty" yaml:"console,omitempty"`
-		Devices  []DeviceConfig  `json:"devices,omitempty" yaml:"devices,omitempty"`
-		Vdpa     []VdpaConfig    `json:"vdpa,omitempty" yaml:"vdpa,omitempty"`
-		Vsock    *VsockConfig    `json:"vsock,omitempty" yaml:"vsock,omitempty"`
-		SgxEpc   []SgxEpcConfig  `json:"sgx_epc,omitempty" yaml:"sgx_epc,omitempty"`
-		Numa     []NumaConfig    `json:"numa,omitempty" yaml:"numa,omitempty"`
-		Iommu    bool            `json:"iommu,omitempty" yaml:"iommu,omitempty"`
-		Watchdog bool            `json:"watchdog,omitempty" yaml:"watchdog,omitempty"`
-		Pvpanic  bool            `json:"pvpanic,omitempty" yaml:"pvpanic,omitempty"`
-		Platform *PlatformConfig `json:"platform,omitempty" yaml:"platform,omitempty"`
-		Tpm      *TpmConfig      `json:"tpm,omitempty" yaml:"tpm,omitempty"`
+		Cpus            *CpusConfig            `json:"cpus,omitempty" yaml:"cpus,omitempty"`
+		Memory          *MemoryConfig          `json:"memory,omitempty" yaml:"memory,omitempty"`
+		Payload         PayloadConfig          `json:"payload" yaml:"payload"`
+		RateLimitGroups []RateLimitGroupConfig `json:"rate_limit_groups,omitempty" yaml:"rate_limit_groups,omitempty"`
+		Disks           []DiskConfig           `json:"disks,omitempty" yaml:"disks,omitempty"`
+		Net             []NetConfig            `json:"net,omitempty" yaml:"net,omitempty"`
+		Rng             *RngConfig             `json:"rng,omitempty" yaml:"rng,omitempty"`
+		Balloon         *BalloonConfig         `json:"balloon,omitempty" yaml:"balloon,omitempty"`
+		Fs              []FsConfig             `json:"fs,omitempty" yaml:"fs,omitempty"`
+		Pmem            []PmemConfig           `json:"pmem,omitempty" yaml:"pmem,omitempty"`
+		Serial          *SerialConfig          `json:"serial,omitempty" yaml:"serial,omitempty"`
+		Console         *ConsoleConfig         `json:"console,omitempty" yaml:"console,omitempty"`
+		DebugConsole    *DebugConsoleConfig    `json:"debug_console,omitempty" yaml:"debug_console,omitempty"`
+		Devices         []DeviceConfig         `json:"devices,omitempty" yaml:"devices,omitempty"`
+		Vdpa            []VdpaConfig           `json:"vdpa,omitempty" yaml:"vdpa,omitempty"`
+		Vsock           *VsockConfig           `json:"vsock,omitempty" yaml:"vsock,omitempty"`
+		SgxEpc          []SgxEpcConfig         `json:"sgx_epc,omitempty" yaml:"sgx_epc,omitempty"`
+		Numa            []NumaConfig           `json:"numa,omitempty" yaml:"numa,omitempty"`
+		Iommu           bool                   `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+		Watchdog        bool                   `json:"watchdog,omitempty" yaml:"watchdog,omitempty"`
+		Pvpanic         bool                   `json:"pvpanic,omitempty" yaml:"pvpanic,omitempty"`
+		Platform        *PlatformConfig        `json:"platform,omitempty" yaml:"platform,omitempty"`
+		Tpm             *TpmConfig             `json:"tpm,omitempty" yaml:"tpm,omitempty"`
+		PciSegment      []PciSegmentConfig     `json:"pci_segments,omitempty" yaml:"pci_segments,omitempty"`
+		Landlock        bool                   `json:"landlock_enable,omitempty" yaml:"landlock_enable,omitempty"`
+		LandlockRules   []LandlockConfig       `json:"landlock_rules,omitempty" yaml:"landlock_rules,omitempty"`
 	}
 
 	CpuAffinity struct {
 		Vcpu     int   `json:"vcpu" yaml:"vcpu"`
 		HostCpus []int `json:"host_cpus" yaml:"host_cpus"`
 	}
-
+	VirtQueueAffinity struct {
+		QueueIndex int   `json:"queue_index" yaml:"queue_index"`
+		HostCpus   []int `json:"host_cpus" yaml:"host_cpus"`
+	}
 	CpuFeatures struct {
 		Amx bool `json:"amx,omitempty" yaml:"amx,omitempty"`
 	}
@@ -186,6 +194,11 @@ type (
 		RefillTime int64 `json:"refill_time" yaml:"refill_time"`
 	}
 
+	RateLimitGroupConfig struct {
+		Id                string            `json:"id,omitempty" yaml:"id,omitempty"`
+		RateLimiterConfig RateLimiterConfig `json:"rate_limiter_config,omitempty" yaml:"rate_limiter_config,omitempty"`
+	}
+
 	// RateLimiterConfig Defines an IO rate limiter with independent bytes/s and ops/s limits.
 	// Limits are defined by configuring each of the _bandwidth_ and _ops_ token buckets.
 	RateLimiterConfig struct {
@@ -194,18 +207,20 @@ type (
 	}
 
 	DiskConfig struct {
-		Path              string             `json:"path" yaml:"path"`
-		Readonly          bool               `json:"readonly,omitempty" yaml:"readonly,omitempty"`
-		Direct            bool               `json:"direct,omitempty" yaml:"direct,omitempty"`
-		Iommu             bool               `json:"iommu,omitempty" yaml:"iommu,omitempty"`
-		NumQueues         int                `json:"num_queues,omitempty" yaml:"num_queues,omitempty"` // default: 1
-		QueueSize         int                `json:"queue_size,omitempty" yaml:"queue_size,omitempty"` // default: 128
-		VhostUser         bool               `json:"vhost_user,omitempty" yaml:"vhost_user,omitempty"`
-		VhostSocket       string             `json:"vhost_socket,omitempty" yaml:"vhost_socket,omitempty"`
-		RateLimiterConfig *RateLimiterConfig `json:"rate_limiter_config,omitempty" yaml:"rate_limiter_config,omitempty"`
-		PciSegment        int16              `json:"pci_segment,omitempty" yaml:"pci_segment,omitempty"`
-		ID                string             `json:"id,omitempty" yaml:"id,omitempty"`
-		Serial            string             `json:"serial,omitempty" yaml:"serial,omitempty"`
+		Path              string              `json:"path" yaml:"path"`
+		Readonly          bool                `json:"readonly,omitempty" yaml:"readonly,omitempty"`
+		Direct            bool                `json:"direct,omitempty" yaml:"direct,omitempty"`
+		Iommu             bool                `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+		NumQueues         int                 `json:"num_queues,omitempty" yaml:"num_queues,omitempty"` // default: 1
+		QueueSize         int                 `json:"queue_size,omitempty" yaml:"queue_size,omitempty"` // default: 128
+		VhostUser         bool                `json:"vhost_user,omitempty" yaml:"vhost_user,omitempty"`
+		VhostSocket       string              `json:"vhost_socket,omitempty" yaml:"vhost_socket,omitempty"`
+		RateLimiterConfig *RateLimiterConfig  `json:"rate_limiter_config,omitempty" yaml:"rate_limiter_config,omitempty"`
+		PciSegment        int16               `json:"pci_segment,omitempty" yaml:"pci_segment,omitempty"`
+		ID                string              `json:"id,omitempty" yaml:"id,omitempty"`
+		Serial            string              `json:"serial,omitempty" yaml:"serial,omitempty"`
+		RateLimitGroup    string              `json:"rate_limit_group,omitempty" yaml:"rate_limit_group,omitempty"`
+		QueueAffinity     []VirtQueueAffinity `json:"queue_affinity,omitempty" yaml:"queue_affinity,omitempty"`
 	}
 
 	NetConfig struct {
@@ -270,11 +285,18 @@ type (
 		Iommu  bool        `json:"iommu,omitempty" yaml:"iommu,omitempty"`
 	}
 
+	DebugConsoleConfig struct {
+		File   string           `json:"file,omitempty" yaml:"file,omitempty"`
+		Mode   DebugConsoleMode `json:"mode" yaml:"mode"`
+		IoBase int              `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+	}
+
 	DeviceConfig struct {
-		Path       string `json:"path" yaml:"path"`
-		Iommu      bool   `json:"iommu,omitempty" yaml:"iommu,omitempty"`
-		PciSegment int16  `json:"pci_segment,omitempty" yaml:"pci_segment,omitempty"`
-		ID         string `json:"id,omitempty" yaml:"id,omitempty"`
+		Path               string `json:"path" yaml:"path"`
+		Iommu              bool   `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+		PciSegment         int16  `json:"pci_segment,omitempty" yaml:"pci_segment,omitempty"`
+		ID                 string `json:"id,omitempty" yaml:"id,omitempty"`
+		XNvGpudirectClique int8   `json:"x_nv_gpudirect_clique,omitempty" yaml:"x_nv_gpudirect_clique,omitempty"`
 	}
 
 	TpmConfig struct {
@@ -362,28 +384,44 @@ type (
 	VmAddUserDevice struct {
 		Socket string `json:"socket" yaml:"socket"`
 	}
+
+	PciSegmentConfig struct {
+		PciSegment           int16 `json:"pci_segment" yaml:"pci_segment"`
+		Mmio32ApertureWeight int32 `json:"mmio32_aperture_weight,omitempty" yaml:"mmio32_aperture_weight,omitempty"`
+		Mmio64ApertureWeight int32 `json:"mmio64_aperture_weight,omitempty" yaml:"mmio64_aperture_weight,omitempty"`
+	}
+
+	LandlockConfig struct {
+		Path   string       `json:"socket" yaml:"socket"`
+		Access LandlockMode `json:"access" yaml:"access"`
+	}
 )
 
-func (c CpusConfig) String() string       { return joinArgs(c.CommandArgs()) }
-func (p PlatformConfig) String() string   { return joinArgs(p.CommandArgs()) }
-func (m MemoryZoneConfig) String() string { return joinArgs(m.CommandArgs()) }
-func (m MemoryConfig) String() string     { return joinArgs(m.CommandArgs()) }
-func (p PayloadConfig) String() string    { return joinArgs(p.CommandArgs()) }
-func (d DiskConfig) String() string       { return joinArgs(d.CommandArgs()) }
-func (n NetConfig) String() string        { return joinArgs(n.CommandArgs()) }
-func (r RngConfig) String() string        { return joinArgs(r.CommandArgs()) }
-func (b BalloonConfig) String() string    { return joinArgs(b.CommandArgs()) }
-func (f FsConfig) String() string         { return joinArgs(f.CommandArgs()) }
-func (p PmemConfig) String() string       { return joinArgs(p.CommandArgs()) }
-func (c SerialConfig) String() string     { return joinArgs(c.CommandArgs()) }
-func (c ConsoleConfig) String() string    { return joinArgs(c.CommandArgs()) }
-func (d DeviceConfig) String() string     { return joinArgs(d.CommandArgs()) }
-func (v VdpaConfig) String() string       { return joinArgs(v.CommandArgs()) }
-func (v VsockConfig) String() string      { return joinArgs(v.CommandArgs()) }
-func (n NumaConfig) String() string       { return joinArgs(n.CommandArgs()) }
-func (t TpmConfig) String() string        { return joinArgs(t.CommandArgs()) }
-func (t SgxEpcConfig) String() string     { return joinArgs(t.CommandArgs()) }
-func (c VmConfig) String() string         { return joinArgs(c.CommandArgs()) }
+func (c CpusConfig) String() string           { return joinArgs(c.CommandArgs()) }
+func (p PlatformConfig) String() string       { return joinArgs(p.CommandArgs()) }
+func (m MemoryZoneConfig) String() string     { return joinArgs(m.CommandArgs()) }
+func (m MemoryConfig) String() string         { return joinArgs(m.CommandArgs()) }
+func (p PayloadConfig) String() string        { return joinArgs(p.CommandArgs()) }
+func (d DiskConfig) String() string           { return joinArgs(d.CommandArgs()) }
+func (n NetConfig) String() string            { return joinArgs(n.CommandArgs()) }
+func (r RngConfig) String() string            { return joinArgs(r.CommandArgs()) }
+func (b BalloonConfig) String() string        { return joinArgs(b.CommandArgs()) }
+func (f FsConfig) String() string             { return joinArgs(f.CommandArgs()) }
+func (p PmemConfig) String() string           { return joinArgs(p.CommandArgs()) }
+func (c SerialConfig) String() string         { return joinArgs(c.CommandArgs()) }
+func (c ConsoleConfig) String() string        { return joinArgs(c.CommandArgs()) }
+func (r RateLimitGroupConfig) String() string { return joinArgs(r.CommandArgs()) }
+func (r RateLimiterConfig) String() string    { return joinArgs(r.CommandArgs()) }
+func (c DebugConsoleConfig) String() string   { return joinArgs(c.CommandArgs()) }
+func (d DeviceConfig) String() string         { return joinArgs(d.CommandArgs()) }
+func (v VdpaConfig) String() string           { return joinArgs(v.CommandArgs()) }
+func (v VsockConfig) String() string          { return joinArgs(v.CommandArgs()) }
+func (n NumaConfig) String() string           { return joinArgs(n.CommandArgs()) }
+func (t TpmConfig) String() string            { return joinArgs(t.CommandArgs()) }
+func (t SgxEpcConfig) String() string         { return joinArgs(t.CommandArgs()) }
+func (s PciSegmentConfig) String() string     { return joinArgs(s.CommandArgs()) }
+func (l LandlockConfig) String() string       { return joinArgs(l.CommandArgs()) }
+func (c VmConfig) String() string             { return joinArgs(c.CommandArgs()) }
 
 func (c CpuTopology) String() string {
 	return fmt.Sprintf("%d:%d:%d:%d", c.ThreadsPerCore, c.CoresPerDie, c.DiesPerPackage, c.Packages)
@@ -391,6 +429,10 @@ func (c CpuTopology) String() string {
 
 func (c CpuAffinity) String() string {
 	return fmt.Sprintf("%d@[%s]", c.Vcpu, util.ConsecutiveRanges(c.HostCpus).String())
+}
+
+func (q VirtQueueAffinity) String() string {
+	return fmt.Sprintf("%d@[%s]", q.QueueIndex, util.ConsecutiveRanges(q.HostCpus).String())
 }
 
 func (c CpuFeatures) String() string {
@@ -403,7 +445,7 @@ func (c CpuFeatures) String() string {
 
 func (v NumaDistance) String() string { return fmt.Sprintf("%d@%d", v.Destination, v.Distance) }
 
-func (r RateLimiterConfig) String() string {
+func (r RateLimiterConfig) CommandArgs() []string {
 	var args []string
 
 	if t := r.Bandwidth; t != nil {
@@ -434,8 +476,31 @@ func (r RateLimiterConfig) String() string {
 		}
 	}
 
-	return strings.Join(args, ",")
+	if len(args) > 0 {
+		return append([]string(nil), strings.Join(args, ","))
+	} else {
+		return nil
+	}
 }
+
+func (r RateLimitGroupConfig) CommandArgs() []string {
+	var args []string
+
+	if cfg := r.RateLimiterConfig.CommandArgs(); len(cfg) > 0 {
+		args = append(args, cfg...)
+	}
+
+	if len(r.Id) > 0 {
+		args = append(args, fmt.Sprintf("id=%s", r.Id))
+	}
+
+	if len(args) > 0 {
+		return append([]string(nil), strings.Join(args, ","))
+	} else {
+		return nil
+	}
+}
+
 func (c CpusConfig) CommandArgs() []string {
 
 	var args []string
@@ -698,6 +763,18 @@ func (d DiskConfig) CommandArgs() []string {
 		args = append(args, fmt.Sprintf("pci_segment=%d", d.PciSegment))
 	}
 
+	if len(d.RateLimitGroup) > 0 {
+		args = append(args, fmt.Sprintf("rate_limit_group=%s", d.RateLimitGroup))
+	}
+
+	if len(d.QueueAffinity) > 0 {
+		var affinities []string
+		for _, a := range d.QueueAffinity {
+			affinities = append(affinities, fmt.Sprintf("%s", a))
+		}
+		args = append(args, fmt.Sprintf("queue_affinity=[%s]", strings.Join(affinities, ",")))
+	}
+
 	if len(args) > 0 {
 		return append([]string(nil), strings.Join(args, ","))
 	} else {
@@ -944,6 +1021,35 @@ func (c ConsoleConfig) CommandArgs() []string {
 	}
 }
 
+func (c DebugConsoleConfig) CommandArgs() []string {
+	var args []string
+
+	switch c.Mode {
+	case DebugConsoleModeOff:
+		args = append(args, "off")
+	case DebugConsoleModePty:
+		args = append(args, "pty")
+	case DebugConsoleModeTty:
+		args = append(args, "tty")
+	case DebugConsoleModeNull:
+		args = append(args, "null")
+	case DebugConsoleModeFile:
+		if len(c.File) > 0 {
+			args = append(args, fmt.Sprintf("file=%s", c.File))
+		}
+	}
+
+	if c.IoBase != 0 {
+		args = append(args, fmt.Sprintf("iobase=0x%x", c.IoBase))
+	}
+
+	if len(args) > 0 {
+		return append([]string(nil), "--debug-console", strings.Join(args, ","))
+	} else {
+		return nil
+	}
+}
+
 func (d DeviceConfig) CommandArgs() []string {
 	var args []string
 
@@ -962,6 +1068,11 @@ func (d DeviceConfig) CommandArgs() []string {
 	if d.PciSegment > 0 {
 		args = append(args, fmt.Sprintf("pci_segment=%d", d.PciSegment))
 	}
+
+	// x_nv_gpudirect_clique is not suported
+	//if d.XNvGpudirectClique > 0 {
+	//	args = append(args, fmt.Sprintf("x_nv_gpudirect_clique=%d", d.XNvGpudirectClique))
+	//}
 
 	if len(args) > 0 {
 		return append([]string(nil), strings.Join(args, ","))
@@ -1110,6 +1221,46 @@ func (t SgxEpcConfig) CommandArgs() []string {
 	}
 }
 
+func (s PciSegmentConfig) CommandArgs() []string {
+	var args []string
+
+	if s.PciSegment > 0 {
+		args = append(args, fmt.Sprintf("pci_segment=%d", s.PciSegment))
+	}
+
+	if s.Mmio32ApertureWeight > 0 {
+		args = append(args, fmt.Sprintf("mmio32_aperture_weight=%d", s.Mmio32ApertureWeight))
+	}
+
+	if s.Mmio64ApertureWeight > 0 {
+		args = append(args, fmt.Sprintf("mmio64_aperture_weight=%d", s.Mmio32ApertureWeight))
+	}
+
+	if len(args) > 0 {
+		return append([]string(nil), strings.Join(args, ","))
+	} else {
+		return nil
+	}
+}
+
+func (l LandlockConfig) CommandArgs() []string {
+	var args []string
+
+	if len(l.Path) > 0 {
+		args = append(args, fmt.Sprintf("path=%s", l.Path))
+	}
+
+	if len(l.Access) > 0 {
+		args = append(args, fmt.Sprintf("access=%s", l.Access))
+	}
+
+	if len(args) > 0 {
+		return append([]string(nil), strings.Join(args, ","))
+	} else {
+		return nil
+	}
+}
+
 func (c VmConfig) CommandArgs() []string {
 	var args []string
 
@@ -1129,6 +1280,13 @@ func (c VmConfig) CommandArgs() []string {
 		e := c.Memory
 		args = append(args, e.CommandArgs()...)
 
+	}
+
+	if len(c.RateLimitGroups) > 0 {
+		args = append(args, "--rate-limit-group")
+	}
+	for _, r := range c.RateLimitGroups {
+		args = append(args, r.CommandArgs()...)
 	}
 
 	if len(c.Disks) > 0 {
@@ -1191,6 +1349,12 @@ func (c VmConfig) CommandArgs() []string {
 
 	}
 
+	if c.DebugConsole != nil {
+		e := c.DebugConsole
+		args = append(args, e.CommandArgs()...)
+
+	}
+
 	if len(c.Devices) > 0 {
 		args = append(args, "--device")
 	}
@@ -1246,6 +1410,29 @@ func (c VmConfig) CommandArgs() []string {
 	if c.Pvpanic {
 		args = append(args, "--pvpanic")
 	}
+
+	if len(c.PciSegment) > 0 {
+		args = append(args, "--pci-segment")
+	}
+
+	for _, s := range c.PciSegment {
+		args = append(args, s.CommandArgs()...)
+
+	}
+
+	if c.Landlock {
+		args = append(args, "--landlock")
+	}
+
+	if len(c.LandlockRules) > 0 {
+		args = append(args, "--landlock-rules")
+	}
+
+	for _, s := range c.LandlockRules {
+		args = append(args, s.CommandArgs()...)
+
+	}
+
 	return args
 }
 
@@ -1279,7 +1466,6 @@ func DefaultVmConfig() VmConfig {
 			Kernel:   "/srv/vmm/images/test/vmlinuz",
 			Cmdline: strings.Join([]string{
 				"console=hvc0",
-				"cpuidle.governor=haltpoll",
 				"clocksource=kvm-clock",
 				"base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1",
 				"systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16",
@@ -1312,8 +1498,9 @@ func DefaultVmConfig() VmConfig {
 			Shared:    true,
 			Thp:       true,
 		},
-		Console: &ConsoleConfig{Mode: ConsoleModePty},
-		Serial:  &SerialConfig{Mode: ConsoleModeOff},
+		Console:      &ConsoleConfig{Mode: ConsoleModePty},
+		DebugConsole: &DebugConsoleConfig{IoBase: 0xe9},
+		Serial:       &SerialConfig{Mode: ConsoleModeOff},
 		Net: []NetConfig{
 			{
 				Tap:       "vmtap-tst",
@@ -1328,5 +1515,6 @@ func DefaultVmConfig() VmConfig {
 			Size:              0,
 			FreePageReporting: true,
 		},
+		Landlock: false,
 	}
 }

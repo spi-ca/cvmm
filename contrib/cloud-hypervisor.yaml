@@ -405,6 +405,13 @@ paths:
         405:
           description: The VM instance could not be coredumped because it is not booted.
 
+  /vmm.nmi:
+    put:
+      summary: Inject an NMI.
+      responses:
+        204:
+          description: The NMI successfully injected.
+
   /vm.restore:
     put:
       summary: Restore a VM from a snapshot.
@@ -554,6 +561,10 @@ components:
           $ref: "#/components/schemas/MemoryConfig"
         payload:
           $ref: "#/components/schemas/PayloadConfig"
+        rate_limit_groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/RateLimitGroupConfig"
         disks:
           type: array
           items:
@@ -578,6 +589,8 @@ components:
           $ref: "#/components/schemas/ConsoleConfig"
         console:
           $ref: "#/components/schemas/ConsoleConfig"
+        debug_console:
+          $ref: "#/components/schemas/DebugConsoleConfig"
         devices:
           type: array
           items:
@@ -602,10 +615,24 @@ components:
         watchdog:
           type: boolean
           default: false
+        pvpanic:
+          type: boolean
+          default: false
+        pci_segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PciSegmentConfig"
         platform:
           $ref: "#/components/schemas/PlatformConfig"
         tpm:
           $ref: "#/components/schemas/TpmConfig"
+        landlock_enable:
+          type: boolean
+          default: false
+        landlock_rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/LandlockConfig"
       description: Virtual machine configuration
 
     CpuAffinity:
@@ -647,11 +674,9 @@ components:
       properties:
         boot_vcpus:
           minimum: 1
-          default: 1
           type: integer
         max_vcpus:
           minimum: 1
-          default: 1
           type: integer
         topology:
           $ref: "#/components/schemas/CpuTopology"
@@ -666,6 +691,21 @@ components:
             $ref: "#/components/schemas/CpuAffinity"
         features:
           $ref: "#/components/schemas/CpuFeatures"
+
+    PciSegmentConfig:
+      required:
+        - pci_segment
+      type: object
+      properties:
+        pci_segment:
+          type: integer
+          format: int16
+        mmio32_aperture_weight:
+          type: integer
+          format: int32
+        mmio64_aperture_weight:
+          type: integer
+          format: int32
 
     PlatformConfig:
       type: object
@@ -701,7 +741,6 @@ components:
         size:
           type: integer
           format: int64
-          default: 512 MB
         file:
           type: string
         mergeable:
@@ -737,7 +776,6 @@ components:
         size:
           type: integer
           format: int64
-          default: 512 MB
         hotplug_size:
           type: integer
           format: int64
@@ -811,6 +849,28 @@ components:
       description:
         Defines an IO rate limiter with independent bytes/s and ops/s limits.
         Limits are defined by configuring each of the _bandwidth_ and _ops_ token buckets.
+    RateLimitGroupConfig:
+      required:
+        - id
+        - rate_limiter_config
+      type: object
+      properties:
+        id:
+          type: string
+        rate_limiter_config:
+          $ref: "#/components/schemas/RateLimiterConfig"
+    VirtQueueAffinity:
+      required:
+        - queue_index
+        - host_cpus
+      type: object
+      properties:
+        queue_index:
+          type: integer
+        host_cpus:
+          type: array
+          items:
+            type: integer
 
     DiskConfig:
       required:
@@ -848,6 +908,12 @@ components:
           type: string
         serial:
           type: string
+        rate_limit_group:
+          type: string
+        queue_affinity:
+          type: array
+          items:
+            $ref: "#/components/schemas/VirtQueueAffinity"
 
     NetConfig:
       type: object
@@ -898,7 +964,6 @@ components:
       properties:
         src:
           type: string
-          default: "/dev/urandom"
         iommu:
           type: boolean
           default: false
@@ -977,10 +1042,23 @@ components:
           type: string
         mode:
           type: string
-          enum: [Off, Pty, Tty, File, Socket, Null]
+          enum: ["Off", "Pty", "Tty", "File", "Socket", "Null"]
         iommu:
           type: boolean
           default: false
+
+    DebugConsoleConfig:
+      required:
+        - mode
+      type: object
+      properties:
+        file:
+          type: string
+        mode:
+          type: string
+          enum: ["Off", "Pty", "Tty", "File", "Null"]
+        iobase:
+          type: integer
 
     DeviceConfig:
       required:
@@ -997,7 +1075,9 @@ components:
           format: int16
         id:
           type: string
-
+        x_nv_gpudirect_clique:
+          type: integer
+          format: int8
     TpmConfig:
       required:
         - socket
@@ -1185,4 +1265,15 @@ components:
       type: object
       properties:
         socket:
+          type: string
+
+    LandlockConfig:
+      required:
+        - path
+        - access
+      type: object
+      properties:
+        path:
+          type: string
+        access:
           type: string

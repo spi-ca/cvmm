@@ -10,6 +10,7 @@ const (
 	ClientActionInvalid            ClientAction = ""
 	ClientActionVmmPing            ClientAction = "vmm-ping"
 	ClientActionVmmShutdown        ClientAction = "vmm-shutdown"
+	ClientActionVmmNmi             ClientAction = "vmm-nmi"
 	ClientActionVmInfo             ClientAction = "vm-info"
 	ClientActionVmCounters         ClientAction = "vm-counters"
 	ClientActionVmCreate           ClientAction = "vm-create"
@@ -42,6 +43,7 @@ func ClientActions() []ClientAction {
 	return []ClientAction{
 		ClientActionVmmPing,
 		ClientActionVmmShutdown,
+		ClientActionVmmNmi,
 		ClientActionVmInfo,
 		ClientActionVmCounters,
 		ClientActionVmCreate,
@@ -76,6 +78,8 @@ func ClientActionNameOf(value string) (ClientAction, error) {
 		return ClientActionVmmPing, nil
 	case string(ClientActionVmmShutdown):
 		return ClientActionVmmShutdown, nil
+	case string(ClientActionVmmNmi):
+		return ClientActionVmmNmi, nil
 	case string(ClientActionVmInfo):
 		return ClientActionVmInfo, nil
 	case string(ClientActionVmCounters):
@@ -138,6 +142,8 @@ func (ts ClientAction) IsValid() bool {
 	case ClientActionVmmPing:
 		return true
 	case ClientActionVmmShutdown:
+		return true
+	case ClientActionVmmNmi:
 		return true
 	case ClientActionVmInfo:
 		return true
