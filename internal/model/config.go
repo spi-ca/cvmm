@@ -16,7 +16,6 @@ type Config struct {
 	Cpus       int             `json:"cpus" yaml:"cpus"`
 	Mem        util.IECSize    `json:"mem" yaml:"mem"`
 	Uuid       uuid.UUID       `json:"uuid" yaml:"uuid"`
-	RootfsUuid uuid.UUID       `json:"rootfs_uuid" yaml:"rootfs_uuid"`
 	Image      string          `json:"image" yaml:"image"`
 	NetMacAddr util.MACAddress `json:"net_mac_addr" yaml:"net_mac_addr"`
 	NetIfName  string          `json:"net_if_name" yaml:"net_if_name"`
@@ -77,26 +76,31 @@ func (i *Config) VMConfig(
 	consoleHasStd bool,
 ) VmConfig {
 	return VmConfig{
-		Payload:  i.PayloadConfig(kernelPath, initramfsPath),
-		Platform: i.PlatformConfig(name),
-		Cpus:     i.CpusConfig(),
-		Memory:   i.MemoryConfig(),
-		Disks:    i.DiskConfig(rootfsPath, diskImageDirectoryPath),
-		Net:      i.NetConfig(),
-		Rng:      i.RngConfig(),
-		Balloon:  i.BalloonConfig(),
-		Fs:       i.FsConfig(virtiofsSocketPathTemplate),
-		Pmem:     i.PmemConfig(),
-		Serial:   i.SerialConfig(),
-		Console:  i.ConsoleConfig(consoleHasStd),
-		Devices:  i.DeviceConfig(),
-		Vdpa:     i.VdpaConfig(),
-		Vsock:    i.VsockConfig(),
-		Numa:     i.NumaConfig(),
-		Watchdog: i.WatchdogConfig(),
-		Pvpanic:  i.PvpanicConfig(),
-		SgxEpc:   i.SgxEpcConfig(),
-		Tpm:      i.TpmConfig(),
+		Payload:         i.PayloadConfig(kernelPath, initramfsPath),
+		RateLimitGroups: i.RateLimitGroupsConfig(),
+		Platform:        i.PlatformConfig(name),
+		Cpus:            i.CpusConfig(),
+		Memory:          i.MemoryConfig(),
+		Disks:           i.DiskConfig(rootfsPath, diskImageDirectoryPath),
+		Net:             i.NetConfig(),
+		Rng:             i.RngConfig(),
+		Balloon:         i.BalloonConfig(),
+		Fs:              i.FsConfig(virtiofsSocketPathTemplate),
+		Pmem:            i.PmemConfig(),
+		Serial:          i.SerialConfig(),
+		Console:         i.ConsoleConfig(consoleHasStd),
+		DebugConsole:    i.DebugConsoleConfig(),
+		Devices:         i.DeviceConfig(),
+		Vdpa:            i.VdpaConfig(),
+		Vsock:           i.VsockConfig(),
+		Numa:            i.NumaConfig(),
+		Watchdog:        i.WatchdogConfig(),
+		Pvpanic:         i.PvpanicConfig(),
+		SgxEpc:          i.SgxEpcConfig(),
+		PciSegment:      i.PciSegmentsConfig(),
+		Tpm:             i.TpmConfig(),
+		Landlock:        i.LandlockEnableConfig(),
+		LandlockRules:   i.LandlockRulesConfig(),
 	}
 }
 
@@ -216,21 +220,25 @@ func (i *Config) ConsoleConfig(std bool) *ConsoleConfig {
 		Mode: mode,
 	}
 }
-func (i *Config) PmemConfig() []PmemConfig     { return nil }
-func (i *Config) DeviceConfig() []DeviceConfig { return nil }
-func (i *Config) VdpaConfig() []VdpaConfig     { return nil }
-func (i *Config) VsockConfig() *VsockConfig    { return nil }
-func (i *Config) NumaConfig() []NumaConfig     { return nil }
-func (i *Config) WatchdogConfig() bool         { return true }
-func (i *Config) PvpanicConfig() bool          { return true }
-func (i *Config) SgxEpcConfig() []SgxEpcConfig { return nil }
-func (i *Config) TpmConfig() *TpmConfig        { return nil }
+func (i *Config) DebugConsoleConfig() *DebugConsoleConfig       { return nil }
+func (i *Config) PmemConfig() []PmemConfig                      { return nil }
+func (i *Config) DeviceConfig() []DeviceConfig                  { return nil }
+func (i *Config) RateLimitGroupsConfig() []RateLimitGroupConfig { return nil }
+func (i *Config) VdpaConfig() []VdpaConfig                      { return nil }
+func (i *Config) VsockConfig() *VsockConfig                     { return nil }
+func (i *Config) NumaConfig() []NumaConfig                      { return nil }
+func (i *Config) WatchdogConfig() bool                          { return true }
+func (i *Config) PvpanicConfig() bool                           { return true }
+func (i *Config) SgxEpcConfig() []SgxEpcConfig                  { return nil }
+func (i *Config) PciSegmentsConfig() []PciSegmentConfig         { return nil }
+func (i *Config) TpmConfig() *TpmConfig                         { return nil }
+func (i *Config) LandlockEnableConfig() bool                    { return false }
+func (i *Config) LandlockRulesConfig() []LandlockConfig         { return nil }
 
 func (i *Config) MachineId() string { return strings.ReplaceAll(i.Uuid.String(), "-", "") }
 
 func (i *Config) KernelCommandline() string {
 	args := append([]string(nil),
-		fmt.Sprintf("base=UUID=%s", i.RootfsUuid.String()),
 		fmt.Sprintf("systemd.machine_id=%s", i.MachineId()),
 		"console=hvc0",
 	)
