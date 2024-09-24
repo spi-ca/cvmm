@@ -150,7 +150,6 @@ func usage(reason string) {
 	{{.name}} start NODE_NAME
 	{{.name}} shutdown NODE_NAME
 	{{.name}} console NODE_NAME
-	{{.name}} ping NODE_NAME
 	{{.name}} console-file PTY_ID
 {{- range $val := .clientAction}}
 	{{$.name}} client {{$val.String}} NODE_NAME
