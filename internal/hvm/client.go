@@ -179,12 +179,12 @@ func (c *clientImpl) VmmNmi(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmmNmi, nil)
 	if err != nil {
-		return fmt.Errorf("failed to execute VmmShutdown, http request creation failed : %w", err)
+		return fmt.Errorf("failed to execute VmmNmi, http request creation failed : %w", err)
 	}
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute VmmShutdown, https request failed: %w", err)
+		return fmt.Errorf("failed to execute VmmNmi, https request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -192,7 +192,7 @@ func (c *clientImpl) VmmNmi(ctx context.Context) error {
 	case http.StatusNoContent:
 		return nil
 	default:
-		return fmt.Errorf("failed to execute VmmShutdown: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return fmt.Errorf("failed to execute VmmNmi: http error(%d) %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 }
 
