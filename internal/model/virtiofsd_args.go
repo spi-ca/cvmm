@@ -22,6 +22,8 @@ func (i *VirtiofsConfig) CommandArgs() []string {
 	args = append(args, "--cache", "auto")
 	args = append(args, "--inode-file-handles=prefer")
 	args = append(args, "--shared-dir", i.Directory)
+	args = append(args, "--modcaps", "+sys_admin")
+	args = append(args, "--xattrmap", ":map::user.virtiofs.:")
 	args = append(args, "--socket-path", i.SocketPath)
 	if len(i.SocketGroup) > 0 {
 		args = append(args, "--socket-group", i.SocketGroup)
