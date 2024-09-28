@@ -170,7 +170,7 @@ func (i *Config) NetConfig() []NetConfig {
 			Tap:       i.NetIfName,
 			Mac:       i.NetMacAddr,
 			NumQueues: i.Cpus,
-			QueueSize: 128,
+			QueueSize: 1024,
 		},
 	}
 }
