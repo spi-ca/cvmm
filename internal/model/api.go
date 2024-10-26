@@ -288,7 +288,7 @@ type (
 	DebugConsoleConfig struct {
 		File   string           `json:"file,omitempty" yaml:"file,omitempty"`
 		Mode   DebugConsoleMode `json:"mode" yaml:"mode"`
-		IoBase int              `json:"iommu,omitempty" yaml:"iommu,omitempty"`
+		IoBase int              `json:"iobase,omitempty" yaml:"iobase,omitempty"`
 	}
 
 	DeviceConfig struct {
