@@ -13,10 +13,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Shutdown handles the cvmm shutdown command entrypoint.
 func Shutdown(name, nodeName string) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 시그널 처리
+	// Shutdown cancels its pid-file termination workflow when interrupted.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)

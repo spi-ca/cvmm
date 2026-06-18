@@ -8,6 +8,7 @@ import (
 	"runtime"
 )
 
+// WaitUntilProcessFinished waits until the process exits or the context ends.
 func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 	kq, err := unix.Kqueue()
 	if err != nil {
@@ -41,7 +42,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 			} else if n > 0 {
 				break
 			}
-			// if n <=0
+			// No readiness event means the loop should continue waiting.
 			fallthrough
 		case unix.EINTR:
 			runtime.Gosched()
@@ -50,7 +51,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 			return errno
 		}
 
-		// Process events
+		// Dispatch process exit readiness or context cancellation events.
 		for _, e := range events[:n] {
 			if e.Ident == uint64(pid) && (e.Fflags&unix.NOTE_EXIT) != 0 {
 				return nil
@@ -66,6 +67,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 	}
 }
 
+// SetProcessName sets the visible process name when the platform supports it.
 func SetProcessName(_ string) error {
 	return errors.New("SetProcessName is not supported")
 }

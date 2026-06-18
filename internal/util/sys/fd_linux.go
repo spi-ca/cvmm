@@ -9,6 +9,7 @@ import (
 	"syscall"
 )
 
+// PathFromFd resolves the filesystem path referenced by an open file descriptor when supported.
 func PathFromFd(fd uintptr) (string, os.FileInfo, error) {
 
 	path := fmt.Sprintf("/proc/self/fd/%d", fd)

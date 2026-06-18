@@ -14,10 +14,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Console handles the cvmm console command entrypoint.
 func Console(name, nodeName string) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 시그널 처리
+	// Console stops PTY forwarding when the command receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)

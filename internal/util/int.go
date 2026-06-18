@@ -8,10 +8,13 @@ import (
 )
 
 type (
-	Range  [2]int
+	// Range stores an inclusive integer interval.
+	Range [2]int
+	// Ranges stores ordered integer intervals for compact command argument rendering.
 	Ranges []Range
 )
 
+// String formats a single value as N or an interval as N-M.
 func (p Range) String() string {
 	if p[0] == p[1] {
 		return strconv.Itoa(p[0])
@@ -20,6 +23,7 @@ func (p Range) String() string {
 	}
 }
 
+// String joins compact range fragments with commas.
 func (p Ranges) String() string {
 	var items []string
 
@@ -29,6 +33,7 @@ func (p Ranges) String() string {
 	return strings.Join(items, ",")
 }
 
+// ConsecutiveRanges collapses sorted integer values into compact contiguous ranges.
 func ConsecutiveRanges(input []int) Ranges {
 	var (
 		length = 1

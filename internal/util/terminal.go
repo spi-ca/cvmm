@@ -7,6 +7,7 @@ import (
 	"os/signal"
 )
 
+// PrepareTerminal switches stdin into raw mode and returns a restore function.
 func PrepareTerminal(outer, inner int) func() {
 	_, _ = unix.Write(inner, []byte{'\n'})
 

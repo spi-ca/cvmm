@@ -23,6 +23,7 @@ var (
 	envNameReplacer  = strings.NewReplacer(".", "_", "-", "_")
 )
 
+// init prepares package-level defaults before the package is used.
 func init() {
 	flags.String("image-root", "/srv/vmm/images", "specify image repository path")
 
@@ -39,7 +40,7 @@ func init() {
 	flags.String("virtiofs-pid-filename-template", "virtiofs.pid", "specify virtiofs pid filename")
 	flags.String("volatile-directory", "run", "specify volatile directory name")
 
-	flags.String("runas", "", "run as user while executing hypervisor. user:group")
+	flags.String("runas", "", "run cloud-hypervisor as the named user")
 
 	flags.Bool("console", false, "redirect console to stdin/stdout")
 
@@ -52,6 +53,7 @@ func init() {
 	_ = viper.BindFlagValues(util.PFlagViperReplacer{FlagSet: flags.CommandLine, Replacer: flagNameReplacer})
 }
 
+// main parses the cvmm command line and dispatches the requested action.
 func main() {
 
 	consumedArgs := 0
@@ -142,6 +144,7 @@ func main() {
 	}
 }
 
+// usage prints the cvmm command syntax with a reason and terminates the process.
 func usage(reason string) {
 	if len(reason) > 0 {
 		util.ErrLog.Println(reason)

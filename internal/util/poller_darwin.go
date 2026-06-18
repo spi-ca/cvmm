@@ -12,11 +12,13 @@ import (
 )
 
 type (
+	// TerminalPollReader supplies a file descriptor and handles readiness events from TerminalPoll.
 	TerminalPollReader interface {
 		FD() int
 		Handle(fd int, buf []byte, isHup, closing bool) (done bool)
 	}
 
+	// TerminalPoll multiplexes terminal-related file descriptors until context cancellation or handler completion.
 	TerminalPoll interface {
 		Close() error
 		Add(fds ...int) error
@@ -24,6 +26,7 @@ type (
 		Register(cb ...TerminalPollReader) error
 		Wait(ctx context.Context)
 	}
+	// terminalPoll stores platform poller state and registered handlers.
 	terminalPoll struct {
 		kqfd int
 
@@ -32,23 +35,29 @@ type (
 
 		l sync.Mutex
 	}
+	// simpleCopier copies bytes from a watched descriptor to an io.Writer.
 	simpleCopier struct {
 		fd int
 		w  io.Writer
 	}
+	// escapeHandler recognizes the console escape sequence used to terminate PTY forwarding.
 	escapeHandler struct {
 		fd   int
 		step int
 	}
 )
 
+// NewEscapeHandler returns a poll reader that completes when the escape sequence is observed.
 func NewEscapeHandler(fd int) TerminalPollReader {
 	return &escapeHandler{
 		fd: fd,
 	}
 }
 
+// FD returns the file descriptor watched by the terminal poller.
 func (h *escapeHandler) FD() int { return h.fd }
+
+// Handle processes an event delivered by the terminal poller.
 func (h *escapeHandler) Handle(_ int, buf []byte, isHup, _ bool) bool {
 	for _, b := range buf {
 		switch h.step {
@@ -69,13 +78,18 @@ func (h *escapeHandler) Handle(_ int, buf []byte, isHup, _ bool) bool {
 	return isHup
 }
 
+// NewTerminalPollCopier returns a poll reader that forwards descriptor bytes to the writer.
 func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
 	return &simpleCopier{
 		fd: fd,
 		w:  w,
 	}
 }
+
+// FD returns the file descriptor watched by the terminal poller.
 func (c simpleCopier) FD() int { return c.fd }
+
+// Handle processes an event delivered by the terminal poller.
 func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 	for offset := 0; offset < len(buf); {
 
@@ -87,7 +101,7 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 			return true
 		} else if errors.Is(err, unix.EAGAIN) {
 			// 인터럽트 선점으로 인한 재시도 요청
-			// do nothing
+			// EAGAIN means the descriptor should be retried by a later poll event.
 		} else if err != nil {
 			ErrLog.Printf("failed to copy data: %s", err)
 			return true
@@ -97,6 +111,7 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 	return isHup || closing && len(buf) == 0
 }
 
+// NewTerminalPoll creates the platform terminal poller implementation.
 func NewTerminalPoll() (TerminalPoll, error) {
 	kqfd, e := unix.Kqueue()
 	if e != nil {
@@ -109,6 +124,7 @@ func NewTerminalPoll() (TerminalPoll, error) {
 	}, nil
 }
 
+// Close releases resources held by the receiver.
 func (p *terminalPoll) Close() (err error) {
 	p.l.Lock()
 	defer p.l.Unlock()
@@ -138,6 +154,7 @@ func (p *terminalPoll) Close() (err error) {
 	return
 }
 
+// Add registers file descriptors with the platform poller.
 func (p *terminalPoll) Add(fds ...int) error {
 	p.l.Lock()
 	defer p.l.Unlock()
@@ -197,6 +214,7 @@ func (p *terminalPoll) Add(fds ...int) error {
 	return errors.Join(loopErrs, removeErrs)
 }
 
+// Remove unregisters file descriptors from the platform poller.
 func (p *terminalPoll) Remove(fds ...int) error {
 
 	p.l.Lock()
@@ -205,6 +223,7 @@ func (p *terminalPoll) Remove(fds ...int) error {
 	return p.removeInternal(fds...)
 }
 
+// Register attaches terminal poll handlers to their file descriptors.
 func (p *terminalPoll) Register(pr ...TerminalPollReader) error {
 	p.l.Lock()
 	defer p.l.Unlock()
@@ -222,10 +241,10 @@ func (p *terminalPoll) Register(pr ...TerminalPollReader) error {
 	return nil
 }
 
+// Wait runs the terminal poll loop until the context is done or handlers complete.
 func (p *terminalPoll) Wait(ctx context.Context) {
 	kqfd := p.kqfd
 	if kqfd == 0 {
-		//return fmt.Errorf("kqfd not opened")
 		return
 	}
 
@@ -237,11 +256,12 @@ func (p *terminalPoll) Wait(ctx context.Context) {
 	}
 }
 
+// wait performs one platform poll operation and dispatches ready events.
 func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closing bool) bool {
 	p.l.Lock()
 	defer p.l.Unlock()
 
-	// Poll the file descriptor
+	// Poll registered file descriptors for terminal readiness events.
 	n, errno := unix.Kevent(kqfd, nil, p.events[:], nil)
 	switch errno {
 	case nil:
@@ -251,7 +271,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 		} else if n > 0 {
 			break
 		}
-		// if n <=0
+		// No readiness event means the loop should continue waiting.
 		fallthrough
 	case unix.EINTR:
 		runtime.Gosched()
@@ -261,7 +281,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 		return true
 	}
 
-	// Process events
+	// Dispatch process exit readiness or context cancellation events.
 	for _, e := range p.events[:n] {
 		fd := int(e.Ident)
 		isHup := (e.Flags & unix.EV_EOF) != 0
@@ -300,6 +320,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 	}
 }
 
+// removeInternal removes a descriptor from the poller without taking the public lock.
 func (p *terminalPoll) removeInternal(fds ...int) error {
 	kqfd := p.kqfd
 	if kqfd == 0 {

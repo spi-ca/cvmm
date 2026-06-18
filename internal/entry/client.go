@@ -17,10 +17,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Client handles the cvmm client command entrypoint.
 func Client(name, nodeName string, action hvm.ClientAction) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 시그널 처리
+	// Client cancels the socket API request when the command receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
@@ -85,16 +86,6 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 	}
 
 	defer h.Close()
-
-	// todo impl
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-	//
-	//errorChan := make(chan error, 1)
-	//go internal.NodeStatusChecker(ctx, c, internal.NodeStatusRunning, errorChan)
-	//for err := range errorChan {
-	//	util.ErrLog.Printf("err %v", err)
-	//}
 
 	var (
 		client = h.GetClient()

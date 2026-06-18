@@ -11,6 +11,7 @@ import (
 	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 )
 
+// Load resolves node/image/runtime paths, loads the node manifest, prepares runas credentials, and assembles Hypervisor runtime configuration.
 func Load(
 	name,
 	imageRoot, nodeRoot, volatileDirectory,
@@ -38,7 +39,7 @@ func Load(
 		err error
 	)
 	if len(runAsUser) == 0 {
-		// do nothing
+		// An empty runas keeps child process credentials inherited from the manager.
 	} else if runAs, err = sys.LookupCredentials(runAsUser); err != nil {
 		return nil, err
 	} else if groupName, err = sys.LookupGroupName(runAs.Gid); err != nil {
@@ -77,7 +78,7 @@ func Load(
 	}
 
 	if len(initramfsPath) == 0 {
-		// do nothing
+		// An empty initramfs path means the VM will boot without initramfs.
 	} else if stat, err := os.Stat(initramfsPath); errors.Is(err, os.ErrNotExist) {
 		initramfsPath = ""
 	} else if stat.IsDir() {

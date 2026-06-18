@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// Config describes configuration data that cvmm translates into runtime VM state.
 type Config struct {
 	Cpus       int             `json:"cpus" yaml:"cpus"`
 	Mem        util.IECSize    `json:"mem" yaml:"mem"`
@@ -24,6 +25,7 @@ type Config struct {
 	Directory  []string        `json:"directory" yaml:"directory"`
 }
 
+// LoadConfig reads and decodes a YAML node manifest from path.
 func LoadConfig(path string) (*Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -40,6 +42,8 @@ func LoadConfig(path string) (*Config, error) {
 
 	return &cfg, nil
 }
+
+// VirtiofsConfig derives one virtiofsd configuration for each manifest directory entry.
 func (i *Config) VirtiofsConfig(
 	diskImageDirectoryPath,
 	virtiofsdSocketPathTemplate,
@@ -66,6 +70,7 @@ func (i *Config) VirtiofsConfig(
 	return cfgs
 }
 
+// VMConfig converts the node manifest into the cloud-hypervisor VM create payload.
 func (i *Config) VMConfig(
 	name,
 	kernelPath,
@@ -104,6 +109,7 @@ func (i *Config) VMConfig(
 	}
 }
 
+// PayloadConfig builds the kernel/initramfs payload section for the guest.
 func (i *Config) PayloadConfig(kernelPath, initramfsPath string) PayloadConfig {
 	return PayloadConfig{
 		Kernel:    kernelPath,
@@ -112,6 +118,7 @@ func (i *Config) PayloadConfig(kernelPath, initramfsPath string) PayloadConfig {
 	}
 }
 
+// PlatformConfig builds the platform identity from the node UUID and name.
 func (i *Config) PlatformConfig(name string) *PlatformConfig {
 	return &PlatformConfig{
 		SerialNumber: i.MachineId(),
@@ -120,6 +127,7 @@ func (i *Config) PlatformConfig(name string) *PlatformConfig {
 	}
 }
 
+// CpusConfig maps the manifest CPU count to boot and maximum vCPU settings.
 func (i *Config) CpusConfig() *CpusConfig {
 	return &CpusConfig{
 		BootVcpus: i.Cpus,
@@ -127,6 +135,7 @@ func (i *Config) CpusConfig() *CpusConfig {
 	}
 }
 
+// MemoryConfig maps the manifest memory size to shared THP-enabled guest memory.
 func (i *Config) MemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
 		Size:      int64(i.Mem),
@@ -136,6 +145,7 @@ func (i *Config) MemoryConfig() *MemoryConfig {
 	}
 }
 
+// imageConfig builds the readonly root disk entry for the image rootfs.
 func (i *Config) imageConfig(imageFilePath string) DiskConfig {
 	return DiskConfig{
 		Path:     imageFilePath,
@@ -143,6 +153,7 @@ func (i *Config) imageConfig(imageFilePath string) DiskConfig {
 	}
 }
 
+// DiskConfig combines the readonly rootfs with manifest writable disks.
 func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string) []DiskConfig {
 	var (
 		cfgs []DiskConfig
@@ -164,6 +175,7 @@ func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string)
 	return cfgs
 }
 
+// NetConfig builds the TAP network payload from the manifest or generated defaults.
 func (i *Config) NetConfig() []NetConfig {
 	return []NetConfig{
 		{
@@ -175,18 +187,21 @@ func (i *Config) NetConfig() []NetConfig {
 	}
 }
 
+// RngConfig configures the guest RNG source.
 func (i *Config) RngConfig() *RngConfig {
 	return &RngConfig{
 		Src: "/dev/urandom",
 	}
 }
 
+// BalloonConfig enables guest balloon free page reporting.
 func (i *Config) BalloonConfig() *BalloonConfig {
 	return &BalloonConfig{
 		FreePageReporting: true,
 	}
 }
 
+// FsConfig maps manifest directories to virtio-fs tags and sockets.
 func (i *Config) FsConfig(virtiofsSocketPathTemplate string) []FsConfig {
 	var (
 		cfgs []FsConfig
@@ -206,11 +221,14 @@ func (i *Config) FsConfig(virtiofsSocketPathTemplate string) []FsConfig {
 	return cfgs
 }
 
+// SerialConfig disables the serial console path by default.
 func (i *Config) SerialConfig() *SerialConfig {
 	return &SerialConfig{
 		Mode: ConsoleModeOff,
 	}
 }
+
+// ConsoleConfig selects PTY or stdio console mode based on the CLI console flag.
 func (i *Config) ConsoleConfig(std bool) *ConsoleConfig {
 	mode := ConsoleModePty
 	if std {
@@ -220,23 +238,53 @@ func (i *Config) ConsoleConfig(std bool) *ConsoleConfig {
 		Mode: mode,
 	}
 }
-func (i *Config) DebugConsoleConfig() *DebugConsoleConfig       { return nil }
-func (i *Config) PmemConfig() []PmemConfig                      { return nil }
-func (i *Config) DeviceConfig() []DeviceConfig                  { return nil }
-func (i *Config) RateLimitGroupsConfig() []RateLimitGroupConfig { return nil }
-func (i *Config) VdpaConfig() []VdpaConfig                      { return nil }
-func (i *Config) VsockConfig() *VsockConfig                     { return nil }
-func (i *Config) NumaConfig() []NumaConfig                      { return nil }
-func (i *Config) WatchdogConfig() bool                          { return true }
-func (i *Config) PvpanicConfig() bool                           { return true }
-func (i *Config) SgxEpcConfig() []SgxEpcConfig                  { return nil }
-func (i *Config) PciSegmentsConfig() []PciSegmentConfig         { return nil }
-func (i *Config) TpmConfig() *TpmConfig                         { return nil }
-func (i *Config) LandlockEnableConfig() bool                    { return false }
-func (i *Config) LandlockRulesConfig() []LandlockConfig         { return nil }
 
+// DebugConsoleConfig returns nil so generated VM payloads omit debug-console configuration.
+func (i *Config) DebugConsoleConfig() *DebugConsoleConfig { return nil }
+
+// PmemConfig returns nil so generated VM payloads omit persistent memory devices.
+func (i *Config) PmemConfig() []PmemConfig { return nil }
+
+// DeviceConfig returns nil so generated VM payloads omit direct device passthrough entries.
+func (i *Config) DeviceConfig() []DeviceConfig { return nil }
+
+// RateLimitGroupsConfig returns nil so generated VM payloads omit rate limiter groups.
+func (i *Config) RateLimitGroupsConfig() []RateLimitGroupConfig { return nil }
+
+// VdpaConfig returns nil so generated VM payloads omit VDPA devices.
+func (i *Config) VdpaConfig() []VdpaConfig { return nil }
+
+// VsockConfig returns nil so generated VM payloads omit vsock devices.
+func (i *Config) VsockConfig() *VsockConfig { return nil }
+
+// NumaConfig returns nil so generated VM payloads omit NUMA topology.
+func (i *Config) NumaConfig() []NumaConfig { return nil }
+
+// WatchdogConfig enables the cloud-hypervisor watchdog device.
+func (i *Config) WatchdogConfig() bool { return true }
+
+// PvpanicConfig enables the guest pvpanic device.
+func (i *Config) PvpanicConfig() bool { return true }
+
+// SgxEpcConfig returns nil so generated VM payloads omit SGX EPC sections.
+func (i *Config) SgxEpcConfig() []SgxEpcConfig { return nil }
+
+// PciSegmentsConfig returns nil so generated VM payloads omit PCI segment configuration.
+func (i *Config) PciSegmentsConfig() []PciSegmentConfig { return nil }
+
+// TpmConfig returns nil so generated VM payloads omit TPM configuration.
+func (i *Config) TpmConfig() *TpmConfig { return nil }
+
+// LandlockEnableConfig returns false so generated VM payloads disable cloud-hypervisor Landlock.
+func (i *Config) LandlockEnableConfig() bool { return false }
+
+// LandlockRulesConfig returns nil so generated VM payloads omit explicit Landlock rules.
+func (i *Config) LandlockRulesConfig() []LandlockConfig { return nil }
+
+// MachineId returns the UUID without dashes for platform serial and kernel command line use.
 func (i *Config) MachineId() string { return strings.ReplaceAll(i.Uuid.String(), "-", "") }
 
+// KernelCommandline prepends cvmm defaults to manifest-provided kernel arguments.
 func (i *Config) KernelCommandline() string {
 	args := append([]string(nil),
 		fmt.Sprintf("systemd.machine_id=%s", i.MachineId()),

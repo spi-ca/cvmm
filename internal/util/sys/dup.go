@@ -7,6 +7,7 @@ package sys
 
 import "golang.org/x/sys/unix"
 
+// ReplaceFD atomically replaces one file descriptor with another when the platform supports it.
 func ReplaceFD(oldfd int, newfd int) (err error) {
 	return unix.Dup2(oldfd, newfd)
 }

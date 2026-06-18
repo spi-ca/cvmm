@@ -14,10 +14,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Start handles the cvmm start command entrypoint.
 func Start(name, nodeName string) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 시그널 처리
+	// Start cancels the VM lifecycle when the manager receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)

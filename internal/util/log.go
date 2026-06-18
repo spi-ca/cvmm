@@ -13,13 +13,16 @@ var (
 	ErrLog  = log.New(os.Stderr, "", log.LstdFlags)
 )
 
+// init prepares package-level defaults before the package is used.
 func init() {
 	InfoLog.SetOutput(os.Stdout)
 }
 
+// LogWriter routes log output to either stdout or stderr.
 type LogWriter struct {
 }
 
+// Write forwards log bytes to the configured output writer.
 func (w LogWriter) Write(b []byte) (int, error) {
 	if len(b) < 1 {
 		return 0, nil

@@ -4,16 +4,23 @@ import (
 	"errors"
 )
 
+// NodeStatus is an enum-like value used when translating cvmm input or cloud-hypervisor state.
 type NodeStatus string
 
 const (
-	NodeStatusInvalid  NodeStatus = ""
-	NodeStatusCreated  NodeStatus = "Created"
-	NodeStatusRunning  NodeStatus = "Running"
+	// NodeStatusInvalid is the zero value used when parsing fails.
+	NodeStatusInvalid NodeStatus = ""
+	// NodeStatusCreated means the VM exists but has not booted.
+	NodeStatusCreated NodeStatus = "Created"
+	// NodeStatusRunning means the VM is currently running.
+	NodeStatusRunning NodeStatus = "Running"
+	// NodeStatusShutdown means the VM has shut down.
 	NodeStatusShutdown NodeStatus = "Shutdown"
-	NodeStatusPaused   NodeStatus = "Paused"
+	// NodeStatusPaused means the VM is paused.
+	NodeStatusPaused NodeStatus = "Paused"
 )
 
+// NodeStatusNameOf parses a cloud-hypervisor VM state name.
 func NodeStatusNameOf(value string) (NodeStatus, error) {
 	switch value {
 	case string(NodeStatusCreated):
@@ -29,6 +36,7 @@ func NodeStatusNameOf(value string) (NodeStatus, error) {
 	}
 }
 
+// IsValid reports whether the receiver is one of the supported values.
 func (ts NodeStatus) IsValid() bool {
 	switch ts {
 	case NodeStatusCreated:
@@ -44,6 +52,7 @@ func (ts NodeStatus) IsValid() bool {
 	}
 }
 
+// String returns the cloud-hypervisor text token for a valid NodeStatus.
 func (ts NodeStatus) String() string {
 	if ts.IsValid() {
 		return string(ts)
@@ -52,8 +61,10 @@ func (ts NodeStatus) String() string {
 	}
 }
 
+// MarshalText returns the textual representation used by encoders.
 func (ts NodeStatus) MarshalText() ([]byte, error) { return []byte(ts.String()), nil }
 
+// UnmarshalText parses a textual value into the receiver.
 func (ts *NodeStatus) UnmarshalText(b []byte) error {
 	length := len(b)
 	if length < 0 {

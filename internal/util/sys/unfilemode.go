@@ -64,6 +64,7 @@ var (
 	}
 )
 
+// UnFilemodeStr converts a symbolic Unix file mode string into an os.FileMode value.
 func UnFilemodeStr(modeStr string) fs.FileMode {
 	var mode fs.FileMode
 
@@ -81,6 +82,7 @@ func UnFilemodeStr(modeStr string) fs.FileMode {
 	return mode
 }
 
+// UnFilemode converts a symbolic Unix file mode into a numeric os.FileMode value.
 func UnFilemode(modeStr []byte) fs.FileMode {
 	var mode fs.FileMode
 

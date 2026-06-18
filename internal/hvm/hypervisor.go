@@ -31,6 +31,7 @@ var (
 	errRunAsNotSpecified = errors.New("runas not specified")
 )
 
+// Hypervisor owns one node's cloud-hypervisor client, child process paths, and virtiofsd runtime configuration.
 type Hypervisor struct {
 	name string
 
@@ -46,16 +47,21 @@ type Hypervisor struct {
 	cli *clientImpl
 }
 
-// TODO impl
+// Ping verifies that the cloud-hypervisor VMM API is reachable.
 func (i *Hypervisor) Ping(ctx context.Context) error {
 	_, err := i.cli.VmmPing(ctx)
 	return err
 }
+
+// Info returns the current VM information from the cloud-hypervisor API.
 func (i *Hypervisor) Info(ctx context.Context) (*model.VmInfo, error) { return i.cli.VmInfo(ctx) }
+
+// Counters returns the current VM counters from the cloud-hypervisor API.
 func (i *Hypervisor) Counters(ctx context.Context) (*model.VmCounters, error) {
 	return i.cli.VmCounters(ctx)
 }
 
+// Shutdown terminates the cvmm manager process recorded in the node pid file, escalating to kill after a timeout.
 func (i *Hypervisor) Shutdown(ctx context.Context) {
 	pid, err := sys.ReadPidFile(i.pidPath)
 	if err != nil {
@@ -81,7 +87,7 @@ func (i *Hypervisor) Shutdown(ctx context.Context) {
 		case context.DeadlineExceeded:
 			util.ErrLog.Printf("termination timeout(%s) exceed: %s\n", shutdownDeadline, err)
 		case context.Canceled:
-			// do nothing
+			// Parent cancellation is an expected shutdown path.
 		default:
 			util.ErrLog.Printf("termination awaiting failed: %s\n", err)
 		}
@@ -90,9 +96,16 @@ func (i *Hypervisor) Shutdown(ctx context.Context) {
 	process.Kill()
 }
 
+// Reboot requests a guest reboot through the cloud-hypervisor API.
 func (i *Hypervisor) Reboot(ctx context.Context) error { return i.cli.VmReboot(ctx) }
-func (i *Hypervisor) Close()                           { i.cli.Close() }
-func (i *Hypervisor) GetClient() Client                { return i.cli }
+
+// Close releases resources held by the receiver.
+func (i *Hypervisor) Close() { i.cli.Close() }
+
+// GetClient exposes the node-local cloud-hypervisor API client used by entry commands.
+func (i *Hypervisor) GetClient() Client { return i.cli }
+
+// Start acquires the cvmm pid file, launches cloud-hypervisor, creates and boots the VM, and reconciles virtiofsd helpers until shutdown.
 func (i *Hypervisor) Start(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -166,11 +179,11 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		} else {
 			util.InfoLog.Printf("hypervisor shutdown requested")
 		}
-		// wait hypervisor
+		// Wait for the cloud-hypervisor process goroutine to finish after requesting shutdown.
 		if err, ok := <-vmErrorChan; ok {
 			errs = append(errs, err)
 		}
-		// parent wants stop the hypervisor
+		// If the hypervisor exits first, propagate that result to the caller.
 	case err, ok := <-vmErrorChan:
 		if ok {
 			errs = append(errs, err)
@@ -184,6 +197,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	return errors.Join(errs...)
 }
 
+// OpenConsole discovers the VM console PTY from VmInfo and connects it to the current terminal.
 func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
@@ -197,6 +211,7 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 }
 
+// invoke starts a child process, records its pid, streams stdout/stderr to logs, and returns contextual exit errors.
 func (i *Hypervisor) invoke(cmd *exec.Cmd, pidPath string) error {
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
@@ -232,6 +247,7 @@ func (i *Hypervisor) invoke(cmd *exec.Cmd, pidPath string) error {
 	return res.HandleError()
 }
 
+// handleStdout copies child stdout to the info log and execution result buffer.
 func (i *Hypervisor) handleStdout(res *util.ExecutionResult, reader io.Reader, closer func()) {
 	defer closer()
 	prefix := fmt.Sprintf("[%d] ", res.PID)
@@ -242,6 +258,7 @@ func (i *Hypervisor) handleStdout(res *util.ExecutionResult, reader io.Reader, c
 	}
 }
 
+// handleStderr copies child stderr to the error log and execution result buffer.
 func (i *Hypervisor) handleStderr(res *util.ExecutionResult, reader io.Reader, closer func()) {
 	defer closer()
 	prefix := fmt.Sprintf("[%d] ", res.PID)
@@ -253,6 +270,7 @@ func (i *Hypervisor) handleStderr(res *util.ExecutionResult, reader io.Reader, c
 	}
 }
 
+// virtiofsdRecoiler keeps one virtiofsd process running for each configured shared directory until context cancellation.
 func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct{}) {
 	close(closer)
 
@@ -351,6 +369,7 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 	wg.Wait()
 }
 
+// waitForHypervisorAvailable polls the VMM ping endpoint until the API socket is ready or the retry limit is exhausted.
 func (i *Hypervisor) waitForHypervisorAvailable(ctx context.Context) error {
 	var err error
 	for iter := 0; iter < availableAwaitingLimit; iter++ {
@@ -366,6 +385,7 @@ func (i *Hypervisor) waitForHypervisorAvailable(ctx context.Context) error {
 	return nil
 }
 
+// hypervisorStatusMonitor logs VM state transitions while the parent context is active.
 func (i *Hypervisor) hypervisorStatusMonitor(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// AcquirePidFile writes a pid file when no active process already owns it and returns a cleanup function.
 func AcquirePidFile(filename string, pid int) (func(), error) {
 	if IsPidFileActive(filename) {
 		return nil, fmt.Errorf("already running(%s)", filename)
@@ -65,6 +66,7 @@ func AcquirePidFile(filename string, pid int) (func(), error) {
 	}, nil
 }
 
+// IsPidFileActive reports whether a pid file points to a currently running process.
 func IsPidFileActive(filename string) bool {
 	if oldpid, _ := ReadPidFile(filename); oldpid > 0 {
 		return IsPidActive(oldpid)
@@ -72,6 +74,7 @@ func IsPidFileActive(filename string) bool {
 	return false
 }
 
+// ReadPidFile parses a process id from a pid file.
 func ReadPidFile(filename string) (int, error) {
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0o644)
 	if err != nil {
@@ -92,6 +95,7 @@ func ReadPidFile(filename string) (int, error) {
 	return strconv.Atoi(string(line))
 }
 
+// IsPidActive reports whether a process id can be signaled on the current host.
 func IsPidActive(pid int) bool {
 	if pid <= 0 {
 		return false

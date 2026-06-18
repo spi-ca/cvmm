@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// WaitUntilProcessFinished waits until the process exits or the context ends.
 func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 	fd, err := unix.PidfdOpen(pid, unix.PIDFD_NONBLOCK)
 	if errors.Is(err, unix.ESRCH) {
@@ -40,9 +41,9 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 
 	msec := -1
 
-	// Loop forever
+	// Wait until epoll reports process exit or the context is canceled.
 	for {
-		// Poll the file descriptor
+		// Poll the pidfd for process exit readiness.
 		n, errno := unix.EpollWait(epfd, events[:], msec)
 		switch errno {
 		case nil:
@@ -52,7 +53,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 				msec = 0
 				break
 			}
-			// if n <=0
+			// No readiness event means the loop should continue waiting.
 			fallthrough
 		case unix.EINTR:
 			runtime.Gosched()
@@ -62,7 +63,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 			return errno
 		}
 
-		// Process events
+		// Dispatch process exit readiness or context cancellation events.
 		for _, e := range events[:n] {
 			if e.Fd == int32(fd) && (e.Events&unix.EPOLLIN) != 0 {
 				return nil
@@ -78,6 +79,7 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 	}
 }
 
+// SetProcessName sets the visible process name when the platform supports it.
 func SetProcessName(name string) error {
 
 	strptr, err := unix.BytePtrFromString(name)

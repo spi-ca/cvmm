@@ -16,6 +16,7 @@ import (
 )
 
 type (
+	// Client is the cloud-hypervisor control surface used by cvmm over the node API socket.
 	Client interface {
 		VmmPing(ctx context.Context) (*model.VmmPingResponse, error)
 		VmmShutdown(ctx context.Context) error
@@ -48,6 +49,7 @@ type (
 		VmSendMigration(ctx context.Context, config model.SendMigrationData) error
 	}
 
+	// clientImpl binds an HTTP client to a cloud-hypervisor Unix socket and tracks in-flight requests.
 	clientImpl struct {
 		cli        http.Client
 		socketPath string
@@ -96,7 +98,10 @@ var (
 	ErrRedirectionForbidded = errors.New("this client cannot redirect")
 )
 
+// NewClient constructs a cloud-hypervisor client for the supplied Unix socket path.
 func NewClient(socketPath string) Client { return newClient(socketPath) }
+
+// newClient constructs a cloud-hypervisor client for the supplied Unix socket path.
 func newClient(socketPath string) *clientImpl {
 	c := clientImpl{
 		socketPath: socketPath,
@@ -110,12 +115,13 @@ func newClient(socketPath string) *clientImpl {
 	return &c
 }
 
+// Close waits for in-flight requests and releases idle HTTP connections.
 func (c *clientImpl) Close() {
 	c.cli.CloseIdleConnections()
 	c.wg.Wait()
 }
 
-// Ping the VMM to check for API server availability
+// VmmPing checks cloud-hypervisor VMM API availability and decodes version metadata.
 func (c *clientImpl) VmmPing(ctx context.Context) (*model.VmmPingResponse, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -148,7 +154,7 @@ func (c *clientImpl) VmmPing(ctx context.Context) (*model.VmmPingResponse, error
 	return &obj, nil
 }
 
-// Shuts the cloud-hypervisor VMM.
+// VmmShutdown sends a shutdown request to the cloud-hypervisor VMM endpoint.
 func (c *clientImpl) VmmShutdown(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -172,7 +178,7 @@ func (c *clientImpl) VmmShutdown(ctx context.Context) error {
 	}
 }
 
-// raise a NMI event the cloud-hypervisor VMM.
+// VmmNmi raises a non-maskable interrupt event through the VMM endpoint.
 func (c *clientImpl) VmmNmi(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -196,7 +202,7 @@ func (c *clientImpl) VmmNmi(ctx context.Context) error {
 	}
 }
 
-// Returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
+// VmInfo returns general information about the cloud-hypervisor VM instance.
 func (c *clientImpl) VmInfo(ctx context.Context) (*model.VmInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -229,7 +235,7 @@ func (c *clientImpl) VmInfo(ctx context.Context) (*model.VmInfo, error) {
 	return &obj, nil
 }
 
-// Get counters from the VM
+// VmCounters retrieves VM counter values from the cloud-hypervisor API.
 func (c *clientImpl) VmCounters(ctx context.Context) (*model.VmCounters, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -262,7 +268,7 @@ func (c *clientImpl) VmCounters(ctx context.Context) (*model.VmCounters, error) 
 	return &obj, nil
 }
 
-// Create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
+// VmCreate creates the cloud-hypervisor VM instance without booting it.
 func (c *clientImpl) VmCreate(ctx context.Context, config model.VmConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -292,7 +298,7 @@ func (c *clientImpl) VmCreate(ctx context.Context, config model.VmConfig) error 
 	}
 }
 
-// Delete the cloud-hypervisor Virtual Machine (VM) instance.
+// VmDelete deletes the cloud-hypervisor VM instance.
 func (c *clientImpl) VmDelete(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -316,7 +322,7 @@ func (c *clientImpl) VmDelete(ctx context.Context) error {
 	}
 }
 
-// Boot the previously created VM instance.
+// VmBoot boots a previously created VM instance.
 func (c *clientImpl) VmBoot(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -342,7 +348,7 @@ func (c *clientImpl) VmBoot(ctx context.Context) error {
 	}
 }
 
-// Pause a previously booted VM instance.
+// VmPause pauses a previously booted VM instance.
 func (c *clientImpl) VmPause(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -370,7 +376,7 @@ func (c *clientImpl) VmPause(ctx context.Context) error {
 	}
 }
 
-// Resume a previously paused VM instance.
+// VmResume resumes a previously paused VM instance.
 func (c *clientImpl) VmResume(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -398,7 +404,7 @@ func (c *clientImpl) VmResume(ctx context.Context) error {
 	}
 }
 
-// Shut the VM instance down.
+// VmShutdown requests shutdown of the VM instance.
 func (c *clientImpl) VmShutdown(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -426,7 +432,7 @@ func (c *clientImpl) VmShutdown(ctx context.Context) error {
 	}
 }
 
-// Reboot the VM instance.
+// VmReboot requests reboot of the VM instance.
 func (c *clientImpl) VmReboot(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -454,7 +460,7 @@ func (c *clientImpl) VmReboot(ctx context.Context) error {
 	}
 }
 
-// Trigger a power button in the VM.
+// VmPowerButton sends a power-button event to the VM instance.
 func (c *clientImpl) VmPowerButton(ctx context.Context) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -482,7 +488,7 @@ func (c *clientImpl) VmPowerButton(ctx context.Context) error {
 	}
 }
 
-// Resize the VM
+// VmResize sends CPU or memory resize data to the VM resize endpoint.
 func (c *clientImpl) VmResize(ctx context.Context, config model.VmResize) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -514,7 +520,7 @@ func (c *clientImpl) VmResize(ctx context.Context, config model.VmResize) error 
 	}
 }
 
-// Resize a memory zone
+// VmResizeZone sends a memory-zone resize request.
 func (c *clientImpl) VmResizeZone(ctx context.Context, config model.VmResizeZone) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -546,7 +552,7 @@ func (c *clientImpl) VmResizeZone(ctx context.Context, config model.VmResizeZone
 	}
 }
 
-// Add a new device to the VM
+// VmAddDevice sends a device hot-add request and returns the assigned PCI device info.
 func (c *clientImpl) VmAddDevice(ctx context.Context, config model.DeviceConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -589,7 +595,7 @@ func (c *clientImpl) VmAddDevice(ctx context.Context, config model.DeviceConfig)
 	return &obj, nil
 }
 
-// Add a new device to the VM
+// VmAddUserDevice sends a user-device hot-add request and returns the assigned PCI device info.
 func (c *clientImpl) VmAddUserDevice(ctx context.Context, config model.VmAddUserDevice) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -632,7 +638,7 @@ func (c *clientImpl) VmAddUserDevice(ctx context.Context, config model.VmAddUser
 	return &obj, nil
 }
 
-// Remove a device from the VM
+// VmRemoveDevice removes a hotplugged device from the VM.
 func (c *clientImpl) VmRemoveDevice(ctx context.Context, config model.VmRemoveDevice) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -664,7 +670,7 @@ func (c *clientImpl) VmRemoveDevice(ctx context.Context, config model.VmRemoveDe
 	}
 }
 
-// Add a new disk to the VM
+// VmAddDisk hot-adds a disk device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddDisk(ctx context.Context, config model.DiskConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -707,7 +713,7 @@ func (c *clientImpl) VmAddDisk(ctx context.Context, config model.DiskConfig) (*m
 	return &obj, nil
 }
 
-// Add a new virtio-fs device to the VM
+// VmAddFs hot-adds a virtio-fs device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddFs(ctx context.Context, config model.FsConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -750,7 +756,7 @@ func (c *clientImpl) VmAddFs(ctx context.Context, config model.FsConfig) (*model
 	return &obj, nil
 }
 
-// Add a new pmem device to the VM
+// VmAddPmem hot-adds a persistent-memory device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddPmem(ctx context.Context, config model.PmemConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -793,7 +799,7 @@ func (c *clientImpl) VmAddPmem(ctx context.Context, config model.PmemConfig) (*m
 	return &obj, nil
 }
 
-// Add a new network device to the VM
+// VmAddNet hot-adds a network device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddNet(ctx context.Context, config model.NetConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -836,7 +842,7 @@ func (c *clientImpl) VmAddNet(ctx context.Context, config model.NetConfig) (*mod
 	return &obj, nil
 }
 
-// Add a new vsock device to the VM
+// VmAddVsock hot-adds a vsock device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddVsock(ctx context.Context, config model.VsockConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -879,7 +885,7 @@ func (c *clientImpl) VmAddVsock(ctx context.Context, config model.VsockConfig) (
 	return &obj, nil
 }
 
-// Add a new vDPA device to the VM
+// VmAddVdpa hot-adds a VDPA device and returns the assigned PCI device info.
 func (c *clientImpl) VmAddVdpa(ctx context.Context, config model.VdpaConfig) (*model.PciDeviceInfo, error) {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -922,7 +928,7 @@ func (c *clientImpl) VmAddVdpa(ctx context.Context, config model.VdpaConfig) (*m
 	return &obj, nil
 }
 
-// Returns a VM snapshot
+// VmSnapshot requests a VM snapshot using the supplied destination configuration.
 func (c *clientImpl) VmSnapshot(ctx context.Context, config model.VmSnapshotConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -956,7 +962,7 @@ func (c *clientImpl) VmSnapshot(ctx context.Context, config model.VmSnapshotConf
 	}
 }
 
-// Takes a VM coredump
+// VmCoredump requests a VM coredump using the supplied destination configuration.
 func (c *clientImpl) VmCoredump(ctx context.Context, config model.VmCoredumpData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -990,7 +996,7 @@ func (c *clientImpl) VmCoredump(ctx context.Context, config model.VmCoredumpData
 	}
 }
 
-// Restore a VM from a snapshot
+// VmRestore restores a VM from the supplied snapshot configuration.
 func (c *clientImpl) VmRestore(ctx context.Context, config model.RestoreConfig) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -1022,7 +1028,7 @@ func (c *clientImpl) VmRestore(ctx context.Context, config model.RestoreConfig) 
 	}
 }
 
-// Receive a VM migration from URL
+// VmReceiveMigration starts receiving a VM migration from the supplied URL.
 func (c *clientImpl) VmReceiveMigration(ctx context.Context, config model.ReceiveMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -1054,7 +1060,7 @@ func (c *clientImpl) VmReceiveMigration(ctx context.Context, config model.Receiv
 	}
 }
 
-// Send a VM migration to URL
+// VmSendMigration sends VM migration state to the supplied URL.
 func (c *clientImpl) VmSendMigration(ctx context.Context, config model.SendMigrationData) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -1086,14 +1092,17 @@ func (c *clientImpl) VmSendMigration(ctx context.Context, config model.SendMigra
 	}
 }
 
+// dialContext dials the configured Unix socket for HTTP requests.
 func (c *clientImpl) dialContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return (&net.Dialer{}).DialContext(ctx, "unix", c.socketPath)
 }
 
+// checkRedirect rejects redirects because the cloud-hypervisor API is socket-local.
 func (c *clientImpl) checkRedirect(_ *http.Request, via []*http.Request) error {
 	return ErrRedirectionForbidded
 }
 
+// readResponseMessage formats a response body so API errors include server details.
 func (c *clientImpl) readResponseMessage(resp *http.Response) string {
 	buf := strings.Builder{}
 	_, _ = io.CopyN(&buf, resp.Body, resp.ContentLength)

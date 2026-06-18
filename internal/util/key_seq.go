@@ -2,7 +2,7 @@ package util
 
 import "io"
 
-// Read one rune or control sequence.
+// CaptureEscapeKeySequence copies bytes after an escape key until a control sequence terminates.
 func CaptureEscapeKeySequence(r io.Reader, w io.Writer) {
 	step := 0
 	buf := make([]byte, 1)

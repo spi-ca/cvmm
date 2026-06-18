@@ -6,6 +6,7 @@ package sys
 
 import "syscall"
 
+// ReplaceFD atomically replaces one file descriptor with another when the platform supports it.
 func ReplaceFD(oldfd int, newfd int) (err error) {
 	// linux_arm64 platform doesn't have syscall.Dup2
 	// so use the nearly identical syscall.Dup3 instead.

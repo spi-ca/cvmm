@@ -11,6 +11,7 @@ import (
 	"github.com/moby/sys/mount"
 )
 
+// Sandbox applies the platform sandbox mount setup for the current process.
 func Sandbox(sandboxMountOption string) error {
 	err := mount.MakeRPrivate("/")
 	if err != nil {
@@ -48,6 +49,7 @@ func Sandbox(sandboxMountOption string) error {
 	return nil
 }
 
+// Mount creates the destination directory and mounts the requested source there.
 func Mount(source string, destinationPath string, mountType string, mountOptions string) (err error) {
 	err = os.Mkdir(destinationPath, 0o755)
 	if err != nil {
@@ -61,10 +63,12 @@ func Mount(source string, destinationPath string, mountType string, mountOptions
 	return nil
 }
 
+// Umount unmounts the requested destination path.
 func Umount(destinationPath string) error {
 	return mount.Unmount(destinationPath)
 }
 
+// RecursiveUmounts recursively unmounts the requested destination path.
 func RecursiveUmounts(destinationPath string) error {
 	return mount.RecursiveUnmount(destinationPath)
 }

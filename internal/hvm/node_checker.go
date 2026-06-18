@@ -11,6 +11,7 @@ import (
 	"amuz.es/src/spi-ca/cvmm/internal/util"
 )
 
+// NodeStatusChecker returns a predicate that matches a VM info response against one desired state.
 func NodeStatusChecker(ctx context.Context, client *http.Client, expectedStatus model.NodeStatus, errorChan chan<- error) {
 	defer func() {
 		if err := recover(); err != nil {

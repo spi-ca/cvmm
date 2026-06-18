@@ -7,6 +7,7 @@ import (
 	"syscall"
 )
 
+// LookupUid resolves a user name to a numeric uid.
 func LookupUid(name string) (uint32, error) {
 	u, err := user.Lookup(name)
 	if err != nil {
@@ -16,6 +17,7 @@ func LookupUid(name string) (uint32, error) {
 	return convertId(u.Uid)
 }
 
+// LookupGid resolves a group name to a numeric gid.
 func LookupGid(name string) (uint32, error) {
 	u, err := user.LookupGroup(name)
 	if err != nil {
@@ -25,6 +27,7 @@ func LookupGid(name string) (uint32, error) {
 	return convertId(u.Gid)
 }
 
+// LookupSupplimentaryGroups resolves supplementary group ids for a user.
 func LookupSupplimentaryGroups(name string) ([]uint32, error) {
 	u, err := user.Lookup(name)
 	if err != nil {
@@ -61,6 +64,7 @@ func LookupSupplimentaryGroups(name string) ([]uint32, error) {
 	return ret, nil
 }
 
+// LookupUserName resolves a numeric uid and returns the canonical uid string from the host user database.
 func LookupUserName(uid uint32) (string, error) {
 	u, err := user.LookupId(strconv.FormatUint(uint64(uid), 10))
 	if err != nil {
@@ -69,6 +73,7 @@ func LookupUserName(uid uint32) (string, error) {
 	return u.Uid, nil
 }
 
+// LookupGroupName resolves a numeric gid to a group name.
 func LookupGroupName(gid uint32) (string, error) {
 	g, err := user.LookupGroupId(strconv.FormatUint(uint64(gid), 10))
 	if err != nil {
@@ -77,6 +82,7 @@ func LookupGroupName(gid uint32) (string, error) {
 	return g.Name, nil
 }
 
+// LookupCredentials resolves a user name into uid, primary gid, and supplementary groups for child process credentials.
 func LookupCredentials(name string) (*syscall.Credential, error) {
 	u, err := user.Lookup(name)
 	if err != nil {
@@ -122,6 +128,7 @@ func LookupCredentials(name string) (*syscall.Credential, error) {
 	}, nil
 }
 
+// convertId converts lookup command output into an integer id.
 func convertId(id string) (uint32, error) {
 	parsed, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {

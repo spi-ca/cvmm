@@ -4,18 +4,27 @@ import (
 	"errors"
 )
 
+// ConsoleMode is an enum-like value used when translating cvmm input or cloud-hypervisor state.
 type ConsoleMode string
 
 const (
+	// ConsoleModeInvalid is the zero value used when parsing fails.
 	ConsoleModeInvalid ConsoleMode = ""
-	ConsoleModeOff     ConsoleMode = "Off"
-	ConsoleModePty     ConsoleMode = "Pty"
-	ConsoleModeTty     ConsoleMode = "Tty"
-	ConsoleModeFile    ConsoleMode = "File"
-	ConsoleModeSocket  ConsoleMode = "Socket"
-	ConsoleModeNull    ConsoleMode = "Null"
+	// ConsoleModeOff disables the console.
+	ConsoleModeOff ConsoleMode = "Off"
+	// ConsoleModePty exposes the console through a PTY.
+	ConsoleModePty ConsoleMode = "Pty"
+	// ConsoleModeTty attaches the console to the process TTY.
+	ConsoleModeTty ConsoleMode = "Tty"
+	// ConsoleModeFile writes the console to a file.
+	ConsoleModeFile ConsoleMode = "File"
+	// ConsoleModeSocket exposes the console through a socket.
+	ConsoleModeSocket ConsoleMode = "Socket"
+	// ConsoleModeNull discards console output.
+	ConsoleModeNull ConsoleMode = "Null"
 )
 
+// ConsoleModeNameOf parses a cloud-hypervisor console mode name.
 func ConsoleModeNameOf(value string) (ConsoleMode, error) {
 	switch value {
 	case string(ConsoleModeOff):
@@ -35,6 +44,7 @@ func ConsoleModeNameOf(value string) (ConsoleMode, error) {
 	}
 }
 
+// IsValid reports whether the receiver is one of the supported values.
 func (ts ConsoleMode) IsValid() bool {
 	switch ts {
 	case ConsoleModeOff:
@@ -54,6 +64,7 @@ func (ts ConsoleMode) IsValid() bool {
 	}
 }
 
+// String returns the cloud-hypervisor text token for a valid ConsoleMode.
 func (ts ConsoleMode) String() string {
 	if ts.IsValid() {
 		return string(ts)
@@ -62,8 +73,10 @@ func (ts ConsoleMode) String() string {
 	}
 }
 
+// MarshalText returns the textual representation used by encoders.
 func (ts ConsoleMode) MarshalText() ([]byte, error) { return []byte(ts.String()), nil }
 
+// UnmarshalText parses a textual value into the receiver.
 func (ts *ConsoleMode) UnmarshalText(b []byte) error {
 	length := len(b)
 	if length < 0 {

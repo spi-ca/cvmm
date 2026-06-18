@@ -12,14 +12,15 @@ import (
 	"golang.org/x/term"
 )
 
+// OpenPty connects stdin/stdout to a guest PTY until either side closes or the context ends.
 func OpenPty(ctx context.Context, input *os.File, output *os.File, ptyPath string) error {
-	// Expected Open from a variable.
+	// Open the PTY path reported by cloud-hypervisor rather than constructing a path locally.
 	ttyFile, err := os.OpenFile(ptyPath, os.O_RDWR|unix.O_NOCTTY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %w", ptyPath, err)
 	}
 	defer func() {
-		// Best effort.
+		// Closing the PTY during cleanup is best-effort because the command is already ending.
 		_ = ttyFile.Close()
 	}()
 

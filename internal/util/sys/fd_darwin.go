@@ -19,6 +19,7 @@ import (
 	"unsafe"
 )
 
+// PathFromFd resolves the filesystem path referenced by an open file descriptor when supported.
 func PathFromFd(fd uintptr) (string, os.FileInfo, error) {
 
 	var (

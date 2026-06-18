@@ -4,6 +4,7 @@ import (
 	"strconv"
 )
 
+// VirtiofsConfig describes the host-side virtiofsd helper process for one shared directory.
 type VirtiofsConfig struct {
 	Directory      string
 	SocketPath     string
@@ -11,6 +12,7 @@ type VirtiofsConfig struct {
 	ThreadPoolSize int
 }
 
+// CommandArgs renders the virtiofsd flags for the shared directory, socket path, socket group, and thread pool.
 func (i *VirtiofsConfig) CommandArgs() []string {
 	var args []string
 	args = append(args, "--allow-direct-io")
@@ -33,4 +35,5 @@ func (i *VirtiofsConfig) CommandArgs() []string {
 	return args
 }
 
+// String renders the virtiofsd command arguments in the same log-friendly format as VM arguments.
 func (v VirtiofsConfig) String() string { return joinArgs(v.CommandArgs()) }

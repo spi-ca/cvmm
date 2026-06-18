@@ -9,6 +9,7 @@ import (
 	"syscall"
 )
 
+// ExecutionResult captures a child process pid and recent output for error reporting.
 type ExecutionResult struct {
 	PID int
 	Err error
@@ -17,11 +18,13 @@ type ExecutionResult struct {
 	stderrLastLogLines        [10]string
 }
 
+// AppendLogLine records one output line from a child process execution.
 func (r *ExecutionResult) AppendLogLine(line string) {
 	r.stderrLastLogLines[r.stderrLastLogLineStartIdx] = line
 	r.stderrLastLogLineStartIdx = (r.stderrLastLogLineStartIdx + 1) % len(r.stderrLastLogLines)
 }
 
+// LastLogLine returns the most recent child-process output line, if any.
 func (r *ExecutionResult) LastLogLine() []string {
 	loglines := make([]string, 0, len(r.stderrLastLogLines))
 	for i := 0; i < len(r.stderrLastLogLines); i++ {
@@ -33,12 +36,13 @@ func (r *ExecutionResult) LastLogLine() []string {
 	return loglines
 }
 
+// HandleError combines a process error with captured output context.
 func (r *ExecutionResult) HandleError() error {
 	exitcode := 0
 	if err := r.Err; err == nil {
-		// do nothing
+		// A nil error is already a successful result.
 	} else if errors.Is(err, context.Canceled) {
-		// do nothing
+		// Context cancellation is treated as a clean stop for managed child processes.
 		r.Err = nil
 	} else {
 		// try to get the exit code

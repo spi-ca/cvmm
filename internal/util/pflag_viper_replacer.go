@@ -32,6 +32,7 @@ func (p pflagViperValue) ValueType() string {
 	return p.flag.Value.Type()
 }
 
+// PFlagViperReplacer adapts pflag names to Viper key names during binding.
 type PFlagViperReplacer struct {
 	*flags.FlagSet
 	Replacer *strings.Replacer
@@ -42,6 +43,7 @@ func (p PFlagViperReplacer) VisitAll(fn func(flag viper.FlagValue)) {
 	p.FlagSet.VisitAll(p.bindPFlagToViper)
 }
 
+// bindPFlagToViper adapts one pflag value to Viper binding semantics.
 func (r PFlagViperReplacer) bindPFlagToViper(flag *flags.Flag) {
 	_ = viper.BindFlagValue(r.Replacer.Replace(flag.Name), pflagViperValue{flag})
 }

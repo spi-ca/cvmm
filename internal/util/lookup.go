@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 )
 
+// LookupBinary resolves a binary name or path to an absolute executable path.
 func LookupBinary(givenPath string) string {
 	if len(givenPath) < 1 {
 		return ""

@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// IECSize stores a byte size parsed from IEC-style text such as 4G.
 type IECSize uint64
 
 var (
@@ -23,6 +24,7 @@ var (
 	sizeParsePattern = regexp.MustCompile(`^([+-]?(?:[0-9]*[.])?[0-9]+)\s*(?:([A-Za-z])i?)?$`)
 )
 
+// MustLoadIECSize parses an IEC size string and panics on invalid input.
 func MustLoadIECSize(val string) IECSize {
 	sz, err := LoadIECSize(val)
 	if err != nil {
@@ -32,6 +34,7 @@ func MustLoadIECSize(val string) IECSize {
 	return sz
 }
 
+// LoadIECSize parses an IEC size string into bytes.
 func LoadIECSize(val string) (IECSize, error) {
 	matcher := sizeParsePattern.FindStringSubmatch(val)
 	if matcher == nil {
@@ -61,6 +64,7 @@ func LoadIECSize(val string) (IECSize, error) {
 	return IECSize(mantissa * p), nil
 }
 
+// String formats the receiver as its canonical text value.
 func (ts IECSize) String() string {
 	const base = 1024.0
 	i := math.Floor(math.Log(float64(ts)) / math.Log(base))
@@ -72,6 +76,7 @@ func (ts IECSize) String() string {
 	return fmt.Sprintf("%g%s", s, unit)
 }
 
+// MarshalText returns the textual representation used by encoders.
 func (ts IECSize) MarshalText() ([]byte, error) {
 	const base = 1024.0
 	i := math.Floor(math.Log(float64(ts)) / math.Log(base))
@@ -83,6 +88,7 @@ func (ts IECSize) MarshalText() ([]byte, error) {
 	return fmt.Appendf(nil, "%g%s", s, unit), nil
 }
 
+// UnmarshalText parses a textual value into the receiver.
 func (ts *IECSize) UnmarshalText(b []byte) error {
 	length := len(b)
 	if length < 0 {

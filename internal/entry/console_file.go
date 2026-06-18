@@ -11,10 +11,11 @@ import (
 	"syscall"
 )
 
+// ConsoleFile handles the cvmm console-file command entrypoint for a numeric PTY id.
 func ConsoleFile(name string, ptyId int) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 시그널 처리
+	// ConsoleFile stops PTY forwarding when the command receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
