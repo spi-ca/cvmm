@@ -6,42 +6,18 @@
 
 ## 읽기 순서
 
-1. [`../README.md`](../README.md) - 프로젝트 개요와 CLI
-2. [`requirements.md`](requirements.md) - 운영 전제와 manifest 계약
-3. [`design.md`](design.md) - 런타임 흐름과 설계 의도
-4. [`architecture.md`](architecture.md) - 패키지 구조와 데이터 흐름
-5. [`commenting.md`](commenting.md) - Go package 주석 커버리지 기준
-6. [`operations.md`](operations.md) - 실행/검증 runbook
-7. [`benchmarks.md`](benchmarks.md) - 현재 성능 측정 방침
-8. [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md) - 가능한 benchmark와 누락된 테스트 보고
-9. [`performance-roadmap.md`](performance-roadmap.md) - 성능 후속 과제
+1. [`../README.md`](../README.md) - 프로젝트 목적, 쓰임새, 기본 사용법
+2. [`requirements.md`](requirements.md) - 지원 범위와 manifest 계약
+3. [`design.md`](design.md) - manifest를 VM/virtio-fs runtime으로 변환하는 방식
+4. [`architecture.md`](architecture.md) - package 책임과 lifecycle
+5. [`operations.md`](operations.md) - 실행 방법, 점검 명령, evidence 기준
+6. [`diagrams/README.md`](diagrams/README.md) - diagram source와 SVG/PNG 산출물 규칙
 
-## 저장소 맵
+## 필요할 때만 열 문서
 
-```text
-cvmm/
-├── README.md
-├── AGENTS.md
-├── CLAUDE.md
-├── go.mod
-├── main.go
-├── internal/
-│   ├── entry/   # CLI action entrypoints
-│   ├── hvm/     # hypervisor orchestration and API client
-│   ├── model/   # manifest and cloud-hypervisor request models
-│   └── util/    # pid, PTY, user/process helpers
-│       └── sys/ # OS/syscall helpers behind build-specific files
-├── contrib/     # deployment and integration examples
-└── docs/        # maintainer-facing documentation
-```
-
-## 문서별 역할
-
-- `requirements.md` - 무엇을 지원하고 무엇을 지원하지 않는지
-- `design.md` - manifest를 VM/virtio-fs runtime으로 변환하는 방식
-- `architecture.md` - 패키지별 책임과 lifecycle
-- `commenting.md` - package/function/type 주석 커버리지와 audit 기준
-- `operations.md` - 실행 방법, 점검 명령, evidence 기준
-- `benchmarks.md` - 공식 벤치마크 harness 부재와 측정 규칙
-- `test-and-benchmark-gaps.md` - benchmark 후보와 테스트 갭 우선순위
-- `performance-roadmap.md` - 우선순위 backlog
+- [`commenting.md`](commenting.md) - Go package/function/type 주석 audit 기준
+- [`benchmarks.md`](benchmarks.md) - 공식 benchmark harness 부재와 측정 규칙
+- [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md) - benchmark 후보와 테스트 gap 우선순위
+- [`performance-roadmap.md`](performance-roadmap.md) - 성능 후속 backlog
+- [`pi-agents.md`](pi-agents.md) - repo-local Pi agents/skills/prompt resources
+- [`guidelines/`](guidelines/) - agent-facing documentation guidelines; repository rule source가 아니라 정리 기준 참고 자료
