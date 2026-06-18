@@ -4,41 +4,73 @@ import (
 	"errors"
 )
 
+// ClientAction is an enum-like value used when translating cvmm input or cloud-hypervisor state.
 type ClientAction string
 
 const (
-	ClientActionInvalid            ClientAction = ""
-	ClientActionVmmPing            ClientAction = "vmm-ping"
-	ClientActionVmmShutdown        ClientAction = "vmm-shutdown"
-	ClientActionVmmNmi             ClientAction = "vmm-nmi"
-	ClientActionVmInfo             ClientAction = "vm-info"
-	ClientActionVmCounters         ClientAction = "vm-counters"
-	ClientActionVmCreate           ClientAction = "vm-create"
-	ClientActionVmDelete           ClientAction = "vm-delete"
-	ClientActionVmBoot             ClientAction = "vm-boot"
-	ClientActionVmPause            ClientAction = "vm-pause"
-	ClientActionVmResume           ClientAction = "vm-resume"
-	ClientActionVmShutdown         ClientAction = "vm-shutdown"
-	ClientActionVmReboot           ClientAction = "vm-reboot"
-	ClientActionVmPowerButton      ClientAction = "vm-power-button"
-	ClientActionVmResize           ClientAction = "vm-resize"
-	ClientActionVmResizeZone       ClientAction = "vm-resize-zone"
-	ClientActionVmAddDevice        ClientAction = "vm-add-device"
-	ClientActionVmAddUserDevice    ClientAction = "vm-add-user-device"
-	ClientActionVmRemoveDevice     ClientAction = "vm-remove-device"
-	ClientActionVmAddDisk          ClientAction = "vm-add-disk"
-	ClientActionVmAddFs            ClientAction = "vm-add-fs"
-	ClientActionVmAddPmem          ClientAction = "vm-add-pmem"
-	ClientActionVmAddNet           ClientAction = "vm-add-net"
-	ClientActionVmAddVsock         ClientAction = "vm-add-vsock"
-	ClientActionVmAddVdpa          ClientAction = "vm-add-vdpa"
-	ClientActionVmSnapshot         ClientAction = "vm-snapshot"
-	ClientActionVmCoredump         ClientAction = "vm-coredump"
-	ClientActionVmRestore          ClientAction = "vm-restore"
+	// ClientActionInvalid is the zero value used when parsing fails.
+	ClientActionInvalid ClientAction = ""
+	// ClientActionVmmPing calls the VMM ping endpoint.
+	ClientActionVmmPing ClientAction = "vmm-ping"
+	// ClientActionVmmShutdown calls the VMM shutdown endpoint.
+	ClientActionVmmShutdown ClientAction = "vmm-shutdown"
+	// ClientActionVmmNmi calls the VMM NMI endpoint.
+	ClientActionVmmNmi ClientAction = "vmm-nmi"
+	// ClientActionVmInfo retrieves VM information.
+	ClientActionVmInfo ClientAction = "vm-info"
+	// ClientActionVmCounters retrieves VM counters.
+	ClientActionVmCounters ClientAction = "vm-counters"
+	// ClientActionVmCreate sends a VM create request from stdin YAML.
+	ClientActionVmCreate ClientAction = "vm-create"
+	// ClientActionVmDelete deletes the VM.
+	ClientActionVmDelete ClientAction = "vm-delete"
+	// ClientActionVmBoot boots the created VM.
+	ClientActionVmBoot ClientAction = "vm-boot"
+	// ClientActionVmPause pauses the VM.
+	ClientActionVmPause ClientAction = "vm-pause"
+	// ClientActionVmResume resumes the VM.
+	ClientActionVmResume ClientAction = "vm-resume"
+	// ClientActionVmShutdown requests guest shutdown.
+	ClientActionVmShutdown ClientAction = "vm-shutdown"
+	// ClientActionVmReboot requests guest reboot.
+	ClientActionVmReboot ClientAction = "vm-reboot"
+	// ClientActionVmPowerButton sends a power-button event.
+	ClientActionVmPowerButton ClientAction = "vm-power-button"
+	// ClientActionVmResize sends VM resize data from stdin YAML.
+	ClientActionVmResize ClientAction = "vm-resize"
+	// ClientActionVmResizeZone sends memory-zone resize data from stdin YAML.
+	ClientActionVmResizeZone ClientAction = "vm-resize-zone"
+	// ClientActionVmAddDevice hot-adds a device from stdin YAML.
+	ClientActionVmAddDevice ClientAction = "vm-add-device"
+	// ClientActionVmAddUserDevice hot-adds a user device from stdin YAML.
+	ClientActionVmAddUserDevice ClientAction = "vm-add-user-device"
+	// ClientActionVmRemoveDevice removes a device from stdin YAML.
+	ClientActionVmRemoveDevice ClientAction = "vm-remove-device"
+	// ClientActionVmAddDisk hot-adds a disk from stdin YAML.
+	ClientActionVmAddDisk ClientAction = "vm-add-disk"
+	// ClientActionVmAddFs hot-adds a virtio-fs device from stdin YAML.
+	ClientActionVmAddFs ClientAction = "vm-add-fs"
+	// ClientActionVmAddPmem hot-adds persistent memory from stdin YAML.
+	ClientActionVmAddPmem ClientAction = "vm-add-pmem"
+	// ClientActionVmAddNet hot-adds a network device from stdin YAML.
+	ClientActionVmAddNet ClientAction = "vm-add-net"
+	// ClientActionVmAddVsock hot-adds a vsock device from stdin YAML.
+	ClientActionVmAddVsock ClientAction = "vm-add-vsock"
+	// ClientActionVmAddVdpa hot-adds a VDPA device from stdin YAML.
+	ClientActionVmAddVdpa ClientAction = "vm-add-vdpa"
+	// ClientActionVmSnapshot requests a snapshot using stdin YAML.
+	ClientActionVmSnapshot ClientAction = "vm-snapshot"
+	// ClientActionVmCoredump requests a coredump using stdin YAML.
+	ClientActionVmCoredump ClientAction = "vm-coredump"
+	// ClientActionVmRestore restores a VM using stdin YAML.
+	ClientActionVmRestore ClientAction = "vm-restore"
+	// ClientActionVmReceiveMigration starts receive migration using stdin YAML.
 	ClientActionVmReceiveMigration ClientAction = "vm-receive-migration"
-	ClientActionVmSendMigration    ClientAction = "vm-send-migration"
+	// ClientActionVmSendMigration sends migration using stdin YAML.
+	ClientActionVmSendMigration ClientAction = "vm-send-migration"
 )
 
+// ClientActions returns the supported CLI client actions in declaration order.
 func ClientActions() []ClientAction {
 	return []ClientAction{
 		ClientActionVmmPing,
@@ -72,6 +104,8 @@ func ClientActions() []ClientAction {
 		ClientActionVmSendMigration,
 	}
 }
+
+// ClientActionNameOf parses a CLI action name into a ClientAction value.
 func ClientActionNameOf(value string) (ClientAction, error) {
 	switch value {
 	case string(ClientActionVmmPing):
@@ -105,9 +139,9 @@ func ClientActionNameOf(value string) (ClientAction, error) {
 	case string(ClientActionVmResizeZone):
 		return ClientActionVmResizeZone, nil
 	case string(ClientActionVmAddDevice):
-		return ClientActionVmAddUserDevice, nil
-	case string(ClientActionVmAddUserDevice):
 		return ClientActionVmAddDevice, nil
+	case string(ClientActionVmAddUserDevice):
+		return ClientActionVmAddUserDevice, nil
 	case string(ClientActionVmRemoveDevice):
 		return ClientActionVmRemoveDevice, nil
 	case string(ClientActionVmAddDisk):
@@ -137,6 +171,7 @@ func ClientActionNameOf(value string) (ClientAction, error) {
 	}
 }
 
+// IsValid reports whether the receiver is one of the supported values.
 func (ts ClientAction) IsValid() bool {
 	switch ts {
 	case ClientActionVmmPing:
@@ -202,6 +237,7 @@ func (ts ClientAction) IsValid() bool {
 	}
 }
 
+// String returns the CLI action token for a valid ClientAction.
 func (ts ClientAction) String() string {
 	if ts.IsValid() {
 		return string(ts)
@@ -210,8 +246,10 @@ func (ts ClientAction) String() string {
 	}
 }
 
+// MarshalText returns the textual representation used by encoders.
 func (ts ClientAction) MarshalText() ([]byte, error) { return []byte(ts.String()), nil }
 
+// UnmarshalText parses a textual value into the receiver.
 func (ts *ClientAction) UnmarshalText(b []byte) error {
 	length := len(b)
 	if length < 0 {

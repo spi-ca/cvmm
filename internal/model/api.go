@@ -27,10 +27,12 @@ type (
 		DeviceTree       map[string]DeviceNode `json:"device_tree" yaml:"device_tree"`
 	}
 
+	// DeviceResource mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	DeviceResource struct {
 		PciBar *PciDeviceInfo `json:"pciBar,omitempty" yaml:"pciBar,omitempty"`
 	}
 
+	// PciResourceInfo mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	PciResourceInfo struct {
 		Index        int    `json:"index" yaml:"index"`
 		Base         int64  `json:"base" yaml:"base"`
@@ -39,13 +41,15 @@ type (
 		Prefetchable bool   `json:"prefetchable" yaml:"prefetchable"`
 	}
 
+	// DeviceNode mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	DeviceNode struct {
 		ID        string           `json:"id" yaml:"id"`
-		Resources []DeviceResource `json:"resources" yaml:"resources"` // It's represented as a generic object since there's a comment indicating Rust enum type.
+		Resources []DeviceResource `json:"resources" yaml:"resources"` // cloud-hypervisor returns heterogeneous resource variants.
 		Children  []string         `json:"children" yaml:"children"`
 		PciBdf    string           `json:"pci_bdf" yaml:"pci_bdf"`
 	}
 
+	// VMCounter mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VMCounter struct {
 		// BlockCounters
 		WriteLatencyMin uint64 `json:"write_latency_min,omitempty"`
@@ -65,6 +69,7 @@ type (
 		TxFrames uint64 `json:"tx_frames,omitempty"`
 	}
 
+	// VmCounters mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmCounters map[string]VMCounter
 
 	// PciDeviceInfo is presentation structure for the Information about a PCI device
@@ -111,18 +116,22 @@ type (
 		LandlockRules   []LandlockConfig       `json:"landlock_rules,omitempty" yaml:"landlock_rules,omitempty"`
 	}
 
+	// CpuAffinity mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	CpuAffinity struct {
 		Vcpu     int   `json:"vcpu" yaml:"vcpu"`
 		HostCpus []int `json:"host_cpus" yaml:"host_cpus"`
 	}
+	// VirtQueueAffinity mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VirtQueueAffinity struct {
 		QueueIndex int   `json:"queue_index" yaml:"queue_index"`
 		HostCpus   []int `json:"host_cpus" yaml:"host_cpus"`
 	}
+	// CpuFeatures mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	CpuFeatures struct {
 		Amx bool `json:"amx,omitempty" yaml:"amx,omitempty"`
 	}
 
+	// CpuTopology mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	CpuTopology struct {
 		ThreadsPerCore int `json:"threads_per_core,omitempty" yaml:"threads_per_core,omitempty"`
 		CoresPerDie    int `json:"cores_per_die,omitempty" yaml:"cores_per_die,omitempty"`
@@ -130,6 +139,7 @@ type (
 		Packages       int `json:"packages,omitempty" yaml:"packages,omitempty"`
 	}
 
+	// CpusConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	CpusConfig struct {
 		BootVcpus   int           `json:"boot_vcpus" yaml:"boot_vcpus"`
 		MaxVcpus    int           `json:"max_vcpus" yaml:"max_vcpus"`
@@ -140,6 +150,7 @@ type (
 		Features    *CpuFeatures  `json:"features,omitempty" yaml:"features,omitempty"`
 	}
 
+	// PlatformConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	PlatformConfig struct {
 		NumPciSegments int       `json:"num_pci_segments,omitempty" yaml:"num_pci_segments,omitempty"`
 		IommuSegments  []int16   `json:"iommu_segments,omitempty" yaml:"iommu_segments,omitempty"`
@@ -149,6 +160,7 @@ type (
 		Tdx            bool      `json:"tdx,omitempty" yaml:"tdx,omitempty"`
 	}
 
+	// MemoryZoneConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	MemoryZoneConfig struct {
 		ID             string `json:"id" yaml:"id"`
 		Size           int64  `json:"size" yaml:"size"` //default: 512 MB
@@ -163,6 +175,7 @@ type (
 		Prefault       bool   `json:"prefault,omitempty" yaml:"prefault,omitempty"`
 	}
 
+	// MemoryConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	MemoryConfig struct {
 		Size           int64              `json:"size" yaml:"size"` //default: 512 MB
 		HotplugSize    int64              `json:"hotplug_size,omitempty" yaml:"hotplug_size,omitempty"`
@@ -194,6 +207,7 @@ type (
 		RefillTime int64 `json:"refill_time" yaml:"refill_time"`
 	}
 
+	// RateLimitGroupConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	RateLimitGroupConfig struct {
 		Id                string            `json:"id,omitempty" yaml:"id,omitempty"`
 		RateLimiterConfig RateLimiterConfig `json:"rate_limiter_config,omitempty" yaml:"rate_limiter_config,omitempty"`
@@ -206,6 +220,7 @@ type (
 		Ops       *TokenBucket `json:"ops,omitempty" yaml:"ops,omitempty"`
 	}
 
+	// DiskConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	DiskConfig struct {
 		Path              string              `json:"path" yaml:"path"`
 		Readonly          bool                `json:"readonly,omitempty" yaml:"readonly,omitempty"`
@@ -223,6 +238,7 @@ type (
 		QueueAffinity     []VirtQueueAffinity `json:"queue_affinity,omitempty" yaml:"queue_affinity,omitempty"`
 	}
 
+	// NetConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	NetConfig struct {
 		Tap               string             `json:"tap,omitempty" yaml:"tap,omitempty"`
 		IP                net.IP             `json:"ip,omitempty" yaml:"ip,omitempty"`     // default: "192.168.249.1"
@@ -241,11 +257,13 @@ type (
 		RateLimiterConfig *RateLimiterConfig `json:"rate_limiter_config,omitempty" yaml:"rate_limiter_config,omitempty"`
 	}
 
+	// RngConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	RngConfig struct {
 		Src   string `json:"src" yaml:"src"`
 		Iommu bool   `json:"iommu,omitempty" yaml:"iommu,omitempty"`
 	}
 
+	// BalloonConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	BalloonConfig struct {
 		Size int64 `json:"size" yaml:"size"`
 		//Deflate balloon when the guest is under memory pressure.
@@ -254,6 +272,7 @@ type (
 		FreePageReporting bool `json:"free_page_reporting" yaml:"free_page_reporting"`
 	}
 
+	// FsConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	FsConfig struct {
 		Tag        string `json:"tag" yaml:"tag"`
 		Socket     string `json:"socket" yaml:"socket"`
@@ -263,6 +282,7 @@ type (
 		ID         string `json:"id,omitempty" yaml:"id,omitempty"`
 	}
 
+	// PmemConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	PmemConfig struct {
 		File          string `json:"file" yaml:"file"`
 		Size          int64  `json:"size,omitempty" yaml:"size,omitempty"`
@@ -272,12 +292,14 @@ type (
 		ID            string `json:"id,omitempty" yaml:"id,omitempty"`
 	}
 
+	// SerialConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	SerialConfig struct {
 		File   string      `json:"file,omitempty" yaml:"file,omitempty"`
 		Socket string      `json:"socket,omitempty" yaml:"socket,omitempty"`
 		Mode   ConsoleMode `json:"mode" yaml:"mode"`
 	}
 
+	// ConsoleConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	ConsoleConfig struct {
 		File   string      `json:"file,omitempty" yaml:"file,omitempty"`
 		Socket string      `json:"socket,omitempty" yaml:"socket,omitempty"`
@@ -285,12 +307,14 @@ type (
 		Iommu  bool        `json:"iommu,omitempty" yaml:"iommu,omitempty"`
 	}
 
+	// DebugConsoleConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	DebugConsoleConfig struct {
 		File   string           `json:"file,omitempty" yaml:"file,omitempty"`
 		Mode   DebugConsoleMode `json:"mode" yaml:"mode"`
 		IoBase int              `json:"iobase,omitempty" yaml:"iobase,omitempty"`
 	}
 
+	// DeviceConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	DeviceConfig struct {
 		Path               string `json:"path" yaml:"path"`
 		Iommu              bool   `json:"iommu,omitempty" yaml:"iommu,omitempty"`
@@ -299,10 +323,12 @@ type (
 		XNvGpudirectClique int8   `json:"x_nv_gpudirect_clique,omitempty" yaml:"x_nv_gpudirect_clique,omitempty"`
 	}
 
+	// TpmConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	TpmConfig struct {
 		Socket string `json:"socket" yaml:"socket"`
 	}
 
+	// VdpaConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VdpaConfig struct {
 		Path       string `json:"path" yaml:"path"`
 		NumQueues  int    `json:"num_queues,omitempty" yaml:"num_queues,omitempty"` // default: 1
@@ -311,6 +337,7 @@ type (
 		ID         string `json:"id,omitempty" yaml:"id,omitempty"`
 	}
 
+	// VsockConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VsockConfig struct {
 		//Guest Vsock CID
 		CID int64 `json:"cid" yaml:"cid"`
@@ -321,17 +348,20 @@ type (
 		ID         string `json:"id,omitempty" yaml:"id,omitempty"`
 	}
 
+	// SgxEpcConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	SgxEpcConfig struct {
 		ID       string `json:"id" yaml:"id"`
 		Size     int64  `json:"size,omitempty" yaml:"size,omitempty"`
 		Prefault bool   `json:"prefault,omitempty" yaml:"prefault,omitempty"`
 	}
 
+	// NumaDistance mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	NumaDistance struct {
 		Destination int32 `json:"destination" yaml:"destination"`
 		Distance    int32 `json:"distance" yaml:"distance"`
 	}
 
+	// NumaConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	NumaConfig struct {
 		GuestNumaID    int32          `json:"guest_numa_id" yaml:"guest_numa_id"`
 		Cpus           []int32        `json:"cpus,omitempty" yaml:"cpus,omitempty"`
@@ -341,6 +371,7 @@ type (
 		PciSegments    []int32        `json:"pci_segments,omitempty" yaml:"pci_segments,omitempty"`
 	}
 
+	// VmResize mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmResize struct {
 		DesiredVcpus int `json:"desired_vcpus,omitempty" yaml:"desired_vcpus,omitempty"`
 		//desired memory ram in bytes
@@ -349,92 +380,155 @@ type (
 		DesiredBalloon int64 `json:"desired_balloon,omitempty" yaml:"desired_balloon,omitempty"`
 	}
 
+	// VmResizeZone mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmResizeZone struct {
 		ID string `json:"id" yaml:"id"`
 		//desired memory zone size in bytes
 		DesiredRam int64 `json:"desired_ram" yaml:"desired_ram"`
 	}
 
+	// VmRemoveDevice mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmRemoveDevice struct {
 		ID string `json:"id" yaml:"id"`
 	}
 
+	// VmSnapshotConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmSnapshotConfig struct {
 		DestinationURL string `json:"destination_url" yaml:"destination_url"`
 	}
 
+	// VmCoredumpData mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmCoredumpData struct {
 		DestinationURL string `json:"destination_url" yaml:"destination_url"`
 	}
 
+	// RestoreConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	RestoreConfig struct {
 		SourceURL string `json:"source_url" yaml:"source_url"`
 		Prefault  bool   `json:"prefault,omitempty" yaml:"prefault,omitempty"`
 	}
 
+	// ReceiveMigrationData mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	ReceiveMigrationData struct {
 		ReceiverURL string `json:"receiver_url" yaml:"receiver_url"`
 	}
 
+	// SendMigrationData mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	SendMigrationData struct {
 		DestinationURL string `json:"destination_url" yaml:"destination_url"`
 		Local          bool   `json:"local,omitempty" yaml:"local,omitempty"`
 	}
 
+	// VmAddUserDevice mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	VmAddUserDevice struct {
 		Socket string `json:"socket" yaml:"socket"`
 	}
 
+	// PciSegmentConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	PciSegmentConfig struct {
 		PciSegment           int16 `json:"pci_segment" yaml:"pci_segment"`
 		Mmio32ApertureWeight int32 `json:"mmio32_aperture_weight,omitempty" yaml:"mmio32_aperture_weight,omitempty"`
 		Mmio64ApertureWeight int32 `json:"mmio64_aperture_weight,omitempty" yaml:"mmio64_aperture_weight,omitempty"`
 	}
 
+	// LandlockConfig mirrors a cloud-hypervisor API payload or response section used by cvmm.
 	LandlockConfig struct {
 		Path   string       `json:"socket" yaml:"socket"`
 		Access LandlockMode `json:"access" yaml:"access"`
 	}
 )
 
-func (c CpusConfig) String() string           { return joinArgs(c.CommandArgs()) }
-func (p PlatformConfig) String() string       { return joinArgs(p.CommandArgs()) }
-func (m MemoryZoneConfig) String() string     { return joinArgs(m.CommandArgs()) }
-func (m MemoryConfig) String() string         { return joinArgs(m.CommandArgs()) }
-func (p PayloadConfig) String() string        { return joinArgs(p.CommandArgs()) }
-func (d DiskConfig) String() string           { return joinArgs(d.CommandArgs()) }
-func (n NetConfig) String() string            { return joinArgs(n.CommandArgs()) }
-func (r RngConfig) String() string            { return joinArgs(r.CommandArgs()) }
-func (b BalloonConfig) String() string        { return joinArgs(b.CommandArgs()) }
-func (f FsConfig) String() string             { return joinArgs(f.CommandArgs()) }
-func (p PmemConfig) String() string           { return joinArgs(p.CommandArgs()) }
-func (c SerialConfig) String() string         { return joinArgs(c.CommandArgs()) }
-func (c ConsoleConfig) String() string        { return joinArgs(c.CommandArgs()) }
-func (r RateLimitGroupConfig) String() string { return joinArgs(r.CommandArgs()) }
-func (r RateLimiterConfig) String() string    { return joinArgs(r.CommandArgs()) }
-func (c DebugConsoleConfig) String() string   { return joinArgs(c.CommandArgs()) }
-func (d DeviceConfig) String() string         { return joinArgs(d.CommandArgs()) }
-func (v VdpaConfig) String() string           { return joinArgs(v.CommandArgs()) }
-func (v VsockConfig) String() string          { return joinArgs(v.CommandArgs()) }
-func (n NumaConfig) String() string           { return joinArgs(n.CommandArgs()) }
-func (t TpmConfig) String() string            { return joinArgs(t.CommandArgs()) }
-func (t SgxEpcConfig) String() string         { return joinArgs(t.CommandArgs()) }
-func (s PciSegmentConfig) String() string     { return joinArgs(s.CommandArgs()) }
-func (l LandlockConfig) String() string       { return joinArgs(l.CommandArgs()) }
-func (c VmConfig) String() string             { return joinArgs(c.CommandArgs()) }
+// String renders CpusConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (c CpusConfig) String() string { return joinArgs(c.CommandArgs()) }
 
+// String renders PlatformConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (p PlatformConfig) String() string { return joinArgs(p.CommandArgs()) }
+
+// String renders MemoryZoneConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (m MemoryZoneConfig) String() string { return joinArgs(m.CommandArgs()) }
+
+// String renders MemoryConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (m MemoryConfig) String() string { return joinArgs(m.CommandArgs()) }
+
+// String renders PayloadConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (p PayloadConfig) String() string { return joinArgs(p.CommandArgs()) }
+
+// String renders DiskConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (d DiskConfig) String() string { return joinArgs(d.CommandArgs()) }
+
+// String renders NetConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (n NetConfig) String() string { return joinArgs(n.CommandArgs()) }
+
+// String renders RngConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (r RngConfig) String() string { return joinArgs(r.CommandArgs()) }
+
+// String renders BalloonConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (b BalloonConfig) String() string { return joinArgs(b.CommandArgs()) }
+
+// String renders FsConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (f FsConfig) String() string { return joinArgs(f.CommandArgs()) }
+
+// String renders PmemConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (p PmemConfig) String() string { return joinArgs(p.CommandArgs()) }
+
+// String renders SerialConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (c SerialConfig) String() string { return joinArgs(c.CommandArgs()) }
+
+// String renders ConsoleConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (c ConsoleConfig) String() string { return joinArgs(c.CommandArgs()) }
+
+// String renders RateLimitGroupConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (r RateLimitGroupConfig) String() string { return joinArgs(r.CommandArgs()) }
+
+// String renders RateLimiterConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (r RateLimiterConfig) String() string { return joinArgs(r.CommandArgs()) }
+
+// String renders DebugConsoleConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (c DebugConsoleConfig) String() string { return joinArgs(c.CommandArgs()) }
+
+// String renders DeviceConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (d DeviceConfig) String() string { return joinArgs(d.CommandArgs()) }
+
+// String renders VdpaConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (v VdpaConfig) String() string { return joinArgs(v.CommandArgs()) }
+
+// String renders VsockConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (v VsockConfig) String() string { return joinArgs(v.CommandArgs()) }
+
+// String renders NumaConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (n NumaConfig) String() string { return joinArgs(n.CommandArgs()) }
+
+// String renders TpmConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (t TpmConfig) String() string { return joinArgs(t.CommandArgs()) }
+
+// String renders SgxEpcConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (t SgxEpcConfig) String() string { return joinArgs(t.CommandArgs()) }
+
+// String renders PciSegmentConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (s PciSegmentConfig) String() string { return joinArgs(s.CommandArgs()) }
+
+// String renders LandlockConfig as the cloud-hypervisor argument fragment produced by CommandArgs.
+func (l LandlockConfig) String() string { return joinArgs(l.CommandArgs()) }
+
+// String renders the VM configuration as newline-separated cloud-hypervisor CLI arguments for logs.
+func (c VmConfig) String() string { return joinArgs(c.CommandArgs()) }
+
+// String formats CPU topology as threads:cores:dies:packages.
 func (c CpuTopology) String() string {
 	return fmt.Sprintf("%d:%d:%d:%d", c.ThreadsPerCore, c.CoresPerDie, c.DiesPerPackage, c.Packages)
 }
 
+// String formats one vCPU to host CPU affinity entry.
 func (c CpuAffinity) String() string {
 	return fmt.Sprintf("%d@[%s]", c.Vcpu, util.ConsecutiveRanges(c.HostCpus).String())
 }
 
+// String formats one virtqueue to host CPU affinity entry.
 func (q VirtQueueAffinity) String() string {
 	return fmt.Sprintf("%d@[%s]", q.QueueIndex, util.ConsecutiveRanges(q.HostCpus).String())
 }
 
+// String formats enabled CPU feature flags as a comma-separated list.
 func (c CpuFeatures) String() string {
 	var args = []string{}
 	if c.Amx {
@@ -443,8 +537,10 @@ func (c CpuFeatures) String() string {
 	return strings.Join(args, ",")
 }
 
+// String formats a NUMA distance as destination@distance.
 func (v NumaDistance) String() string { return fmt.Sprintf("%d@%d", v.Destination, v.Distance) }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (r RateLimiterConfig) CommandArgs() []string {
 	var args []string
 
@@ -483,6 +579,7 @@ func (r RateLimiterConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (r RateLimitGroupConfig) CommandArgs() []string {
 	var args []string
 
@@ -501,6 +598,7 @@ func (r RateLimitGroupConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (c CpusConfig) CommandArgs() []string {
 
 	var args []string
@@ -550,6 +648,7 @@ func (c CpusConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (p PlatformConfig) CommandArgs() []string {
 	var args []string
 
@@ -584,6 +683,7 @@ func (p PlatformConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (m MemoryZoneConfig) CommandArgs() []string {
 	var args []string
 
@@ -634,6 +734,7 @@ func (m MemoryZoneConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (m MemoryConfig) CommandArgs() []string {
 	var args []string
 
@@ -691,6 +792,7 @@ func (m MemoryConfig) CommandArgs() []string {
 	return flags
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (p PayloadConfig) CommandArgs() []string {
 	var flags []string
 
@@ -713,6 +815,7 @@ func (p PayloadConfig) CommandArgs() []string {
 	return flags
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (d DiskConfig) CommandArgs() []string {
 	var args []string
 
@@ -782,6 +885,7 @@ func (d DiskConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (n NetConfig) CommandArgs() []string {
 	var args []string
 
@@ -800,8 +904,6 @@ func (n NetConfig) CommandArgs() []string {
 	if len(n.Mac) > 0 {
 		args = append(args, fmt.Sprintf("mac=%s", n.Mac))
 	}
-
-	// TODO fd? offload_tso, offload_ufo, offload_csum
 
 	if n.Iommu {
 		args = append(args, "iommu=on")
@@ -849,6 +951,7 @@ func (n NetConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (r RngConfig) CommandArgs() []string {
 
 	var args []string
@@ -868,6 +971,7 @@ func (r RngConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (b BalloonConfig) CommandArgs() []string {
 
 	var args []string
@@ -891,6 +995,7 @@ func (b BalloonConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (f FsConfig) CommandArgs() []string {
 	var args []string
 
@@ -925,6 +1030,7 @@ func (f FsConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (p PmemConfig) CommandArgs() []string {
 	var args []string
 
@@ -959,6 +1065,7 @@ func (p PmemConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (c SerialConfig) CommandArgs() []string {
 	var args []string
 
@@ -988,6 +1095,7 @@ func (c SerialConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (c ConsoleConfig) CommandArgs() []string {
 	var args []string
 
@@ -1021,6 +1129,7 @@ func (c ConsoleConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (c DebugConsoleConfig) CommandArgs() []string {
 	var args []string
 
@@ -1050,6 +1159,7 @@ func (c DebugConsoleConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (d DeviceConfig) CommandArgs() []string {
 	var args []string
 
@@ -1069,11 +1179,6 @@ func (d DeviceConfig) CommandArgs() []string {
 		args = append(args, fmt.Sprintf("pci_segment=%d", d.PciSegment))
 	}
 
-	// x_nv_gpudirect_clique is not suported
-	//if d.XNvGpudirectClique > 0 {
-	//	args = append(args, fmt.Sprintf("x_nv_gpudirect_clique=%d", d.XNvGpudirectClique))
-	//}
-
 	if len(args) > 0 {
 		return append([]string(nil), strings.Join(args, ","))
 	} else {
@@ -1081,6 +1186,7 @@ func (d DeviceConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (v VdpaConfig) CommandArgs() []string {
 	var args []string
 
@@ -1111,6 +1217,7 @@ func (v VdpaConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (v VsockConfig) CommandArgs() []string {
 	var args []string
 
@@ -1141,6 +1248,7 @@ func (v VsockConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (n NumaConfig) CommandArgs() []string {
 	var args []string
 
@@ -1186,6 +1294,7 @@ func (n NumaConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (t TpmConfig) CommandArgs() []string {
 	var args []string
 	if len(t.Socket) > 0 {
@@ -1199,6 +1308,7 @@ func (t TpmConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (t SgxEpcConfig) CommandArgs() []string {
 	var args []string
 
@@ -1221,6 +1331,7 @@ func (t SgxEpcConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (s PciSegmentConfig) CommandArgs() []string {
 	var args []string
 
@@ -1243,6 +1354,7 @@ func (s PciSegmentConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (l LandlockConfig) CommandArgs() []string {
 	var args []string
 
@@ -1261,6 +1373,7 @@ func (l LandlockConfig) CommandArgs() []string {
 	}
 }
 
+// CommandArgs renders the receiver into command-line arguments for the target process.
 func (c VmConfig) CommandArgs() []string {
 	var args []string
 
@@ -1299,7 +1412,7 @@ func (c VmConfig) CommandArgs() []string {
 	}
 
 	if len(c.Net) > 0 {
-		args = append(args, "--memory-zone")
+		args = append(args, "--net")
 	}
 
 	for _, e := range c.Net {
@@ -1436,12 +1549,13 @@ func (c VmConfig) CommandArgs() []string {
 	return args
 }
 
+// joinArgs formats argument tokens with newlines before flags and spaces between flag values.
 func joinArgs(args []string) string {
 	builder := strings.Builder{}
 	for i, arg := range args {
 		switch i {
 		case 0:
-			//do nothing
+			// The first token does not need a leading separator.
 		default:
 			if strings.HasPrefix(arg, "--") {
 				builder.WriteRune('\n')
@@ -1455,10 +1569,7 @@ func joinArgs(args []string) string {
 	return builder.String()
 }
 
-/*
-cloud-hypervisor
---api-socket path=/srv/vmm/nodes/test/run/monitor.sock
-*/
+// DefaultVmConfig returns a representative VM configuration used by model tests.
 func DefaultVmConfig() VmConfig {
 	return VmConfig{
 		Payload: PayloadConfig{
