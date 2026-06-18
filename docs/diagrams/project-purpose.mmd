@@ -1,0 +1,40 @@
+flowchart LR
+    subgraph users["누가 쓰나"]
+        operator["Operator"]
+        automation["automation"]
+        systemd["systemd"]
+    end
+
+    purpose["cvmm\nYAML manifest 하나로\ncloud-hypervisor VM과\nvirtiofsd 공유를 관리"]
+
+    subgraph inputs["입력"]
+        manifest["node config.yaml\nCPU, memory, UUID\nimage, disk[], directory[]"]
+        images["image repository\nvmlinuz\noptional initramfs.img\nroot.img"]
+        nodeFiles["node directory\nwritable disks\nshared directories\nrun/ state"]
+    end
+
+    subgraph manages["cvmm이 관리"]
+        ch["cloud-hypervisor\nVM lifecycle\nUnix API socket"]
+        vfs["virtiofsd helpers\none process per share"]
+    end
+
+    subgraph output["Guest VM 결과"]
+        vm["booted VM"]
+        disks["root + data disks"]
+        shares["virtio-fs shares"]
+        network["TAP network"]
+        console["console / PTY"]
+    end
+
+    users --> purpose
+    inputs --> purpose
+    purpose --> manages
+    ch --> vm
+    ch --> disks
+    ch --> network
+    ch --> console
+    vfs --> shares
+    disks --> vm
+    shares --> vm
+    network --> vm
+    console --> vm

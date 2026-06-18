@@ -1,0 +1,46 @@
+flowchart LR
+    subgraph startPhase["Start gate"]
+        start["cvmm start\nNODE_NAME"] --> pid["Acquire\ncvmm.pid"]
+        pid --> active{"active\npid file?"}
+        active -- yes --> duplicate["Refuse\nduplicate start"]
+        active -- no --> stale["Remove stale\nAPI socket"]
+    end
+
+    subgraph bootPhase["Boot path"]
+        stale --> spawn["Exec\ncloud-hypervisor"]
+        spawn --> ready["Poll vmm.ping\nuntil ready"]
+        ready --> readyOK{"ready?"}
+        readyOK -- yes --> create["vm.create\nVmConfig"]
+        create --> createOK{"create ok?"}
+        createOK -- yes --> helpers["Start virtiofsd\nreconciler"]
+        helpers --> boot["vm.boot"]
+        boot --> bootOK{"boot ok?"}
+        bootOK -- yes --> running["Running\nmonitor VM/helpers"]
+    end
+
+    subgraph failure["Startup failure cleanup"]
+        readyOK -- no --> startupCleanup["Terminate child\nremove pid\nstartup error"]
+        createOK -- no --> createCleanup["Terminate child\nremove pid\ncreate error"]
+        bootOK -- no --> bootCleanup["Cancel helpers\nterminate child\nremove pid\nboot error"]
+        duplicate --> failed["Failed"]
+        startupCleanup --> failed
+        createCleanup --> failed
+        bootCleanup --> failed
+    end
+
+    subgraph steady["Steady state"]
+        running --> reconcile["Reconcile missing\nvirtiofsd helpers"]
+        reconcile --> running
+        running --> signal["SIGTERM / SIGINT\nor shutdown command"]
+    end
+
+    subgraph stopPhase["Shutdown cleanup"]
+        signal --> power["vm.power-button"]
+        power --> wait["Wait for VM exit"]
+        wait --> exited{"exit in time?"}
+        exited -- no --> kill["Force kill child"]
+        exited -- yes --> stopHelpers["Cancel helpers"]
+        kill --> stopHelpers
+        stopHelpers --> cleanup["Remove owned\npid/socket state\ncollect errors"]
+        cleanup --> stopped["Stopped"]
+    end

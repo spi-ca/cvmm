@@ -13,8 +13,8 @@ flowchart LR
     end
 
     subgraph storage["Host storage inputs"]
-        images["image-root\n/srv/vmm/images/<image>\nvmlinuz, initramfs.img, root.img"]
-        nodes["node-root\n/srv/vmm/nodes/<node>\nconfig.yaml, run/, disks, shares"]
+        images["image-root\n/srv/vmm/images/image\nvmlinuz, initramfs.img, root.img"]
+        nodes["node-root\n/srv/vmm/nodes/node\nconfig.yaml, run/, disks, shares"]
     end
 
     subgraph runtime["Runtime processes and sockets"]

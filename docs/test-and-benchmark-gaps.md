@@ -1,6 +1,6 @@
 # 테스트 및 벤치마크 갭 보고
 
-이 문서는 현재 `cvmm` 코드와 문서 기준으로 가능한 benchmark 후보와 누락된 테스트를 정리한다. `docs/artifacts/**`의 legacy 자료는 현재 `cvmm` evidence로 사용하지 않는다.
+이 문서는 현재 `cvmm` 코드와 문서 기준으로 가능한 benchmark 후보와 누락된 테스트를 정리한다. 제거된 legacy ScreenFS artifact archive는 현재 `cvmm` evidence로 사용하지 않는다.
 
 ## 현재 검증 상태
 
@@ -199,5 +199,5 @@ id hvm
 
 - benchmark 결과가 없으면 수치나 성능 개선을 주장하지 않는다.
 - local unit benchmark와 privileged host benchmark를 같은 표에서 직접 비교하지 않는다.
-- `docs/artifacts/**` legacy 자료를 현재 `cvmm` 기준 evidence로 재사용하지 않는다.
+- legacy ScreenFS artifact archive를 현재 `cvmm` 기준 evidence로 재사용하지 않는다.
 - 통합 benchmark는 binary versions, manifest, image, command line, raw output, failure/timeout case를 함께 저장한다.

@@ -35,4 +35,4 @@
 ## 비목표
 
 - 현재 저장소에 없는 벤치마크 스크립트를 이미 존재하는 것처럼 문서화
-- legacy `docs/artifacts/**` 자료를 `cvmm` 성능 근거로 재사용
+- 제거된 legacy ScreenFS artifact archive를 `cvmm` 성능 근거로 재사용

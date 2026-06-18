@@ -32,7 +32,7 @@ Some `client` actions read YAML request bodies from stdin.
 
 - Do not describe this repository as ScreenFS/FUSE/Rust.
 - Keep docs aligned with `main.go`, `internal/entry`, `internal/hvm`, and `internal/model`.
-- Treat `docs/artifacts/**` as imported legacy archive unless replaced by explicit `cvmm` evidence.
+- Do not reintroduce legacy ScreenFS artifact archives; add only explicit `cvmm` evidence with provenance.
 - Do not modify `docs/guidelines/**` unless explicitly requested.
 
 ## Validation

@@ -24,7 +24,7 @@
 - 성능 작업이 CLI surface를 바꾸는 근거가 되어서는 안 된다.
 - node manifest를 우회하는 hidden config source를 추가하지 않는다.
 - pid/socket 파일 정리 의미론을 성능 목적으로 약화하지 않는다.
-- legacy `docs/artifacts/**`를 현재 roadmap 근거로 섞지 않는다.
+- legacy ScreenFS artifact archive를 현재 roadmap 근거로 섞지 않는다.
 
 ## 완료 기준
 

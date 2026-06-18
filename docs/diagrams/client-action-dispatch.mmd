@@ -1,0 +1,38 @@
+flowchart LR
+    subgraph cli["CLI input"]
+        caller["Operator / automation"] --> command["cvmm client\nACTION NODE_NAME"]
+        command --> main["main.go\nvalidate args\nresolve flags/env"]
+    end
+
+    subgraph entry["entry.Client"]
+        parse["ClientActionNameOf\nparse ACTION"] --> known{"known?"}
+        known -- no --> invalid["invalid action error"]
+        known -- yes --> body{"body required?"}
+        body -- no --> invoke["invoke client method"]
+        body -- yes --> stdin["read YAML from stdin"]
+        stdin --> decode{"decode ok?"}
+        decode -- no --> decodeErr["decode error"]
+        decode -- yes --> invoke
+    end
+
+    subgraph node["Node runtime lookup"]
+        load["hvm.Load\nresolve node/run"] --> socket["cloudhypervisor.sock"]
+    end
+
+    subgraph api["Unix socket API"]
+        client["clientImpl\nHTTP over Unix socket"] --> path["/api/v1/...\nmethod + optional JSON body"]
+        path --> status{"2xx?"}
+        status -- no --> statusErr["method/status/body error"]
+        status -- yes --> response{"response body?"}
+        response -- yes --> stdout["YAML response\nto stdout"]
+        response -- no --> success["success"]
+        stdout --> success
+    end
+
+    main --> parse
+    main --> load
+    socket --> client
+    invoke --> client
+    invalid --> report["stderr + non-zero exit"]
+    decodeErr --> report
+    statusErr --> report

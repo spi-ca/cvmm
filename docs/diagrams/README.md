@@ -15,12 +15,17 @@
 
 ## 다이어그램 목록
 
+- `project-purpose.mmd`: overview diagram. `cvmm`가 node manifest, image repository, node directory를 받아 VM, disk, network, shared directory, console을 제공하는 쓰임을 가장 단순하게 보여준다.
+- `manifest-schema.mmd`: schema mapping diagram. `config.yaml`의 필수/선택 필드, path resolution, default generation, runtime `VmConfig`/`VirtiofsConfig` 변환을 보여준다.
 - `system-context.mmd`: component diagram. caller, `cvmm`, host storage, runtime process, guest boundary를 한눈에 보여준다.
 - `request-decision-flow.mmd`: sequence diagram. `cvmm start NODE_NAME`의 manifest load, API readiness, `VmCreate`, `virtiofsd` reconcile, boot, shutdown path를 보여준다.
 - `path-resolution.mmd`: runtime path and host-operation diagram. node/image root, `run/` 파일, socket, 대표 host operation(`open`, `stat`, `exec`, Unix socket HTTP, pid file, signal)을 연결한다.
 - `module-architecture.mmd`: Go package/component dependency diagram. `main.go`, `internal/entry`, `internal/hvm`, `internal/model`, `internal/util`의 책임 경계를 보여준다.
-- `visibility-axis.mmd`: manifest mapping diagram. `image`, `disk[]`, `directory[]`, network/default fields가 cloud-hypervisor payload와 `virtiofsd` config로 바뀌는 흐름을 보여준다.
-- `mutability-axis.mmd`: validation/evidence flow diagram. 문서, Go 코드, 다이어그램, container/deploy, runtime measurement 변경별 검증 증거 흐름을 보여준다.
+- `manifest-runtime-mapping.mmd`: manifest-to-runtime mapping diagram. `image`, `disk[]`, `directory[]`, network/default fields가 cloud-hypervisor payload와 `virtiofsd` config로 바뀌는 흐름을 보여준다.
+- `validation-evidence-flow.mmd`: validation/evidence flow diagram. 문서, Go 코드, 다이어그램, container/deploy, runtime measurement 변경별 검증 증거 흐름을 보여준다.
+- `client-action-dispatch.mmd`: client command dispatch diagram. `client ACTION NODE_NAME`의 action parsing, YAML stdin body, Unix socket API, stdout/error 흐름을 보여준다.
+- `process-lifecycle-cleanup.mmd`: lifecycle sequence diagram. start 중 pidfile, API readiness, VM create/boot, virtiofsd reconcile, signal cleanup 경계를 보여준다.
+- `runtime-permissions.mmd`: deployment permission diagram. systemd/service account, `--runas`, host device/path/socket 권한과 child process 경계를 보여준다.
 
 ## 저장소 기준 렌더링 규칙
 

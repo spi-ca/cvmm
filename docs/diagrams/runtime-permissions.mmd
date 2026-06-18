@@ -1,0 +1,47 @@
+flowchart LR
+    subgraph svc["Service context"]
+        systemd["systemd unit\nUser/Group\ncapabilities"]
+        runas["optional --runas\nlookup target user"]
+    end
+
+    subgraph cvmm["cvmm process"]
+        load["hvm.Load\nread manifest\nresolve paths"]
+        start["Hypervisor.Start\nlaunch children\ncleanup state"]
+    end
+
+    subgraph host["Host access required"]
+        image["image-root\nread kernel/initramfs/root"]
+        node["node-root\nconfig, disks, shares"]
+        run["node run/\npid files + Unix sockets"]
+        devices["/dev/kvm\n/dev/net/tun"]
+    end
+
+    subgraph children["Managed child processes"]
+        ch["cloud-hypervisor\nmay switch credentials\nto --runas user"]
+        vfs["virtiofsd per share\nruns as service account\nsocket group may use --runas primary group"]
+    end
+
+    subgraph guest["Guest-visible result"]
+        vm["Guest VM"]
+        block["virtio-blk disks"]
+        fs["virtio-fs shares\nsubmounts announced"]
+        net["TAP network"]
+    end
+
+    systemd --> load --> start
+    runas --> start
+    load --> image
+    load --> node
+    start --> run
+    start --> ch
+    start --> vfs
+    ch --> devices
+    ch --> vm
+    ch --> block
+    ch --> net
+    vfs --> node
+    vfs --> run
+    vfs --> fs
+    fs --> vm
+    block --> vm
+    net --> vm

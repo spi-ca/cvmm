@@ -13,14 +13,14 @@ sequenceDiagram
     Caller->>Main: cvmm start NODE_NAME + flags/env
     Main->>Entry: dispatch start(NODE_NAME)
     Entry->>Load: Load(imageRoot,nodeRoot,filenames,runas)
-    Load->>Model: LoadConfig(<node-root>/<node>/config.yaml)
+    Load->>Model: LoadConfig(node-root/node/config.yaml)
     Model-->>Load: Config(cpus,mem,uuid,image,disk[],directory[])
     Load->>Model: VMConfig(...) + VirtiofsConfig(...)
     Model-->>Load: cloud-hypervisor payload + per-share virtiofsd config
     Load-->>Entry: Hypervisor with socket/pid/run paths
     Entry->>HV: Start(ctx)
     HV->>HV: acquire cvmm.pid and remove stale API socket
-    HV->>CH: exec cloud-hypervisor --api-socket path=<run>/cloudhypervisor.sock
+    HV->>CH: exec cloud-hypervisor --api-socket path=run/cloudhypervisor.sock
     loop API readiness polling
         HV->>CH: VmmPing over Unix-socket HTTP
         CH-->>HV: ready or retry

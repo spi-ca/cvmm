@@ -107,6 +107,6 @@ cat request.yaml | go run . client vm-resize NODE_NAME
 ## 5. Evidence 규칙
 
 - 현재 저장소에는 `cvmm`용으로 정리된 formal benchmark/evidence bundle이 없다.
-- `docs/artifacts/**`의 copied legacy 자료는 현재 `cvmm` 운영 근거가 아니다.
+- 이전 legacy ScreenFS artifact archive는 제거했으며 현재 `cvmm` 운영 근거가 아니다.
 - 새 운영 증거를 남길 때는 사용한 manifest, 이미지, 명령, host 환경, stdout/stderr, 검증 시각을 같이 기록한다.
 - 주석 audit evidence에는 대상 package, 누락/보강 항목, 사용한 parser 기반 점검 명령 또는 수기 검토 범위를 같이 남긴다.

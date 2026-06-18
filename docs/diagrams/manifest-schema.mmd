@@ -1,0 +1,48 @@
+flowchart TD
+    cfg["config.yaml\nmodel.Config"]
+
+    subgraph required["필수 필드"]
+        cpus["cpus\ninteger\nvirtual CPU count"]
+        mem["mem\nIEC size string\nexample: 4G"]
+        uuid["uuid\nVM identity\nused for machine-id and platform UUID"]
+        image["image\nimage repository directory name"]
+    end
+
+    subgraph optional["선택 필드"]
+        mac["net_mac_addr\nMAC address\nempty => generated"]
+        tap["net_if_name\nTAP interface name\nempty => generated vmtap-*"]
+        cmdline["cmdline[]\nextra kernel command line entries"]
+        disk["disk[]\nwritable data disk paths"]
+        directory["directory[]\nvirtio-fs export paths"]
+    end
+
+    subgraph resolution["경로/기본값 해석"]
+        imageBase["image-root/image\nvmlinuz\noptional initramfs.img\nroot.img"]
+        diskRule{"disk path\nabsolute?"}
+        dirRule{"directory path\nabsolute?"}
+        defaults["generate missing\nMAC and TAP name"]
+        cmd["prepend systemd.machine_id\nand join cmdline[]"]
+    end
+
+    subgraph vmcfg["생성되는 런타임 설정"]
+        payload["VmConfig payload\nCPU, memory, platform, kernel, disks, net, fs"]
+        vfs["[]VirtiofsConfig\nsocket path, tag, directory\nthread pool, socket group"]
+    end
+
+    cfg --> required
+    cfg --> optional
+    image --> imageBase --> payload
+    cpus --> payload
+    mem --> payload
+    uuid --> cmd --> payload
+    cmdline --> cmd
+    mac --> defaults --> payload
+    tap --> defaults
+    disk --> diskRule
+    diskRule -- yes --> diskAbs["use exact host path"] --> payload
+    diskRule -- no --> diskRel["join node-root/node/disk"] --> payload
+    directory --> dirRule
+    dirRule -- yes --> dirAbs["use exact host directory"] --> vfs
+    dirRule -- no --> dirRel["join node-root/node/directory"] --> vfs
+    directory --> tag["tag/socket suffix\nbasename(directory)"] --> vfs
+    vfs --> payload

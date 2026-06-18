@@ -2,7 +2,7 @@
 
 `cvmm`는 Go 기반 cloud-hypervisor VM 관리자다. 노드 저장소(`node-root`)의 YAML manifest와 이미지 저장소(`image-root`)를 읽어 VM 설정을 만들고, `cloud-hypervisor`와 `virtiofsd` 프로세스를 기동·종료·조작한다.
 
-> 참고: 현재 `docs/artifacts/**`에는 ScreenFS에서 복사된 레거시/가져온 아카이브 자료가 남아 있다. 현재 `cvmm`의 근거 문서나 성능 evidence로 취급하지 않는다.
+> 참고: 이전 ScreenFS에서 복사된 legacy artifact archive는 현재 `cvmm` evidence가 아니어서 제거했다. 새 측정 결과는 `cvmm` 명령, manifest, 이미지, host 환경, 원시 출력과 함께 별도 evidence bundle로 추가한다.
 
 ## 핵심 개념
 

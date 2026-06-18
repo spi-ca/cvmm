@@ -2,7 +2,7 @@
 
 이 디렉터리는 `cvmm` maintainer 문서를 모은다. 현재 active 문서는 Go 구현, cloud-hypervisor orchestration, YAML manifest 계약을 설명한다.
 
-> `docs/artifacts/**`는 현재 `cvmm` 기준의 active evidence가 아니다. ScreenFS에서 복사된 legacy/imported archival material로 취급한다.
+> 이전 `docs/artifacts/**` legacy archive는 현재 `cvmm` 기준의 active evidence가 아니어서 제거했다. 새 artifact는 explicit `cvmm` provenance가 있을 때만 추가한다.
 
 ## 읽기 순서
 
