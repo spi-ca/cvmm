@@ -1,0 +1,51 @@
+flowchart TD
+    subgraph cli["CLI surface"]
+        main["main.go\nflag registration\nViper env binding\naction dispatch"]
+    end
+
+    subgraph entry["internal/entry"]
+        start["start\nsignal handling\nlogging\nhvm.Load + Start"]
+        shutdown["shutdown\nload socket/pid paths\nterminate manager"]
+        console["console / console-file\nPTY connection"]
+        clientEntry["client\nstdin YAML body when needed"]
+    end
+
+    subgraph hvm["internal/hvm"]
+        load["Load\npath resolution\nmanifest load\nconfig assembly"]
+        hypervisor["Hypervisor\nprocess lifecycle\nAPI readiness\nboot/shutdown"]
+        apiClient["clientImpl\ncloud-hypervisor HTTP over Unix socket"]
+        reconciler["virtiofsd reconciler\nper-share helper lifecycle"]
+    end
+
+    subgraph model["internal/model"]
+        config["Config\nYAML manifest schema"]
+        vm["VmConfig\ncloud-hypervisor JSON payload"]
+        args["Command arg renderers\nvirtiofsd and helper args"]
+        apiTypes["API request/response types"]
+    end
+
+    subgraph util["internal/util and util/sys"]
+        pty["PTY helpers"]
+        proc["pid/process/signal helpers"]
+        user["runas credential lookup"]
+        format["formatting, units, MAC generation"]
+    end
+
+    main --> start
+    main --> shutdown
+    main --> console
+    main --> clientEntry
+    start --> load --> config
+    load --> vm
+    load --> args
+    start --> hypervisor
+    shutdown --> hypervisor
+    console --> apiClient
+    clientEntry --> apiClient
+    hypervisor --> apiClient
+    hypervisor --> reconciler
+    vm --> apiTypes
+    load --> user
+    hypervisor --> proc
+    console --> pty
+    config --> format

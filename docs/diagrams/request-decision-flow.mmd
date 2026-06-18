@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    participant Caller as Operator/systemd
+    participant Main as main.go
+    participant Entry as entry.Start
+    participant Load as hvm.Load
+    participant Model as internal/model
+    participant HV as Hypervisor.Start
+    participant CH as cloud-hypervisor
+    participant VFS as virtiofsd helpers
+    participant Guest as Guest VM
+
+    Caller->>Main: cvmm start NODE_NAME + flags/env
+    Main->>Entry: dispatch start(NODE_NAME)
+    Entry->>Load: Load(imageRoot,nodeRoot,filenames,runas)
+    Load->>Model: LoadConfig(<node-root>/<node>/config.yaml)
+    Model-->>Load: Config(cpus,mem,uuid,image,disk[],directory[])
+    Load->>Model: VMConfig(...) + VirtiofsConfig(...)
+    Model-->>Load: cloud-hypervisor payload + per-share virtiofsd config
+    Load-->>Entry: Hypervisor with socket/pid/run paths
+    Entry->>HV: Start(ctx)
+    HV->>HV: acquire cvmm.pid and remove stale API socket
+    HV->>CH: exec cloud-hypervisor --api-socket path=<run>/cloudhypervisor.sock
+    loop API readiness polling
+        HV->>CH: VmmPing over Unix-socket HTTP
+        CH-->>HV: ready or retry
+    end
+    HV->>CH: VmCreate(VmConfig JSON)
+    HV->>VFS: start reconciler goroutines for directory[]
+    VFS-->>HV: per-share socket ready / process status
+    HV->>CH: VmBoot
+    CH-->>Guest: boot kernel/root disk, attach net/fs/console
+    par steady state
+        HV->>CH: VmInfo/status polling
+        HV->>VFS: reconcile missing helpers
+    and stop path
+        Caller->>Entry: SIGTERM/SIGINT/SIGHUP/SIGQUIT
+        Entry->>HV: cancel parent context
+        HV->>CH: VmPowerButton then wait/collect errors
+    end

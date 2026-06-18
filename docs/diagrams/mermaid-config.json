@@ -1,0 +1,12 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, Pretendard, Arial, sans-serif",
+    "primaryColor": "#eef6ff",
+    "primaryBorderColor": "#2563eb",
+    "primaryTextColor": "#111827",
+    "lineColor": "#64748b",
+    "secondaryColor": "#f8fafc",
+    "tertiaryColor": "#ecfdf5"
+  }
+}

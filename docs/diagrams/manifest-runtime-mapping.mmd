@@ -1,0 +1,34 @@
+flowchart LR
+    manifest["config.yaml"] --> image["image: <name>"]
+    manifest --> disk["disk[]\nwritable data disks"]
+    manifest --> directory["directory[]\nvirtio-fs exports"]
+    manifest --> net["net_mac_addr / net_if_name\noptional"]
+    manifest --> cpuMem["cpus / mem / uuid / cmdline"]
+
+    image --> imageBase["<image-root>/<image>"]
+    imageBase --> kernel["kernel\nvmlinuz"]
+    imageBase --> initrd["optional initramfs\ninitramfs.img"]
+    imageBase --> root["root disk\nroot.img readonly"]
+
+    disk --> diskRule{"path absolute?"}
+    diskRule -- yes --> diskAbs["attach exact host path"]
+    diskRule -- no --> diskNode["attach <node-root>/<node>/<disk> filesystem path"]
+
+    directory --> dirRule{"path absolute?"}
+    dirRule -- yes --> dirAbs["export exact host directory"]
+    dirRule -- no --> dirNode["export <node-root>/<node>/<directory>"]
+    directory --> tag["virtio-fs tag = basename(directory)"]
+    tag --> socket["socket = run/virtiofs_<tag>.sock"]
+
+    net --> defaultNet["generate MAC and vmtap-* if omitted"]
+    cpuMem --> vmPayload["VmConfig fields\ncpus, memory, platform UUID, cmdline"]
+
+    root --> vm["cloud-hypervisor VmCreate payload"]
+    diskAbs --> vm
+    diskNode --> vm
+    dirAbs --> vfs["VirtiofsConfig + virtiofsd helper"]
+    dirNode --> vfs
+    socket --> vfs
+    vfs --> vm
+    defaultNet --> vm
+    vmPayload --> vm

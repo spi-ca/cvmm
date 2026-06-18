@@ -1,0 +1,46 @@
+flowchart LR
+    subgraph caller["Caller layer"]
+        operator["Operator / automation"]
+        systemd["systemd\ncontrib/cvmm@.service"]
+    end
+
+    subgraph cvmmBox["cvmm process"]
+        cli["CLI + flags/env\nmain.go"]
+        entry["command entrypoints\ninternal/entry"]
+        hvm["VM orchestration\ninternal/hvm"]
+        model["manifest + API models\ninternal/model"]
+        util["OS helpers\ninternal/util"]
+    end
+
+    subgraph storage["Host storage inputs"]
+        images["image-root\n/srv/vmm/images/<image>\nvmlinuz, initramfs.img, root.img"]
+        nodes["node-root\n/srv/vmm/nodes/<node>\nconfig.yaml, run/, disks, shares"]
+    end
+
+    subgraph runtime["Runtime processes and sockets"]
+        ch["cloud-hypervisor\nUnix API socket + pid"]
+        vfs["virtiofsd per share\nUnix socket"]
+        pty["guest console PTY"]
+    end
+
+    subgraph guestBox["Guest boundary"]
+        guest["Guest VM"]
+        blk["virtio-blk\nroot.img + data disks"]
+        fs["virtio-fs shares"]
+        net["TAP interface"]
+    end
+
+    operator --> cli
+    systemd --> cli
+    cli --> entry --> hvm
+    hvm --> model
+    hvm --> util
+    model --> images
+    model --> nodes
+    hvm --> ch
+    hvm --> vfs
+    ch --> guest
+    ch --> pty
+    ch --> blk --> guest
+    vfs --> fs --> guest
+    ch --> net

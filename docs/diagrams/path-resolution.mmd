@@ -1,0 +1,51 @@
+flowchart TD
+    start["cvmm start NODE_NAME"] --> flags["Resolve flags/env\nimage-root, node-root, manifest-filename, volatile-directory, binary paths"]
+
+    flags --> nodeBase["nodeBasePath\njoin(node-root, NODE_NAME)"]
+    nodeBase --> manifest["open/read config.yaml\nmodel.LoadConfig"]
+    nodeBase --> runDir["volatileBasePath\njoin(nodeBasePath, run)"]
+
+    flags --> imageRoot["image-root"]
+    manifest --> imageName["cfg.image"]
+    imageRoot --> imageBase["imageBasePath\njoin(image-root, cfg.image)"]
+    imageName --> imageBase
+
+    imageBase --> statKernel["stat kernel filename\nusually vmlinuz"]
+    imageBase --> statInitrd["stat initramfs filename\nclear if missing or directory"]
+    imageBase --> rootfs["rootfs path\nroot.img"]
+
+    manifest --> disks["disk[] entries"]
+    disks --> diskRel{"absolute path?"}
+    diskRel -- yes --> diskAbs["use disk path as-is"]
+    diskRel -- no --> diskNode["join(nodeBasePath, disk)"]
+
+    manifest --> shares["directory[] entries"]
+    shares --> shareRel{"absolute path?"}
+    shareRel -- yes --> shareAbs["virtiofsd Directory = path"]
+    shareRel -- no --> shareNode["join(nodeBasePath, directory)"]
+    shares --> basename["basename(directory)"]
+
+    runDir --> pid["cvmm.pid"]
+    runDir --> chPid["cloudhypervisor.pid"]
+    runDir --> apiSock["cloudhypervisor.sock"]
+    runDir --> vfsTemplate["virtiofs socket template"]
+    basename --> vfsSock["AppendFileSuffix(template, basename)\nvirtiofs_<name>.sock"]
+    vfsTemplate --> vfsSock
+
+    subgraph syscalls["Representative host operations"]
+        open["open/read YAML"]
+        stat["stat initramfs"]
+        exec["exec cloud-hypervisor / virtiofsd"]
+        unixSock["Unix socket HTTP API"]
+        pidfile["pid file acquire/read/write"]
+        signal["signal/kill on shutdown"]
+    end
+
+    manifest -.-> open
+    statInitrd -.-> stat
+    apiSock -.-> unixSock
+    pid -.-> pidfile
+    chPid -.-> pidfile
+    vfsSock -.-> exec
+    flags -.-> exec
+    runDir -.-> signal

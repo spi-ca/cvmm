@@ -1,0 +1,22 @@
+flowchart TD
+    change["Change to docs/code/runtime behavior"] --> classify{"What changed?"}
+
+    classify -- "docs / .pi only" --> docChecks["Documentation evidence\nGo project inventory\nPi asset inventory\nlink/path sanity"]
+    classify -- "Go code or tests" --> goChecks["Go validation\ngofmt\ngo test ./...\ngo vet ./..."]
+    classify -- "diagrams" --> diagramChecks["Mermaid source + generated artifacts\nregenerate SVG\nregenerate PNG with --scale 2\nfile docs/diagrams/*.png"]
+    classify -- "container/deploy" --> opsChecks["Operational checks\ngo build ./...\nDockerfile path inspection\nsystemd unit consistency"]
+    classify -- "runtime measurement" --> measure["Measurement packet\ncommand line\ninputs\nversions\nstdout/stderr\nartifact path\nknown limitations"]
+
+    docChecks --> evidence["Evidence bundle"]
+    goChecks --> evidence
+    diagramChecks --> evidence
+    opsChecks --> evidence
+    measure --> evidence
+
+    evidence --> review["QA / reviewer pass\nfindings split into blocking, non-blocking, unclear"]
+    review --> blockers{"Blocking finding?"}
+    blockers -- yes --> fix["Fix smallest affected scope\nthen rerun focused checks"]
+    fix --> classify
+    blockers -- no --> audit["Completion audit\nmap each requirement to current file, diff, command, or artifact evidence"]
+
+    audit --> done["Ready to report\nno unverified current claims"]
