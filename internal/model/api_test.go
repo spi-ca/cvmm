@@ -2,56 +2,85 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"strings"
 	"testing"
 )
 
-func TestVmConfig_String(t *testing.T) {
-	i := DefaultVmConfig()
-	actual := i.String()
-	expected := `--kernel /srv/vmm/images/test/vmlinuz
---cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
+const expectedDefaultVmConfigString = `--kernel /srv/vmm/images/test/vmlinuz
+--cmdline console=hvc0 clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
 --initramfs /srv/vmm/images/test/initramfs.img
 --cpus boot=2,max=2
 --platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
 --memory size=2147483648,mergeable=on,shared=on,thp=on
---disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
---disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
+--disk path=/srv/vmm/images/test/root.img,readonly=on path=/srv/vmm/nodes/test/data.img
 --net tap=vmtap-tst,num_queues=2,queue_size=128
 --rng src=/dev/urandom
 --balloon free_page_reporting=on
 --serial off
 --console pty
+--debug-console iobase=0xe9
 --watchdog
 --pvpanic`
+
+const expectedDefaultVmConfigCommandArgs = `--kernel
+/srv/vmm/images/test/vmlinuz
+--cmdline
+console=hvc0 clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
+--initramfs
+/srv/vmm/images/test/initramfs.img
+--cpus
+boot=2,max=2
+--platform
+serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
+--memory
+size=2147483648,mergeable=on,shared=on,thp=on
+--disk
+path=/srv/vmm/images/test/root.img,readonly=on
+path=/srv/vmm/nodes/test/data.img
+--net
+tap=vmtap-tst,num_queues=2,queue_size=128
+--rng
+src=/dev/urandom
+--balloon
+free_page_reporting=on
+--serial
+off
+--console
+pty
+--debug-console
+iobase=0xe9
+--watchdog
+--pvpanic`
+
+const expectedVmInfoConfigString = `--kernel /srv/vmm/images/kube-master/vmlinuz
+--cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=87773d8614794db49e90e5a4314ff11b net.ifnames=0 quiet loglevel=3
+--initramfs /srv/vmm/images/kube-master/initramfs.img
+--cpus boot=2,max=2,max_phys_bits=46
+--platform num_pci_segments=1,serial_number=87773d8614794db49e90e5a4314ff11b,uuid=87773d86-1479-4db4-9e90-e5a4314ff11b,oem_strings=amuzes-kube-master-01
+--memory size=4294967296,mergeable=on,shared=on,hotplug_method=Acpi,thp=on
+--disk path=/srv/vmm/images/kube-master/root.img,readonly=on,direct=on,num_queues=2,queue_size=128,id=_disk0 path=/srv/vmm/nodes/kube-master-01/data.img,direct=on,num_queues=2,queue_size=128,id=_disk1
+--net tap=vmtap-km01,ip=192.168.249.1,mask=255.255.255.0,mac=2e:f4:5f:11:1b:56,num_queues=2,queue_size=128,id=_net2,vhost_mode=Client
+--rng src=/dev/urandom
+--fs tag=configuration,socket=/srv/vmm/nodes/kube-master-01/run/virtiofsd.sock,num_queues=1,queue_size=1024,id=_fs3
+--serial off
+--console pty
+--watchdog
+--pvpanic`
+
+func assertEqualString(t *testing.T, actual, expected string) {
+	t.Helper()
 	if actual != expected {
-		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
+		t.Fatalf("unexpected value\nactual:\n%s\nexpected:\n%s", actual, expected)
 	}
 }
 
+func TestVmConfig_String(t *testing.T) {
+	assertEqualString(t, DefaultVmConfig().String(), expectedDefaultVmConfigString)
+}
+
 func TestVmConfig_CommandArgs(t *testing.T) {
-	i := DefaultVmConfig()
-	actual := strings.Join(i.CommandArgs(), "\n")
-	expected := `--kernel /srv/vmm/images/test/vmlinuz
---cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
---initramfs /srv/vmm/images/test/initramfs.img
---cpus boot=2,max=2
---platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
---memory size=2147483648,mergeable=on,shared=on,thp=on
---disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
---disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
---net tap=vmtap-tst,num_queues=2,queue_size=128
---rng src=/dev/urandom
---balloon free_page_reporting=on
---serial off
---console pty
---watchdog
---pvpanic`
-	if actual != expected {
-		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
-	}
+	assertEqualString(t, strings.Join(DefaultVmConfig().CommandArgs(), "\n"), expectedDefaultVmConfigCommandArgs)
 }
 
 func TestCpusConfig_String(t *testing.T) {
@@ -85,14 +114,11 @@ features:
     amx: true
 `)
 	i := CpusConfig{}
-	err := yaml.Unmarshal(response, &i)
-	if err != nil {
-		panic(err)
+	if err := yaml.Unmarshal(response, &i); err != nil {
+		t.Fatal(err)
 	}
 
-	if actual := i.String(); actual != "--cpus boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=amx" {
-		panic(fmt.Errorf("%s is invalid value", actual))
-	}
+	assertEqualString(t, i.String(), "--cpus boot=8,max=8,topology=2:16:2:2,kvm_hyperv=on,max_phys_bits=48,affinity=[0@[0-1,8],1@[4-6],2@[2,9,33]],features=[amx]")
 }
 
 func TestMemoryConfig_String(t *testing.T) {
@@ -109,14 +135,11 @@ prefault: true
 thp: true
 `)
 	i := MemoryConfig{}
-	err := yaml.Unmarshal(response, &i)
-	if err != nil {
-		panic(err)
+	if err := yaml.Unmarshal(response, &i); err != nil {
+		t.Fatal(err)
 	}
 
-	if actual := i.String(); actual != "--memory size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on" {
-		panic(fmt.Errorf("%s is invalid value", actual))
-	}
+	assertEqualString(t, i.String(), "--memory size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on")
 }
 
 func TestVMInfo_Serialize(t *testing.T) {
@@ -465,41 +488,22 @@ func TestVMInfo_Serialize(t *testing.T) {
   }
 }`)
 	i := VmInfo{}
-	err := json.Unmarshal(response, &i)
-	if err != nil {
-		panic(err)
+	if err := json.Unmarshal(response, &i); err != nil {
+		t.Fatal(err)
 	}
 
 	e, err := json.Marshal(&i)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	t.Logf("json() = %v", i)
 	t.Logf("json() = %s", string(e))
 
 	e2, err := yaml.Marshal(&i)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	t.Logf("yaml() =\n %s", string(e2))
 
-	actual := i.Config.String()
-	expected := `--kernel /srv/vmm/images/test/vmlinuz
---cmdline console=hvc0 cpuidle.governor=haltpoll clocksource=kvm-clock base=UUID=3a42a0c0-dfd2-40b2-b9eb-861f2610a5c1 systemd.machine_id=a6a7a918188645d5adb5aaabdca22f16 net.ifnames=0 verbose loglevel=7 reboot=t
---initramfs /srv/vmm/images/test/initramfs.img
---cpus boot=2,max=2
---platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
---memory size=2147483648,mergeable=on,shared=on,thp=on
---disk path=/srv/vmm/images/test/root.img,readonly=on,direct=on,num_queues=2,queue_size=128
---disk path=/srv/vmm/nodes/test/data.img,direct=on,num_queues=2,queue_size=128
---net tap=vmtap-tst,num_queues=2,queue_size=128
---rng src=/dev/urandom
---balloon free_page_reporting=on
---serial off
---console pty
---watchdog
---pvpanic`
-	if actual != expected {
-		panic(fmt.Errorf("%s is invalid value, expected %s", actual, expected))
-	}
+	assertEqualString(t, i.Config.String(), expectedVmInfoConfigString)
 }

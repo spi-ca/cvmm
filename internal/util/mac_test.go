@@ -1,83 +1,94 @@
 package util
 
 import (
-	"encoding/hex"
 	"encoding/json"
-	"log"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 )
 
-func Test_MACAddress_JSON(t *testing.T) {
-	raw, _ := hex.DecodeString("010203040506")
-	o := struct {
-		SZ MACAddress
-	}{SZ: MACAddress(raw)}
-
-	marshalled, err := json.Marshal(o)
-	if err != nil {
-		panic(err)
+func TestMACAddressTextAndString(t *testing.T) {
+	addr := MustLoadMACAddress("52:54:00:02:38:f0")
+	if got, want := addr.String(), "52:54:00:02:38:f0"; got != want {
+		t.Fatalf("String() = %q, want %q", got, want)
 	}
-	log.Printf("-> %s", marshalled)
-
-	o2 := struct {
-		SZ MACAddress
-	}{}
-
-	err = json.Unmarshal(marshalled, &o2)
+	text, err := addr.MarshalText()
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
+	}
+	if got, want := string(text), "52:54:00:02:38:f0"; got != want {
+		t.Fatalf("MarshalText() = %q, want %q", got, want)
 	}
 
-	log.Printf("-> %d", o2.SZ)
+	var parsed MACAddress
+	if err := parsed.UnmarshalText([]byte("52:54:00:02:38:f0")); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parsed.String(), addr.String(); got != want {
+		t.Fatalf("UnmarshalText() = %q, want %q", got, want)
+	}
 }
 
-func Test_MACAddress_YAML(t *testing.T) {
-	raw, _ := hex.DecodeString("010203040506")
-	o := struct {
-		SZ MACAddress
-	}{SZ: MACAddress(raw)}
+func TestMACAddressJSONYAMLRoundTrip(t *testing.T) {
+	type wrapper struct {
+		SZ MACAddress `json:"sz" yaml:"sz"`
+	}
+	want := wrapper{SZ: MustLoadMACAddress("01:02:03:04:05:06")}
 
-	marshalled, err := yaml.Marshal(o)
+	jsonBytes, err := json.Marshal(want)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	log.Printf("-> %s", marshalled)
+	if got, wantJSON := string(jsonBytes), `{"sz":"01:02:03:04:05:06"}`; got != wantJSON {
+		t.Fatalf("json = %s, want %s", got, wantJSON)
+	}
+	var gotJSON wrapper
+	if err := json.Unmarshal(jsonBytes, &gotJSON); err != nil {
+		t.Fatal(err)
+	}
+	if gotJSON.SZ.String() != want.SZ.String() {
+		t.Fatalf("json roundtrip = %q, want %q", gotJSON.SZ, want.SZ)
+	}
 
-	o2 := struct {
-		SZ MACAddress
-	}{}
-
-	err = yaml.Unmarshal(marshalled, &o2)
+	yamlBytes, err := yaml.Marshal(want)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-
-	log.Printf("-> %d", o2.SZ)
-}
-func Test_MACAddress_Rand(t *testing.T) {
-	chksum := [3]byte{
-		0x02,
-		0x38,
-		0xf0,
+	if got, wantYAML := string(yamlBytes), "sz: \"01:02:03:04:05:06\"\n"; got != wantYAML {
+		t.Fatalf("yaml = %q, want %q", got, wantYAML)
 	}
-	addr := MACAddress{
-		52, 54, 00, chksum[0], chksum[1], chksum[2],
+	var gotYAML wrapper
+	if err := yaml.Unmarshal(yamlBytes, &gotYAML); err != nil {
+		t.Fatal(err)
 	}
-
-	log.Printf("-> %s", addr)
+	if gotYAML.SZ.String() != want.SZ.String() {
+		t.Fatalf("yaml roundtrip = %q, want %q", gotYAML.SZ, want.SZ)
+	}
 }
 
-func Test_MACAddress_GenerateIfName(t *testing.T) {
-	chksum := [3]byte{
-		0x02,
-		0x38,
-		0xf0,
+func TestMACAddressInvalidInput(t *testing.T) {
+	if _, err := LoadMACAddress("not-a-mac"); err == nil {
+		t.Fatal("LoadMACAddress() error = nil, want error")
 	}
-	addr := MACAddress{
-		52, 54, 00, chksum[0], chksum[1], chksum[2],
+	var addr MACAddress
+	if err := addr.UnmarshalText([]byte("not-a-mac")); err == nil {
+		t.Fatal("UnmarshalText() error = nil, want error")
 	}
+}
 
-	log.Printf("-> %s", addr.GenerateIfName("vmtap-"))
+func TestMACAddressGenerateIfName(t *testing.T) {
+	addr := MustLoadMACAddress("52:54:00:02:38:f0")
+	if got, want := addr.GenerateIfName("vmtap-"), "vmtap-0238f0"; got != want {
+		t.Fatalf("GenerateIfName() = %q, want %q", got, want)
+	}
+}
+
+func TestGenerateKvmMACAddress(t *testing.T) {
+	addr := GenerateKvmMACAddress()
+	if len(addr) != 6 {
+		t.Fatalf("len(GenerateKvmMACAddress()) = %d, want 6", len(addr))
+	}
+	if got, want := addr[:3].String(), "52:54:00"; got != want {
+		t.Fatalf("GenerateKvmMACAddress prefix = %q, want %q", got, want)
+	}
 }
