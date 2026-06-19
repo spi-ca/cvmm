@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sys/unix"
 	"runtime"
+
+	"golang.org/x/sys/unix"
 )
 
 // WaitUntilProcessFinished waits until the process exits or the context ends.
@@ -33,8 +34,15 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 		return err
 	}
 
+	timeout := &unix.Timespec{Nsec: 100 * 1000 * 1000}
 	for {
-		n, errno := unix.Kevent(kq, nil, events[:], nil)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		n, errno := unix.Kevent(kq, nil, events[:], timeout)
 		switch errno {
 		case nil:
 			if n >= len(events) {
@@ -61,10 +69,22 @@ func WaitUntilProcessFinished(ctx context.Context, pid int) error {
 		// Check for done signal
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
 		}
 	}
+}
+
+func readProcessName(_ int) (string, bool, error) {
+	return "", false, nil
+}
+
+func readProcessCmdline(_ int) ([]string, bool, error) {
+	return nil, false, nil
+}
+
+func normalizeProcessName(name string) string {
+	return name
 }
 
 // SetProcessName sets the visible process name when the platform supports it.

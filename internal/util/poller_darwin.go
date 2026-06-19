@@ -28,7 +28,8 @@ type (
 	}
 	// terminalPoll stores platform poller state and registered handlers.
 	terminalPoll struct {
-		kqfd int
+		kqfd        int
+		cancelIdent uint64
 
 		events  [32]unix.Kevent_t
 		handler map[int][]TerminalPollReader
@@ -37,8 +38,9 @@ type (
 	}
 	// simpleCopier copies bytes from a watched descriptor to an io.Writer.
 	simpleCopier struct {
-		fd int
-		w  io.Writer
+		fd      int
+		w       io.Writer
+		pending []byte
 	}
 	// escapeHandler recognizes the console escape sequence used to terminate PTY forwarding.
 	escapeHandler struct {
@@ -87,10 +89,20 @@ func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
 }
 
 // FD returns the file descriptor watched by the terminal poller.
-func (c simpleCopier) FD() int { return c.fd }
+func (c *simpleCopier) FD() int { return c.fd }
+
+func (c *simpleCopier) HasPending() bool { return len(c.pending) > 0 }
 
 // Handle processes an event delivered by the terminal poller.
-func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
+func (c *simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
+	if len(c.pending) > 0 {
+		combined := make([]byte, 0, len(c.pending)+len(buf))
+		combined = append(combined, c.pending...)
+		combined = append(combined, buf...)
+		buf = combined
+		c.pending = nil
+	}
+
 	for offset := 0; offset < len(buf); {
 
 		w, err := c.w.Write(buf[offset:])
@@ -100,11 +112,16 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 			InfoLog.Printf("closing")
 			return true
 		} else if errors.Is(err, unix.EAGAIN) {
-			// 인터럽트 선점으로 인한 재시도 요청
 			// EAGAIN means the descriptor should be retried by a later poll event.
+			c.pending = append(c.pending[:0], buf[offset:]...)
+			return closing
 		} else if err != nil {
 			ErrLog.Printf("failed to copy data: %s", err)
 			return true
+		}
+		if w == 0 {
+			c.pending = append(c.pending[:0], buf[offset:]...)
+			return closing
 		}
 	}
 
@@ -248,6 +265,21 @@ func (p *terminalPoll) Wait(ctx context.Context) {
 		return
 	}
 
+	p.cancelIdent = ^uint64(0)
+	if _, err := unix.Kevent(kqfd, []unix.Kevent_t{{Ident: p.cancelIdent, Filter: unix.EVFILT_USER, Flags: unix.EV_ADD | unix.EV_CLEAR}}, nil, nil); err != nil {
+		p.cancelIdent = 0
+	} else {
+		done := make(chan struct{})
+		go func() {
+			select {
+			case <-ctx.Done():
+				_, _ = unix.Kevent(kqfd, []unix.Kevent_t{{Ident: p.cancelIdent, Filter: unix.EVFILT_USER, Fflags: unix.NOTE_TRIGGER}}, nil, nil)
+			case <-done:
+			}
+		}()
+		defer close(done)
+	}
+
 	buf := [512]byte{}
 
 	closing := false
@@ -261,8 +293,18 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 	p.l.Lock()
 	defer p.l.Unlock()
 
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+	}
+
 	// Poll registered file descriptors for terminal readiness events.
-	n, errno := unix.Kevent(kqfd, nil, p.events[:], nil)
+	var timeout *unix.Timespec
+	if p.cancelIdent == 0 || p.hasPendingLocked() {
+		timeout = &unix.Timespec{Nsec: 100 * 1000 * 1000}
+	}
+	n, errno := unix.Kevent(kqfd, nil, p.events[:], timeout)
 	switch errno {
 	case nil:
 		if n >= len(p.events) {
@@ -271,11 +313,22 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 		} else if n > 0 {
 			break
 		}
-		// No readiness event means the loop should continue waiting.
-		fallthrough
+		// No readiness event means the loop should retry pending writes and continue waiting.
+		closing = p.flushPendingLocked(closing)
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return closing
+		}
 	case unix.EINTR:
 		runtime.Gosched()
-		return closing
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return closing
+		}
 	default:
 		ErrLog.Printf("epoll_wait: error :%s ", errno)
 		return true
@@ -283,6 +336,9 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 
 	// Dispatch process exit readiness or context cancellation events.
 	for _, e := range p.events[:n] {
+		if e.Filter == unix.EVFILT_USER && e.Ident == p.cancelIdent {
+			return true
+		}
 		fd := int(e.Ident)
 		isHup := (e.Flags & unix.EV_EOF) != 0
 
@@ -303,7 +359,7 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 			closing = cb.Handle(fd, buf[:n], isHup, closing) || closing
 		}
 
-		if isHup {
+		if isHup && !p.hasPendingCallbacksLocked(callbacks) {
 			err = p.removeInternal(fd)
 			if err != nil {
 				ErrLog.Printf("%s", err)
@@ -318,6 +374,41 @@ func (p *terminalPoll) wait(ctx context.Context, kqfd int, buf [512]byte, closin
 	default:
 		return closing
 	}
+}
+
+func (p *terminalPoll) hasPendingCallbacksLocked(callbacks []TerminalPollReader) bool {
+	for _, cb := range callbacks {
+		pending, ok := cb.(interface{ HasPending() bool })
+		if ok && pending.HasPending() {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *terminalPoll) hasPendingLocked() bool {
+	for _, callbacks := range p.handler {
+		for _, cb := range callbacks {
+			pending, ok := cb.(interface{ HasPending() bool })
+			if ok && pending.HasPending() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *terminalPoll) flushPendingLocked(closing bool) bool {
+	for fd, callbacks := range p.handler {
+		for _, cb := range callbacks {
+			pending, ok := cb.(interface{ HasPending() bool })
+			if !ok || !pending.HasPending() {
+				continue
+			}
+			closing = cb.Handle(fd, nil, false, closing) || closing
+		}
+	}
+	return closing
 }
 
 // removeInternal removes a descriptor from the poller without taking the public lock.

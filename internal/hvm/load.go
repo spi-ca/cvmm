@@ -2,6 +2,7 @@ package hvm
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -81,6 +82,8 @@ func Load(
 		// An empty initramfs path means the VM will boot without initramfs.
 	} else if stat, err := os.Stat(initramfsPath); errors.Is(err, os.ErrNotExist) {
 		initramfsPath = ""
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to stat initramfs %q: %w", initramfsPath, err)
 	} else if stat.IsDir() {
 		initramfsPath = ""
 	}

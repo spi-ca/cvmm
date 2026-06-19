@@ -31,15 +31,17 @@ type (
 
 		epfd int
 
-		events  [32]unix.EpollEvent
-		handler map[int][]TerminalPollReader
+		cancelFd int
+		events   [32]unix.EpollEvent
+		handler  map[int][]TerminalPollReader
 
 		l sync.Mutex
 	}
 	// simpleCopier copies bytes from a watched descriptor to an io.Writer.
 	simpleCopier struct {
-		fd int
-		w  io.Writer
+		fd      int
+		w       io.Writer
+		pending []byte
 	}
 	// escapeHandler recognizes the console escape sequence used to terminate PTY forwarding.
 	escapeHandler struct {
@@ -88,10 +90,20 @@ func NewTerminalPollCopier(fd int, w io.Writer) TerminalPollReader {
 }
 
 // FD returns the file descriptor watched by the terminal poller.
-func (c simpleCopier) FD() int { return c.fd }
+func (c *simpleCopier) FD() int { return c.fd }
+
+func (c *simpleCopier) HasPending() bool { return len(c.pending) > 0 }
 
 // Handle processes an event delivered by the terminal poller.
-func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
+func (c *simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
+	if len(c.pending) > 0 {
+		combined := make([]byte, 0, len(c.pending)+len(buf))
+		combined = append(combined, c.pending...)
+		combined = append(combined, buf...)
+		buf = combined
+		c.pending = nil
+	}
+
 	for offset := 0; offset < len(buf); {
 		w, err := c.w.Write(buf[offset:])
 		offset += w
@@ -99,9 +111,16 @@ func (c simpleCopier) Handle(_ int, buf []byte, isHup, closing bool) bool {
 		if errors.Is(err, io.EOF) {
 			InfoLog.Printf("closing")
 			return true
+		} else if errors.Is(err, unix.EAGAIN) {
+			c.pending = append(c.pending[:0], buf[offset:]...)
+			return closing
 		} else if err != nil {
 			ErrLog.Printf("failed to copy data: %s", err)
 			return true
+		}
+		if w == 0 {
+			c.pending = append(c.pending[:0], buf[offset:]...)
+			return closing
 		}
 	}
 
@@ -233,7 +252,34 @@ func (p *terminalPoll) Wait(ctx context.Context) {
 		return
 	}
 
+	cancelFd, err := unix.Eventfd(0, unix.EFD_CLOEXEC|unix.EFD_NONBLOCK)
+	if err == nil {
+		p.cancelFd = cancelFd
+		if ctlErr := unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, cancelFd, &unix.EpollEvent{Events: unix.EPOLLIN, Fd: int32(cancelFd)}); ctlErr != nil {
+			_ = unix.Close(cancelFd)
+			p.cancelFd = 0
+		} else {
+			done := make(chan struct{})
+			go func() {
+				select {
+				case <-ctx.Done():
+					_, _ = unix.Write(cancelFd, []byte{1, 0, 0, 0, 0, 0, 0, 0})
+				case <-done:
+				}
+			}()
+			defer func() {
+				close(done)
+				_ = unix.EpollCtl(epfd, unix.EPOLL_CTL_DEL, cancelFd, nil)
+				_ = unix.Close(cancelFd)
+				p.cancelFd = 0
+			}()
+		}
+	}
+
 	p.waitMsec = -1
+	if p.cancelFd == 0 {
+		p.waitMsec = 100
+	}
 
 	buf := [512]byte{}
 
@@ -248,6 +294,12 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 	p.l.Lock()
 	defer p.l.Unlock()
 
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+	}
+
 	// Poll registered file descriptors for terminal readiness events.
 	n, errno := unix.EpollWait(epfd, p.events[:], p.waitMsec)
 	switch errno {
@@ -259,12 +311,24 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 			p.waitMsec = 0
 			break
 		}
-		// No readiness event means the poll loop should continue waiting.
-		fallthrough
+		// No readiness event means the poll loop should retry pending writes and continue waiting.
+		closing = p.flushPendingLocked(closing)
+		p.updateWaitMsecLocked()
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return closing
+		}
 	case unix.EINTR:
 		runtime.Gosched()
-		p.waitMsec = -1
-		return closing
+		p.updateWaitMsecLocked()
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return closing
+		}
 	default:
 		ErrLog.Printf("epoll_wait: error :%s ", errno)
 		return true
@@ -273,6 +337,9 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 	// Dispatch each ready event to the handlers registered for its file descriptor.
 	for _, e := range p.events[:n] {
 		fd := int(e.Fd)
+		if fd == p.cancelFd && p.cancelFd != 0 {
+			return true
+		}
 		isHup := (e.Events & unix.EPOLLHUP) != 0
 
 		var (
@@ -291,13 +358,15 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 			closing = cb.Handle(fd, buf[:n], isHup, closing) || closing
 		}
 
-		if isHup {
+		if isHup && !p.hasPendingCallbacksLocked(callbacks) {
 			err = p.removeInternal(fd)
 			if err != nil {
 				ErrLog.Printf("%s", err)
 			}
 		}
 	}
+
+	p.updateWaitMsecLocked()
 
 	// Check for done signal
 	select {
@@ -306,6 +375,49 @@ func (p *terminalPoll) wait(ctx context.Context, epfd int, buf [512]byte, closin
 	default:
 		return closing
 	}
+}
+
+func (p *terminalPoll) updateWaitMsecLocked() {
+	if p.cancelFd == 0 || p.hasPendingLocked() {
+		p.waitMsec = 100
+		return
+	}
+	p.waitMsec = -1
+}
+
+func (p *terminalPoll) hasPendingCallbacksLocked(callbacks []TerminalPollReader) bool {
+	for _, cb := range callbacks {
+		pending, ok := cb.(interface{ HasPending() bool })
+		if ok && pending.HasPending() {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *terminalPoll) hasPendingLocked() bool {
+	for _, callbacks := range p.handler {
+		for _, cb := range callbacks {
+			pending, ok := cb.(interface{ HasPending() bool })
+			if ok && pending.HasPending() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *terminalPoll) flushPendingLocked(closing bool) bool {
+	for fd, callbacks := range p.handler {
+		for _, cb := range callbacks {
+			pending, ok := cb.(interface{ HasPending() bool })
+			if !ok || !pending.HasPending() {
+				continue
+			}
+			closing = cb.Handle(fd, nil, false, closing) || closing
+		}
+	}
+	return closing
 }
 
 // removeInternal removes a descriptor from the poller without taking the public lock.

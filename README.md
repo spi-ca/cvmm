@@ -57,7 +57,7 @@ cvmm client ACTION NODE_NAME
 - `--image-root`, `--node-root`
 - `--manifest-filename`
 - `--cloudhypervisor-path`, `--virtiofsd-path`
-- `--runas user`
+- `--runas user` (`cloud-hypervisor` 자식 process에만 적용된다. `virtiofsd` helper는 `cvmm` manager를 실행한 사용자 권한을 상속한다.)
 - `--console`
 
 플래그는 Viper로 environment variable에도 바인딩된다. 예: `IMAGE_ROOT`, `NODE_ROOT`, `CLOUDHYPERVISOR_PATH`.
@@ -74,7 +74,6 @@ image: test-image
 net_mac_addr: 2e:33:5f:11:1b:42
 net_if_name: vmtap-01
 cmdline:
-  - console=hvc0
   - quiet
 disk:
   - data.img
@@ -105,6 +104,8 @@ cvmm start NODE_NAME
 ```
 
 경로와 binary를 명시해 시작:
+
+> `--runas hvm`은 `cloud-hypervisor` 권한만 낮춘다. `virtiofsd` 공유 helper는 `cvmm` manager를 실행한 사용자 권한을 상속한다. systemd 배포에서는 service의 `User=`/`Group=`, capability, node/share directory 권한을 함께 제한해야 한다.
 
 ```bash
 cvmm \
