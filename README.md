@@ -4,6 +4,21 @@
 
 ![cvmm purpose](docs/diagrams/project-purpose.svg)
 
+## 아주 쉽게 말하면
+
+`cvmm`는 **가상 컴퓨터를 켜고 끄는 관리 도구**다. 사람이 “이 가상 컴퓨터는 CPU와 메모리를 이만큼 쓰고, 이 OS 이미지로 켜고, 이 폴더를 공유해 줘”라고 `config.yaml`에 적어 두면, `cvmm`가 그 설정을 읽고 필요한 프로그램들을 순서대로 실행한다.
+
+비유하면 다음과 같다.
+
+- `config.yaml`: 주문서 또는 작업 지시서
+- image repository: 가상 컴퓨터를 만들 OS 재료 창고
+- node directory: 가상 컴퓨터별 개인 보관함
+- `cloud-hypervisor`: 실제로 가상 컴퓨터 본체를 켜는 프로그램
+- `virtiofsd`: host 폴더를 가상 컴퓨터 안에 공유해 주는 도우미
+- `cvmm`: 이 재료와 도우미들을 묶어 시작, 종료, 조회, 콘솔 접속을 처리하는 관리자
+
+![cvmm nontechnical overview](docs/diagrams/nontechnical-overview.svg)
+
 ## 언제 쓰나
 
 `cvmm`는 아래 상황에 맞춘 작은 VM runtime manager다.

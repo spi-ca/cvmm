@@ -1,0 +1,38 @@
+flowchart LR
+    subgraph person["사람이 준비하는 것"]
+        wish["이 VM은\nCPU 2개, 메모리 4G\n이 이미지를 쓰고\n이 폴더를 공유해줘"]
+        yaml["설정 종이\nconfig.yaml"]
+        image["OS 재료 창고\n커널과 디스크 이미지"]
+        files["노드 폴더\n추가 디스크와 공유 폴더"]
+    end
+
+    cvmm["cvmm\n설정 종이를 읽고\n필요한 프로그램을\n순서대로 켜고 끄는 관리자"]
+
+    subgraph helpers["cvmm이 대신 다루는 것"]
+        hypervisor["cloud-hypervisor\n가상 컴퓨터 본체를 켬"]
+        virtiofsd["virtiofsd\nhost 폴더를 VM 안에\n공유해 줌"]
+    end
+
+    subgraph result["결과"]
+        vm["켜진 가상 컴퓨터"]
+        disk["디스크 연결"]
+        share["폴더 공유"]
+        net["네트워크 연결"]
+        console["텍스트 콘솔 접속"]
+    end
+
+    wish --> yaml
+    yaml --> cvmm
+    image --> cvmm
+    files --> cvmm
+    cvmm --> hypervisor
+    cvmm --> virtiofsd
+    hypervisor --> vm
+    hypervisor --> disk
+    hypervisor --> net
+    hypervisor --> console
+    virtiofsd --> share
+    disk --> vm
+    share --> vm
+    net --> vm
+    console --> vm

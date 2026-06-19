@@ -15,6 +15,7 @@
 
 ## 다이어그램 목록
 
+- `nontechnical-overview.mmd`: plain-language overview diagram. 비개발자도 이해할 수 있도록 `cvmm`를 설정 종이를 읽고 가상 컴퓨터와 폴더 공유를 켜는 관리자로 설명한다.
 - `project-purpose.mmd`: overview diagram. `cvmm`가 node manifest, image repository, node directory를 받아 VM, disk, network, shared directory, console을 제공하는 쓰임을 가장 단순하게 보여준다.
 - `manifest-schema.mmd`: schema mapping diagram. `config.yaml`의 필수/선택 필드, path resolution, default generation, runtime `VmConfig`/`VirtiofsConfig` 변환을 보여준다.
 - `system-context.mmd`: component diagram. caller, `cvmm`, host storage, runtime process, guest boundary를 한눈에 보여준다.
