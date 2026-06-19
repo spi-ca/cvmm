@@ -21,7 +21,7 @@ func Console(name, nodeName string) {
 	// Console stops PTY forwarding when the command receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	defer signal.Stop(exitSignal)
 	go func() {
 		select {
 		case <-ctx.Done():

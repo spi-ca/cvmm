@@ -17,6 +17,20 @@ import (
 	"github.com/spf13/viper"
 )
 
+func decodeYAMLRequest(action hvm.ClientAction, req any) error {
+	if err := yaml.NewDecoder(os.Stdin).Decode(req); err != nil {
+		return fmt.Errorf("failed to decode request for %s: %w", action, err)
+	}
+	return nil
+}
+
+func encodeYAMLResponse(action hvm.ClientAction, resp any) error {
+	if err := yaml.NewEncoder(os.Stdout).Encode(resp); err != nil {
+		return fmt.Errorf("failed to encode response for %s: %w", action, err)
+	}
+	return nil
+}
+
 // Client handles the cvmm client command entrypoint.
 func Client(name, nodeName string, action hvm.ClientAction) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -24,7 +38,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 	// Client cancels the socket API request when the command receives a termination signal.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	defer signal.Stop(exitSignal)
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -105,11 +119,9 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		resp, err = client.VmCounters(ctx)
 	case hvm.ClientActionVmCreate:
 		req := model.VmConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmCreate(ctx, req)
 		}
-		err = client.VmCreate(ctx, req)
 	case hvm.ClientActionVmDelete:
 		err = client.VmDelete(ctx)
 	case hvm.ClientActionVmBoot:
@@ -126,116 +138,84 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		err = client.VmPowerButton(ctx)
 	case hvm.ClientActionVmResize:
 		req := model.VmResize{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmResize(ctx, req)
 		}
-		err = client.VmResize(ctx, req)
 	case hvm.ClientActionVmResizeZone:
 		req := model.VmResizeZone{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmResizeZone(ctx, req)
 		}
-		err = client.VmResizeZone(ctx, req)
 	case hvm.ClientActionVmAddDevice:
 		req := model.DeviceConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddDevice(ctx, req)
 		}
-		resp, err = client.VmAddDevice(ctx, req)
 	case hvm.ClientActionVmAddUserDevice:
 		req := model.VmAddUserDevice{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddUserDevice(ctx, req)
 		}
-		resp, err = client.VmAddUserDevice(ctx, req)
 	case hvm.ClientActionVmRemoveDevice:
 		req := model.VmRemoveDevice{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmRemoveDevice(ctx, req)
 		}
-		err = client.VmRemoveDevice(ctx, req)
 	case hvm.ClientActionVmAddDisk:
 		req := model.DiskConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddDisk(ctx, req)
 		}
-		resp, err = client.VmAddDisk(ctx, req)
 	case hvm.ClientActionVmAddFs:
 		req := model.FsConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddFs(ctx, req)
 		}
-		resp, err = client.VmAddFs(ctx, req)
 	case hvm.ClientActionVmAddPmem:
 		req := model.PmemConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddPmem(ctx, req)
 		}
-		resp, err = client.VmAddPmem(ctx, req)
 	case hvm.ClientActionVmAddNet:
 		req := model.NetConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddNet(ctx, req)
 		}
-		resp, err = client.VmAddNet(ctx, req)
 	case hvm.ClientActionVmAddVsock:
 		req := model.VsockConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddVsock(ctx, req)
 		}
-		resp, err = client.VmAddVsock(ctx, req)
 	case hvm.ClientActionVmAddVdpa:
 		req := model.VdpaConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			resp, err = client.VmAddVdpa(ctx, req)
 		}
-		resp, err = client.VmAddVdpa(ctx, req)
 	case hvm.ClientActionVmSnapshot:
 		req := model.VmSnapshotConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmSnapshot(ctx, req)
 		}
-		err = client.VmSnapshot(ctx, req)
 	case hvm.ClientActionVmCoredump:
 		req := model.VmCoredumpData{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmCoredump(ctx, req)
 		}
-		err = client.VmCoredump(ctx, req)
 	case hvm.ClientActionVmRestore:
 		req := model.RestoreConfig{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmRestore(ctx, req)
 		}
-		err = client.VmRestore(ctx, req)
 	case hvm.ClientActionVmReceiveMigration:
 		req := model.ReceiveMigrationData{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmReceiveMigration(ctx, req)
 		}
-		err = client.VmReceiveMigration(ctx, req)
 	case hvm.ClientActionVmSendMigration:
 		req := model.SendMigrationData{}
-		err = yaml.NewDecoder(os.Stdin).Decode(&req)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal request for %s: %w", action, err))
+		if err = decodeYAMLRequest(action, &req); err == nil {
+			err = client.VmSendMigration(ctx, req)
 		}
-		err = client.VmSendMigration(ctx, req)
 	default:
 		util.ErrLog.Fatalf("unknown action %s", action)
 	}
@@ -246,9 +226,8 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 
 	if resp != nil {
 		defer os.Stdout.Sync()
-		err = yaml.NewEncoder(os.Stdout).Encode(resp)
-		if err != nil {
-			panic(fmt.Errorf("failed to marshal response for %s: %w", action, err))
+		if err = encodeYAMLResponse(action, resp); err != nil {
+			util.ErrLog.Fatal(err)
 		}
 	}
 

@@ -4,14 +4,14 @@
 
 ## 현재 검증 상태
 
-현재 자동 테스트는 주로 모델 렌더링과 일부 유틸리티를 검증한다.
+현재 자동 테스트는 CLI 검증, entry dispatch, cloud-hypervisor client/수명주기, manifest/path 조립, util/sys helper까지 폭넓게 회귀를 막는다.
 
-- `internal/hvm/client_action_test.go` - client action 문자열 round-trip
-- `internal/hvm/hypervisor_test.go` - manifest 기반 `hvm.Load` happy path
-- `internal/model/api_test.go` - cloud-hypervisor payload/string rendering fixture
-- `internal/model/config_test.go` - manifest YAML marshal fixture
-- `internal/model/virtiofsd_args_test.go` - 현재는 출력 smoke 성격이며 assertion이 약함
-- `internal/util/*_test.go`, `internal/util/sys/unfilemode_test.go` - 값 타입/문자열 helper 일부. 일부 테스트(`mac`, `unit`, `str`)는 출력 확인 성격이 강해 assertion 기반 회귀 방어가 약하다.
+- `main_test.go` - usage 출력, invalid action, invalid `console-file` id 등 기본 CLI validation
+- `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go` - YAML stdin/stdout 처리, malformed stdin 차단, Unix socket client dispatch
+- `internal/hvm/client*_test.go` - action parsing, Unix socket transport, HTTP status mapping, redirect/dial failure
+- `internal/hvm/hypervisor*_test.go`, `internal/hvm/node_checker_test.go`, `internal/hvm/load_more_test.go` - pidfile 검증, readiness/cancel, start/shutdown fallback, manifest/path/runas 조립
+- `internal/model/api_test.go`, `internal/model/config*_test.go`, `internal/model/virtiofsd_args_test.go` - payload rendering, manifest decode, virtiofs args exact assertion
+- `internal/util/*_test.go`, `internal/util/sys/*_test.go` - MAC/IEC/string/range helper, pidfile/process helper, wait/cancel 동작
 
 아직 `Benchmark*` 함수나 공식 benchmark harness는 없다.
 
@@ -88,77 +88,25 @@ id hvm
 
 ## 누락된 테스트
 
-### CLI parsing and dispatch
+### 최근 해소된 갭
 
-대상: `main.go`
+다음 항목은 더 이상 우선 누락으로 보지 않는다.
 
-누락:
+- **CLI validation / client dispatch**: `main_test.go`, `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go`가 usage, invalid action/id, YAML decode/encode, malformed stdin 차단을 검증한다.
+- **manifest/path/runas/initramfs**: `internal/hvm/hypervisor_test.go`, `internal/hvm/load_more_test.go`, `internal/model/config_more_test.go`가 initramfs missing/dir/stat error, absolute/relative disk·directory, generated tap/MAC, runas/socket-group 전파를 검증한다.
+- **client dispatch/transport**: `internal/hvm/client_test.go`, `internal/hvm/client_more_test.go`, `internal/hvm/client_action_test.go`가 Unix socket HTTP method/path/status, invalid action parsing, dial failure, redirect 거부를 검증한다.
+- **lifecycle/pidfile/shutdown/start**: `internal/hvm/hypervisor_shutdown_test.go`, `internal/hvm/hypervisor_start_more_test.go`, `internal/hvm/hypervisor_test.go`, `internal/hvm/node_checker_test.go`가 pidfile collision/cleanup, readiness cancel, `VmCreate`/`VmBoot` 실패, graceful power-button shutdown, API-not-ready 및 pre-boot rejection fallback을 검증한다.
+- **virtiofs args / util assertions**: `internal/model/virtiofsd_args_test.go`, `internal/util/*_test.go`, `internal/util/sys/*_test.go`가 exact args, socket-group 분기, 값 파서/문자열 helper, pid/process wait helper를 assertion 기반으로 검증한다.
 
-- argument 없는 실행이 usage를 출력하고 실패하는지
-- 각 action의 필수 argument 개수 검증
-- `console-file`의 invalid PTY id 처리
-- `client`의 invalid action 처리
-- env/flag binding key 변환(`image-root` ↔ `IMAGE_ROOT`) 검증
-- `start`, `shutdown`, `console`, `client` entrypoint의 공통 signal/cancel wiring 검증
+### Hypervisor/virtiofsd에 아직 남은 갭
 
-권장 방식: `go test`에서 subprocess로 `go run .` 또는 test binary helper를 실행해 stdout/stderr/exit code를 확인한다.
+대상: `internal/hvm/hypervisor.go`, `internal/model/virtiofsd_args.go`
 
-### Manifest and path handling
+남은 항목:
 
-대상: `internal/hvm/load.go`, `internal/model/config.go`
-
-누락:
-
-- `initramfs.img` 없음/디렉터리일 때 initramfs를 비우는 동작
-- `disk[]`, `directory[]`의 absolute path vs relative path 처리
-- `directory[]` basename이 virtio-fs tag/socket suffix가 되는 규칙
-- `net_mac_addr`, `net_if_name` 미지정 시 생성 규칙
-- manifest 파일 없음/잘못된 YAML 오류 전파
-- `--runas` user lookup 실패와 socket group lookup 실패
-
-### cloud-hypervisor client and action dispatch
-
-대상: `internal/hvm/client.go`, `internal/entry/client.go`, `internal/hvm/client-action.go`
-
-누락:
-
-- 각 client method의 HTTP method/path/status handling
-- bodyful action의 YAML stdin decode 성공/실패
-- response YAML stdout encoding
-- `ClientActionNameOf`의 invalid input과 `UnmarshalText` 오류 경로
-- Unix socket dial 실패/redirect 거부/response body error message
-
-이미 추가된 round-trip 테스트는 action 매핑 회귀를 막지만, HTTP transport와 entry dispatch까지는 검증하지 않는다.
-
-### Hypervisor lifecycle
-
-대상: `internal/hvm/hypervisor.go`, `internal/hvm/node_checker.go`
-
-누락:
-
-- pidfile collision과 cleanup
-- cloud-hypervisor readiness timeout/retry
-- `VmCreate`/`VmBoot` 실패 전파
-- parent context cancel 시 `VmPowerButton` 호출과 error aggregation
-- child stdout/stderr capture와 exit error formatting
-- `NodeStatusChecker`의 matching, non-matching, context cancel 경로
-
-권장 방식: fake client와 stub executable을 사용한다. 실제 `cloud-hypervisor`는 integration test로 분리한다.
-
-### virtiofsd helper behavior
-
-대상: `internal/model/virtiofsd_args.go`, `internal/hvm/hypervisor.go`
-
-누락:
-
-- `VirtiofsConfig.CommandArgs` exact assertion
-- `--socket-group` 포함/미포함 분기
-- thread pool size가 manifest CPU 수를 따르는지
-- `virtiofsdRecoiler`가 share 개수별 helper를 시작하는지
-- helper exit 시 재시작/종료 동작
-- context cancel 시 helper cleanup 완료 여부
-
-현재 `internal/model/virtiofsd_args_test.go`는 출력만 하므로 assertion 기반 golden test로 바꾸는 것이 우선이다.
+- 여러 share에 대한 `virtiofsdRecoiler` fan-out과 restart loop를 더 직접적으로 검증하는 테스트
+- child stdout/stderr capture와 exit error formatting의 상세 assertion
+- 실제 `cloud-hypervisor`/`virtiofsd` binary를 사용하는 privileged integration evidence
 
 ### Console and terminal helpers
 
@@ -184,14 +132,11 @@ id hvm
 
 ## 단위 테스트 우선순위 제안
 
-1. `VirtiofsConfig.CommandArgs` assertion test로 print-only smoke 제거
-2. 출력 위주 util 테스트(`mac`, `unit`, `str`)를 assertion 기반 table test로 강화
-3. `Config`/`hvm.Load` path edge case table test 추가
-4. `ClientAction` invalid/error path와 `entry.Client` bodyful YAML decode test 추가
-5. `start`/`shutdown` 등 entrypoint signal/cancel wiring test 추가
-6. fake Unix socket 기반 `clientImpl` method/status test 추가
-7. `Hypervisor.Start` readiness/error path를 fake executable/client로 분리 테스트
-8. local `Benchmark*` 추가: config assembly, virtiofs args, fake socket client RTT
+1. `console` / `console-file` / `util.OpenPty`의 PTY attach·cancel·path 계산 테스트 추가
+2. `virtiofsdRecoiler`의 multi-share fan-out, restart loop, 종료 순서 assertion 보강
+3. child stdout/stderr capture와 exit error formatting 상세 검증 추가
+4. `start`/`shutdown`/`console` entrypoint의 실제 signal wiring을 subprocess 수준으로 확장
+5. local `Benchmark*` 추가: config assembly, virtiofs args, fake socket client RTT
 
 통합 host benchmark harness(`start`/readiness/virtiofsd fan-out/shutdown`)는 위 단위 테스트가 안정된 뒤 별도 작업으로 분리한다.
 

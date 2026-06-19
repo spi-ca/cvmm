@@ -20,7 +20,7 @@ func Shutdown(name, nodeName string) {
 	// Shutdown cancels its pid-file termination workflow when interrupted.
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	defer signal.Ignore(syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	defer signal.Stop(exitSignal)
 	go func() {
 		select {
 		case <-ctx.Done():
