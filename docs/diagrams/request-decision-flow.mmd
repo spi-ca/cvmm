@@ -16,7 +16,7 @@ sequenceDiagram
     Load->>Model: LoadConfig(node-root/node/config.yaml)
     Model-->>Load: Config(cpus,mem,uuid,image,disk[],directory[])
     Load->>Model: VMConfig(...) + VirtiofsConfig(...)
-    Model-->>Load: cloud-hypervisor payload + per-share virtiofsd config
+    Model-->>Load: cloud-hypervisor payload + per-share virtiofsd socket/pid config
     Load-->>Entry: Hypervisor with socket/pid/run paths
     Entry->>HV: Start(ctx)
     HV->>HV: acquire cvmm.pid and remove stale API socket
@@ -27,7 +27,7 @@ sequenceDiagram
     end
     HV->>CH: VmCreate(VmConfig JSON)
     HV->>VFS: start reconciler goroutines for directory[]
-    VFS-->>HV: per-share socket ready / process status
+    Note over VFS: helper goroutines record per-share pid files asynchronously
     HV->>CH: VmBoot
     CH-->>Guest: boot kernel/root disk, attach net/fs/console
     par steady state

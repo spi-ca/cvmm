@@ -47,6 +47,7 @@
 - `image`는 이미지 저장소 하위 디렉터리 이름이다.
 - `disk`는 writable block device 목록이다. relative path는 노드 디렉터리 기준으로 해석한다.
 - `directory`는 virtio-fs export 목록이다. 각 항목마다 `virtiofsd` 인스턴스를 별도로 만든다.
+- `directory` 항목의 basename은 share별 guest tag, socket, pid suffix로 쓰이므로 중복되면 manifest load가 실패해야 한다.
 - `net_mac_addr`, `net_if_name`가 없으면 런타임 기본값을 생성한다.
 
 ## CLI 요구사항
@@ -69,9 +70,10 @@
 
 - `cloud-hypervisor` 바이너리 경로를 지정할 수 있어야 한다.
 - `virtiofsd` 바이너리 경로를 지정할 수 있어야 한다.
-- pid file, API socket, virtiofs socket은 노드 `run/` 디렉터리 아래에 놓는다.
+- pid file, API socket, virtiofs socket, virtiofs helper pid file은 노드 `run/` 디렉터리 아래에 놓는다.
 - `--runas`가 주어지면 `cloud-hypervisor` child process credential 전환을 적용할 수 있어야 한다.
 - `virtiofsd` helper 권한은 서비스 계정, capability, `--socket-group`, shared-directory, absolute-path directory, and submount exposure 모델에 따라 관리되어야 한다.
+- `virtiofsd` helper pid file은 share별 경로로 기록되고 helper 종료 후 정리되어야 한다.
 - 시작 시 중복 pid file과 이미 실행 중인 프로세스를 감지해야 한다.
 
 ## 비목표

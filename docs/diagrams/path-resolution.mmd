@@ -24,13 +24,19 @@ flowchart TD
     shareRel -- yes --> shareAbs["virtiofsd Directory = path"]
     shareRel -- no --> shareNode["join(nodeBasePath, directory)"]
     shares --> basename["basename(directory)"]
+    basename --> basenameUnique{"basename unique?"}
+    basenameUnique -- no --> rejectShare["reject manifest\nshared tag/socket/pid suffix"]
+    basenameUnique -- yes --> runDir
 
     runDir --> pid["cvmm.pid"]
     runDir --> chPid["cloudhypervisor.pid"]
     runDir --> apiSock["cloudhypervisor.sock"]
     runDir --> vfsTemplate["virtiofs socket template"]
-    basename --> vfsSock["AppendFileSuffix(template, basename)\nvirtiofs_<name>.sock"]
+    runDir --> vfsPidTemplate["virtiofs pid template"]
+    basenameUnique -- yes --> vfsSock["AppendFileSuffix(socket template, basename)\nvirtiofs_<name>.sock"]
+    basenameUnique -- yes --> vfsPid["AppendFileSuffix(pid template, basename)\nvirtiofs_<name>.pid"]
     vfsTemplate --> vfsSock
+    vfsPidTemplate --> vfsPid
 
     subgraph syscalls["Representative host operations"]
         open["open/read YAML"]
@@ -47,5 +53,6 @@ flowchart TD
     pid -.-> pidfile
     chPid -.-> pidfile
     vfsSock -.-> exec
+    vfsPid -.-> pidfile
     flags -.-> exec
     runDir -.-> signal

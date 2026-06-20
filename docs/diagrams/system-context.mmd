@@ -19,7 +19,7 @@ flowchart LR
 
     subgraph runtime["Runtime processes and sockets"]
         ch["cloud-hypervisor\nUnix API socket + pid"]
-        vfs["virtiofsd per share\nUnix socket"]
+        vfs["virtiofsd per share\nUnix socket + cvmm-managed pid"]
         pty["guest console PTY"]
     end
 

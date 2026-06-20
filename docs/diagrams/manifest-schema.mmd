@@ -19,6 +19,7 @@ flowchart TD
     subgraph resolution["경로/기본값 해석"]
         imageBase["image-root/image\nvmlinuz\noptional initramfs.img\nroot.img"]
         diskRule{"disk path\nabsolute?"}
+        basenameRule{"directory basename\nunique?"}
         dirRule{"directory path\nabsolute?"}
         defaults["generate missing\nMAC and TAP name"]
         cmd["prepend systemd.machine_id\nand join cmdline[]"]
@@ -26,7 +27,7 @@ flowchart TD
 
     subgraph vmcfg["생성되는 런타임 설정"]
         payload["VmConfig payload\nCPU, memory, platform, kernel, disks, net, fs"]
-        vfs["[]VirtiofsConfig\nsocket path, tag, directory\nthread pool, socket group"]
+        vfs["[]VirtiofsConfig\nsocket path, pid path, tag, directory\nthread pool, socket group"]
     end
 
     cfg --> required
@@ -41,7 +42,9 @@ flowchart TD
     disk --> diskRule
     diskRule -- yes --> diskAbs["use exact host path"] --> payload
     diskRule -- no --> diskRel["join node-root/node/disk"] --> payload
-    directory --> dirRule
+    directory --> basenameRule
+    basenameRule -- no --> reject["reject manifest\ntag/socket/pid collision"]
+    basenameRule -- yes --> dirRule
     dirRule -- yes --> dirAbs["use exact host directory"] --> vfs
     dirRule -- no --> dirRel["join node-root/node/directory"] --> vfs
     directory --> tag["tag/socket suffix\nbasename(directory)"] --> vfs

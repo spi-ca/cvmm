@@ -12,13 +12,13 @@ flowchart LR
     subgraph host["Host access required"]
         image["image-root\nread kernel/initramfs/root"]
         node["node-root\nconfig, disks, shares"]
-        run["node run/\npid files + Unix sockets"]
+        run["node run/\ncvmm/cloud-hypervisor pid\nvirtiofs pid + Unix sockets"]
         devices["/dev/kvm\n/dev/net/tun"]
     end
 
     subgraph children["Managed child processes"]
         ch["cloud-hypervisor\nmay switch credentials\nto --runas user"]
-        vfs["virtiofsd per share\nruns as service account\nsocket group may use --runas primary group"]
+        vfs["virtiofsd per share\nruns as service account\ncvmm records helper pid\nsocket group may use --runas primary group"]
     end
 
     subgraph guest["Guest-visible result"]

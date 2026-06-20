@@ -14,11 +14,14 @@ flowchart LR
     diskRule -- yes --> diskAbs["attach exact host path"]
     diskRule -- no --> diskNode["attach node-root/node/disk filesystem path"]
 
-    directory --> dirRule{"path absolute?"}
+    directory --> baseRule{"basename unique?"}
+    baseRule -- no --> reject["reject manifest\nduplicate tag/socket/pid suffix"]
+    baseRule -- yes --> dirRule{"path absolute?"}
     dirRule -- yes --> dirAbs["export exact host directory"]
     dirRule -- no --> dirNode["export node-root/node/directory"]
     directory --> tag["virtio-fs tag = basename(directory)"]
     tag --> socket["socket = run/virtiofs_<tag>.sock"]
+    tag --> pidfile["pid = run/virtiofs_<tag>.pid"]
 
     net --> defaultNet["generate MAC and vmtap-* if omitted"]
     cpuMem --> vmPayload["VmConfig fields\ncpus, memory, platform UUID, cmdline"]
@@ -29,6 +32,7 @@ flowchart LR
     dirAbs --> vfs["VirtiofsConfig + virtiofsd helper"]
     dirNode --> vfs
     socket --> vfs
+    pidfile --> vfs
     vfs --> vm
     defaultNet --> vm
     vmPayload --> vm

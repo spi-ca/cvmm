@@ -87,7 +87,7 @@ directory:
 
 - `image`는 `<image-root>/<image>`를 가리킨다.
 - `disk[]`의 relative path는 node directory 기준 writable disk로 붙는다.
-- `directory[]`의 각 항목은 virtio-fs 공유 디렉터리와 별도 `virtiofsd` process로 매핑된다.
+- `directory[]`의 각 항목은 virtio-fs 공유 디렉터리와 별도 `virtiofsd` process로 매핑된다. basename은 guest tag/socket/pid suffix로 쓰이므로 중복 basename은 거부된다.
 - `net_mac_addr`, `net_if_name`가 비어 있으면 런타임에서 생성된다.
 - `initramfs.img`가 없거나 디렉터리면 initramfs 없이 기동한다.
 

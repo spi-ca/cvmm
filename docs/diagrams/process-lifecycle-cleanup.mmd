@@ -14,6 +14,7 @@ flowchart LR
         create --> createOK{"create ok?"}
         createOK -- yes --> helpers["Start virtiofsd\nreconciler"]
         helpers --> boot["vm.boot"]
+        helpers -. async helper lifecycle .-> helperPid["Record per-share\nvirtiofs pid files"]
         boot --> bootOK{"boot ok?"}
         bootOK -- yes --> running["Running\nmonitor VM/helpers"]
     end
@@ -41,6 +42,6 @@ flowchart LR
         exited -- no --> kill["Force kill child"]
         exited -- yes --> stopHelpers["Cancel helpers"]
         kill --> stopHelpers
-        stopHelpers --> cleanup["Remove owned\npid/socket state\ncollect errors"]
+        stopHelpers --> cleanup["Remove owned\npid/socket state\nincluding virtiofs pid\ncollect errors"]
         cleanup --> stopped["Stopped"]
     end

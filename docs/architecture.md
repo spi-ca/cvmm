@@ -59,8 +59,9 @@ entry.Console
 - `cloudhypervisor.pid`
 - `cloudhypervisor.sock`
 - `virtiofs*.sock`
+- `virtiofs*.pid`
 
-문서나 도구는 이 위치를 hard-code하기보다 flag 기반 경로 계산을 따라야 한다.
+`virtiofs*.sock`와 `virtiofs*.pid`는 manifest `directory` 항목의 basename suffix를 템플릿에 붙여 share별로 계산한다. 같은 basename은 guest tag/socket/pid 충돌을 만들므로 `hvm.Load`가 거부한다. 문서나 도구는 이 위치를 hard-code하기보다 flag 기반 경로 계산을 따라야 한다.
 
 ## 주석 커버리지 경계
 
@@ -70,7 +71,7 @@ entry.Console
 
 - 서비스 예시는 systemd에서 `cvmm start %i`를 실행한다.
 - `--runas` credential 전환은 현재 `cloud-hypervisor` 자식 프로세스에 적용된다.
-- `virtiofsd` helper는 서비스 계정과 그 계정의 capability로 실행되며, `--runas` 사용자의 primary group이 `--socket-group`으로 전달될 수 있다.
+- `virtiofsd` helper는 서비스 계정과 그 계정의 capability로 실행되며, `--runas` 사용자의 primary group이 `--socket-group`으로 전달될 수 있다. helper pid는 `cvmm`가 share별 `virtiofs*.pid`에 기록하고 helper 종료 시 정리한다.
 - manifest `directory`는 절대경로도 허용하고 `virtiofsd`는 `--announce-submounts`를 사용하므로, 공유 디렉터리와 하위 mount 노출은 manifest 작성 권한과 서비스 계정/capability 모델에 좌우된다.
 - 실제 권한 요구사항은 tap, socket, shared directory, ambient capability 설정 가능 여부에 좌우된다.
 
