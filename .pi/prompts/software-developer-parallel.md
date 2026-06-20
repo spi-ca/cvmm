@@ -21,7 +21,7 @@ Required behavior:
 7. Run QA and review, preferably with `software-qa` and `software-reviewer` in a parallel verification stage.
 8. Repeat fixes until findings and blockers are cleared.
 
-When composing validation commands for this repo, prefer touched-surface checks such as `go test ./...`, YAML parsing for manifests/OpenAPI files, `systemd-analyze verify contrib/cvmm@.service` when the service unit is changed and the tool exists, and JSON/frontmatter/inventory checks for `.pi` resources.
+When composing validation commands for this repo, prefer touched-surface checks such as `gofmt -w .`, `go vet ./...`, and `go test ./...` for Go changes; YAML parsing for manifests/OpenAPI files; `systemd-analyze verify contrib/cvmm@.service` when the service unit is changed and `systemd-analyze` plus host-installed `/usr/bin/cvmm` or an equivalent unit override path exist; and `go test ./...`, JSON/frontmatter/inventory checks, and `git diff --check` for `.pi`/docs-only resources.
 
 Recommended parallel implementation shape:
 

@@ -18,9 +18,9 @@ Do not use this skill for routine docs-only edits unless the task explicitly ask
 ## Procedure
 
 1. Pick the validation surfaces that match the changed files.
-   - Go code, CLI flags, command builders, or config structs: run `go test ./...`.
+   - Go code, CLI flags, command builders, or config structs: run `gofmt -w .`, `go vet ./...`, and `go test ./...`.
    - YAML/OpenAPI files: parse the touched files with a local YAML parser.
-   - `contrib/cvmm@.service`: run `systemd-analyze verify contrib/cvmm@.service` when the tool is available.
+   - `contrib/cvmm@.service`: run `systemd-analyze verify contrib/cvmm@.service` when `systemd-analyze` and host-installed `/usr/bin/cvmm` or an equivalent unit override path are available.
 2. If timing evidence is requested, wrap the exact repo-native command with a non-root timing tool such as `/usr/bin/time` and record the full command line.
 3. Prefer focused measurements around cvmm behavior, for example start/shutdown flows, command construction, manifest loading, or relevant tests.
 4. Keep raw command output as the source of truth and write summaries separately.
@@ -30,14 +30,14 @@ Do not use this skill for routine docs-only edits unless the task explicitly ask
 ## Pitfalls
 
 - Do not require root-only workflows or global system mutation.
-- Do not assume `cloud-hypervisor`, `virtiofsd`, or `systemd-analyze` exist; report missing tools explicitly.
+- Do not assume `cloud-hypervisor`, `virtiofsd`, `systemd-analyze`, or host-installed `/usr/bin/cvmm` exist; report missing tools or binary-path prerequisites explicitly.
 - Do not treat YAML parsing alone as semantic proof when Go config builders changed.
 - Do not reuse unrelated legacy filesystem semantics, hidden-path rules, or benchmark claims in cvmm evidence.
 - Do not claim timing evidence without the exact command line and environment notes.
 
 ## Verification
 
-- Touched Go code passes `go test ./...`.
+- Touched Go code is formatted and passes `go vet ./...` and `go test ./...`.
 - Touched YAML/OpenAPI files parse successfully.
-- The touched systemd unit verifies successfully, or the missing verifier is reported.
+- The touched systemd unit verifies successfully, or missing `systemd-analyze`/`/usr/bin/cvmm` prerequisites are reported.
 - Any recorded measurement includes command lines, environment notes, and the corresponding correctness checks.

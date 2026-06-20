@@ -25,7 +25,7 @@ Do not use this skill when:
 
 - Model: `openai-codex/gpt-5.4`
 - Thinking: `high`
-- Tools: `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`
+- Tools: `read`, `find`, `ls`, `bash`, `edit`, `write`
 
 ## Procedure
 
@@ -80,10 +80,10 @@ Examples that are usually not safe to split without a merge step:
 
 Match validation to the touched files:
 
-- Go code: `go test ./...`
+- Go code: `gofmt -w .`, `go vet ./...`, and `go test ./...`
 - YAML/OpenAPI: parse the touched YAML files with a local parser
-- systemd unit: `systemd-analyze verify contrib/cvmm@.service` when available
-- `.pi`/docs-only work: JSON parse, frontmatter spot check, inventory listings, `git diff --check`
+- systemd unit: `systemd-analyze verify contrib/cvmm@.service` when `systemd-analyze` and host-installed `/usr/bin/cvmm` or an equivalent unit override path are available
+- `.pi`/docs-only work: `go test ./...`, JSON parse, frontmatter spot check, inventory listings, and `git diff --check`
 
 ## Quality Gates
 

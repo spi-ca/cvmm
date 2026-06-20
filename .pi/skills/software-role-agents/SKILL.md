@@ -142,10 +142,10 @@ Use this chain for sufficiently large tasks. Run `parallel-development` only whe
 
 Pick only the checks that match the changed files:
 
-- Go source, CLI flags, config builders, or internal packages: keep changed Go files formatted and run `go test ./...`.
+- Go source, CLI flags, config builders, or internal packages: keep changed Go files formatted and run `go vet ./...` and `go test ./...`.
 - YAML or OpenAPI files: parse the touched files with a local YAML parser, for example `python3` + `yaml.safe_load`, or another repo-approved parser.
-- systemd unit changes: run `systemd-analyze verify contrib/cvmm@.service` when the tool is available; otherwise report the missing tool clearly.
-- `.pi` or docs-only changes: parse JSON files, spot-check frontmatter, run inventory listings, and run `git diff --check`.
+- systemd unit changes: run `systemd-analyze verify contrib/cvmm@.service` when `systemd-analyze` and host-installed `/usr/bin/cvmm` or an equivalent unit override path are available; otherwise report the missing prerequisite clearly.
+- `.pi` or docs-only changes: run `go test ./...`, parse JSON files, spot-check frontmatter, run inventory listings, and run `git diff --check`.
 - Changes to cloud-hypervisor or virtiofsd command construction, socket paths, manifests, or start/stop flows should include focused evidence from tests or inspected command/config outputs.
 
 ## Single-Agent Fallback

@@ -22,7 +22,7 @@ Role set:
 
 Required for every task: user representative, systems engineer when system constraints matter, designer, implementer, QA, and reviewer. Use `software-developer` only when the design identifies at least one independent work package; otherwise document why it was skipped and implement sequentially.
 
-When defining validation commands for this repo, prefer the touched-surface checks that actually apply: `go test ./...` for Go changes, YAML parsing for manifests/OpenAPI files, `systemd-analyze verify contrib/cvmm@.service` for the service unit when available, and JSON/frontmatter/inventory checks for `.pi` resources.
+When defining validation commands for this repo, prefer the touched-surface checks that actually apply: `gofmt -w .`, `go vet ./...`, and `go test ./...` for Go changes; YAML parsing for manifests/OpenAPI files; `systemd-analyze verify contrib/cvmm@.service` for the service unit when `systemd-analyze` and host-installed `/usr/bin/cvmm` or an equivalent unit override path are available; and `go test ./...`, JSON/frontmatter/inventory checks, and `git diff --check` for `.pi`/docs-only resources.
 
 Recommended chain shape:
 

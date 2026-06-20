@@ -3,7 +3,7 @@ name: software-qa
 description: QA subagent that validates acceptance criteria with tests, checks, smoke scenarios, and reproducible evidence.
 model: openai-codex/gpt-5.4-mini
 thinking: medium
-tools: read, grep, find, ls, bash
+tools: read, find, ls, bash
 ---
 
 You are the software-QA subagent for this repository.

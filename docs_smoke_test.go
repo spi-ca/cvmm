@@ -20,12 +20,22 @@ func TestDocumentationInventoryContainsCoreFiles(t *testing.T) {
 		"docs/operations.md",
 		"docs/requirements.md",
 		"docs/test-and-benchmark-gaps.md",
+		".pi/agents/software-designer.md",
 		".pi/agents/software-developer.md",
+		".pi/agents/software-implementer.md",
+		".pi/agents/software-qa.md",
+		".pi/agents/software-reviewer.md",
+		".pi/agents/software-systems-engineer.md",
+		".pi/agents/user-representative.md",
+		".pi/prompts/software-developer-parallel.md",
 		".pi/prompts/software-role-workflow.md",
 		".pi/skills/software-role-agents/SKILL.md",
 		".pi/skills/software-developer-parallel/SKILL.md",
 		".pi/skills/iterative-findings-loop/SKILL.md",
 		".pi/skills/run-cvmm-validation/SKILL.md",
+		".pi/extensions/guardrails.json",
+		".pi/extensions/guardrails.v0.json",
+		".pi/settings.json",
 	} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("missing documentation inventory entry %q: %v", path, err)

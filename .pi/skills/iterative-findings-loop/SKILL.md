@@ -31,10 +31,10 @@ Use this skill when QA or review findings require one or more fix-and-revalidate
 
 Choose the checks that match the touched files:
 
-- Go code: `go test ./...`
+- Go code: `gofmt -w .`, `go vet ./...`, and `go test ./...`
 - YAML/OpenAPI files: parse the touched files with a local YAML parser
-- systemd unit changes: `systemd-analyze verify contrib/cvmm@.service` when available
-- `.pi`/docs-only changes: JSON parse, frontmatter spot check, inventory listings, `git diff --check`
+- systemd unit changes: `systemd-analyze verify contrib/cvmm@.service` when `systemd-analyze` and host-installed `/usr/bin/cvmm` or an equivalent unit override path are available
+- `.pi`/docs-only changes: `go test ./...`, JSON parse, frontmatter spot check, inventory listings, `git diff --check`
 
 If a required local tool is unavailable, report that limitation explicitly instead of marking the check as passed.
 
