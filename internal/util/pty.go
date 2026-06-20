@@ -34,15 +34,15 @@ func OpenPty(ctx context.Context, input *os.File, output *os.File, ptyPath strin
 		_ = p.Close()
 	}()
 
-	err = p.Add(inputFd, tfd)
-	if err != nil {
-		return err
-	}
-
-	var handlers []TerminalPollReader
-
 	isTerminal := term.IsTerminal(inputFd)
+	pollCtx := ctx
+	handlers := []TerminalPollReader{NewTerminalPollCopier(tfd, output)}
+	pollFDs := []int{tfd}
+
 	if isTerminal {
+		pollFDs = append([]int{inputFd}, pollFDs...)
+		handlers = append([]TerminalPollReader{NewTerminalPollCopier(inputFd, ttyFile)}, handlers...)
+
 		InfoLog.Printf("opening console pty(%s)", ptyPath)
 		InfoLog.Printf("Press ESC+( keystroke to exit this session.")
 
@@ -57,46 +57,105 @@ func OpenPty(ctx context.Context, input *os.File, output *os.File, ptyPath strin
 
 		handlers = append(handlers, NewEscapeHandler(inputFd))
 	} else {
-		closer := make(chan struct{})
+		var cancel context.CancelFunc
+		pollCtx, cancel = context.WithCancel(ctx)
+		defer cancel()
+
+		copyDone := make(chan struct{})
+		defer func() { <-copyDone }()
 		go func() {
-			defer close(closer)
-			_, _ = io.Copy(ttyFile, os.Stdin)
+			defer close(copyDone)
+			if copyErr := copyPipeInputToPTY(pollCtx, input, ttyFile); copyErr != nil && !errors.Is(copyErr, context.Canceled) {
+				ErrLog.Printf("failed to copy pipe input to PTY: %v", copyErr)
+			}
+			cancel()
 		}()
 
 		defer func() {
-			_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
-			_, err = io.CopyN(output, ttyFile, 80)
-			if errors.Is(err, io.EOF) {
-				return
-			}
 			for {
 				_ = ttyFile.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
-				writeBytes, err := io.Copy(output, ttyFile)
-				if err != nil {
-					break
+				writeBytes, copyErr := io.Copy(output, ttyFile)
+				if errors.Is(copyErr, io.EOF) {
+					return
 				}
-				select {
-				case <-ctx.Done():
-					break
-				case <-closer:
-					if writeBytes == 0 {
-						break
-					}
-				default:
+				if copyErr != nil && writeBytes == 0 {
+					return
+				}
+				if writeBytes == 0 {
+					return
 				}
 			}
 		}()
 	}
 
-	handlers = append(handlers, NewTerminalPollCopier(inputFd, ttyFile))
-	handlers = append(handlers, NewTerminalPollCopier(tfd, output))
+	err = p.Add(pollFDs...)
+	if err != nil {
+		return err
+	}
 
 	err = p.Register(handlers...)
 	if err != nil {
 		return fmt.Errorf("failed to register TerminalPollReaders: %w", err)
 	}
 
-	p.Wait(ctx)
+	p.Wait(pollCtx)
+
+	return nil
+}
+
+func copyPipeInputToPTY(ctx context.Context, input *os.File, ttyFile *os.File) error {
+	inputFD := int(input.Fd())
+	if err := unix.SetNonblock(inputFD, true); err != nil {
+		return fmt.Errorf("set nonblock on stdin pipe: %w", err)
+	}
+
+	buf := make([]byte, 32*1024)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		n, err := input.Read(buf)
+		if n > 0 {
+			if writeErr := writePTYNonblocking(ctx, ttyFile, buf[:n]); writeErr != nil {
+				return writeErr
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if errors.Is(err, unix.EAGAIN) {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
+}
+
+func writePTYNonblocking(ctx context.Context, ttyFile *os.File, buf []byte) error {
+	for len(buf) > 0 {
+		w, err := ttyFile.Write(buf)
+		buf = buf[w:]
+		if err == nil {
+			continue
+		}
+		if errors.Is(err, unix.EAGAIN) {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(10 * time.Millisecond):
+				continue
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return err
+	}
 
 	return nil
 }

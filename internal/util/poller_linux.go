@@ -232,7 +232,7 @@ func (p *terminalPoll) Register(pr ...TerminalPollReader) error {
 	p.l.Lock()
 	defer p.l.Unlock()
 
-	if p.handler == nil {
+	if p.epfd == 0 || p.handler == nil {
 		return fmt.Errorf("terminalPoll not opened")
 	}
 

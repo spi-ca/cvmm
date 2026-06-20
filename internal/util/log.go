@@ -35,8 +35,11 @@ func (w LogWriter) Write(b []byte) (int, error) {
 			continue
 		}
 
-		if crIndex := strings.LastIndexByte(trimmed, '\r'); crIndex > 0 {
-			trimmed = trimmed[crIndex:]
+		if crIndex := strings.LastIndexByte(trimmed, '\r'); crIndex >= 0 {
+			trimmed = trimmed[crIndex+1:]
+		}
+		if len(trimmed) == 0 {
+			continue
 		}
 		_ = InfoLog.Output(1, trimmed)
 	}

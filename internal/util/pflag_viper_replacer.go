@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// pflagValue is a wrapper aroung *flags.flag
-// that implements FlagValue
+// pflagValue is a wrapper around *flags.Flag that implements viper.FlagValue.
 type pflagViperValue struct {
 	flag *flags.Flag
+	name string
 }
 
 // HasChanged returns whether the flag has changes or not.
@@ -17,8 +17,11 @@ func (p pflagViperValue) HasChanged() bool {
 	return p.flag.Changed
 }
 
-// Name returns the name of the flag.
+// Name returns the Viper key name for the wrapped flag.
 func (p pflagViperValue) Name() string {
+	if len(p.name) > 0 {
+		return p.name
+	}
 	return p.flag.Name
 }
 
@@ -40,10 +43,11 @@ type PFlagViperReplacer struct {
 
 // VisitAll iterates over all *flags.Flag inside the *flags.FlagSet.
 func (p PFlagViperReplacer) VisitAll(fn func(flag viper.FlagValue)) {
-	p.FlagSet.VisitAll(p.bindPFlagToViper)
-}
-
-// bindPFlagToViper adapts one pflag value to Viper binding semantics.
-func (r PFlagViperReplacer) bindPFlagToViper(flag *flags.Flag) {
-	_ = viper.BindFlagValue(r.Replacer.Replace(flag.Name), pflagViperValue{flag})
+	p.FlagSet.VisitAll(func(flag *flags.Flag) {
+		name := flag.Name
+		if p.Replacer != nil {
+			name = p.Replacer.Replace(name)
+		}
+		fn(pflagViperValue{flag: flag, name: name})
+	})
 }
