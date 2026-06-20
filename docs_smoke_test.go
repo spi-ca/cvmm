@@ -25,7 +25,7 @@ func TestDocumentationInventoryContainsCoreFiles(t *testing.T) {
 		".pi/skills/software-role-agents/SKILL.md",
 		".pi/skills/software-developer-parallel/SKILL.md",
 		".pi/skills/iterative-findings-loop/SKILL.md",
-		".pi/skills/run-screenfs-benchmarks/SKILL.md",
+		".pi/skills/run-cvmm-validation/SKILL.md",
 	} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("missing documentation inventory entry %q: %v", path, err)

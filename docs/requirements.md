@@ -79,7 +79,7 @@
 - 이미지 빌드 시스템 제공
 - 스케줄러/클러스터 오케스트레이터 제공
 - guest OS provisioning 자동화
-- 레거시 ScreenFS/FUSE 계약을 현재 `cvmm` 요구사항으로 계승
+- 현재 `cvmm` 범위와 무관한 레거시 계약을 요구사항으로 계승
 - 현재 저장소에 없는 formal benchmark harness를 이미 있는 것처럼 문서화
 
 ## 검증 요구사항

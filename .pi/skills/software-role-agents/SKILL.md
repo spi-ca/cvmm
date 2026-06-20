@@ -219,6 +219,6 @@ Before finishing, confirm all of the following:
 
 - Do not skip required roles just because the task feels familiar.
 - Do not parallelize packages that share files, sockets, service definitions, or unresolved design decisions.
-- Do not use ScreenFS- or FUSE-specific semantics as quality gates for this repo.
+- Do not use unrelated legacy filesystem semantics as quality gates for this repo.
 - Do not report unrun validations as passing.
 - Do not stop at a plan if the request requires implementation and current evidence.

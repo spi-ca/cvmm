@@ -122,4 +122,4 @@ Match validation to the touched files:
 - Do not assign the same file to multiple lanes.
 - Do not treat one lane's validation as proof for another lane.
 - Do not bypass project-local subagent confirmation.
-- Do not use unrelated ScreenFS/FUSE benchmark expectations for cvmm work.
+- Do not use unrelated legacy benchmark expectations for cvmm work.

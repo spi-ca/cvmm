@@ -49,7 +49,7 @@ If a required local tool is unavailable, report that limitation explicitly inste
 - Do not stop after listing findings; connect them to concrete fixes and fresh validation.
 - Do not report stale QA or review results as current evidence.
 - Do not leave blocking findings unresolved just because a non-blocking subset passed.
-- Do not reintroduce unrelated ScreenFS/FUSE validation language for this repo.
+- Do not reintroduce unrelated legacy validation language for this repo.
 
 ## Verification
 

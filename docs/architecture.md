@@ -92,4 +92,4 @@ entry.Console
 - client/model utility helpers
 - 일부 hypervisor helper 동작
 
-문서에서 Rust/FUSE 전용 테스트 명령이나 구조를 현재 아키텍처처럼 설명하지 않는다.
+문서에서 현재 `cvmm` 구조와 무관한 레거시 테스트 명령이나 구조를 현재 아키텍처처럼 설명하지 않는다.

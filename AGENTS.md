@@ -30,9 +30,9 @@ Some `client` actions read YAML request bodies from stdin.
 
 ## Editing guardrails
 
-- Do not describe this repository as ScreenFS/FUSE/Rust.
+- Do not describe this repository with unrelated legacy project identities or stacks.
 - Keep docs aligned with `main.go`, `internal/entry`, `internal/hvm`, and `internal/model`.
-- Do not reintroduce legacy ScreenFS artifact archives; add only explicit `cvmm` evidence with provenance.
+- Do not reintroduce legacy non-cvmm artifact archives; add only explicit `cvmm` evidence with provenance.
 - Do not modify `docs/guidelines/**` unless explicitly requested.
 
 ## Validation

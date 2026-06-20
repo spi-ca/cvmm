@@ -1,6 +1,6 @@
 # cvmm benchmarks
 
-현재 저장소에는 `cvmm`용 공식 benchmark harness가 없다. 따라서 이 문서는 ScreenFS의 이전 benchmark 계약을 계승하지 않고, 앞으로의 측정 규칙만 정의한다. 구체적인 benchmark 후보와 테스트 갭은 [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md)를 함께 본다.
+현재 저장소에는 `cvmm`용 공식 benchmark harness가 없다. 따라서 이 문서는 이전 레거시 benchmark 계약을 계승하지 않고, 앞으로의 측정 규칙만 정의한다. 구체적인 benchmark 후보와 테스트 갭은 [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md)를 함께 본다.
 
 ## 원칙
 
@@ -35,4 +35,4 @@
 ## 비목표
 
 - 현재 저장소에 없는 벤치마크 스크립트를 이미 존재하는 것처럼 문서화
-- 제거된 legacy ScreenFS artifact archive를 `cvmm` 성능 근거로 재사용
+- 제거된 legacy non-cvmm artifact archive를 `cvmm` 성능 근거로 재사용
