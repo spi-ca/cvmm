@@ -52,6 +52,8 @@ cvmm console-file PTY_ID
 cvmm client ACTION NODE_NAME
 ```
 
+`NODE_NAME`은 빈 값, `/`, `..`, 공백을 포함한 이름을 거부하며 안전한 basename 패턴(예: `node-01`, `vm.test`)만 허용한다.
+
 대표 플래그:
 
 - `--image-root`, `--node-root`
@@ -141,6 +143,8 @@ Console attach:
 cvmm console NODE_NAME
 cvmm console-file PTY_ID
 ```
+
+`console-file`은 host PTY를 직접 여는 trusted-admin 성격의 명령이다. 비-root로 실행할 때는 현재 euid가 소유한 `/dev/pts/<id>`만 붙을 수 있다.
 
 `start` lifecycle와 `client ACTION` 처리 흐름은 아래 다이어그램으로 확인할 수 있다.
 

@@ -495,7 +495,14 @@ func (i *Hypervisor) OpenConsole(parentCtx context.Context) error {
 		return fmt.Errorf("failed to open console: %w", err)
 	}
 
+	if info.Config.Console == nil {
+		return fmt.Errorf("failed to open console: console PTY not available")
+	}
+
 	ptyPath := info.Config.Console.File
+	if err := util.ValidateConsolePTYPath(ptyPath); err != nil {
+		return fmt.Errorf("failed to open console: %w", err)
+	}
 	return util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 }
 

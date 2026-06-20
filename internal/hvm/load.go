@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"syscall"
 
 	"amuz.es/src/spi-ca/cvmm/internal/model"
 	"amuz.es/src/spi-ca/cvmm/internal/util"
 	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 )
+
+var safeNodeNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 // Load resolves node/image/runtime paths, loads the node manifest, prepares runas credentials, and assembles Hypervisor runtime configuration.
 func Load(
@@ -24,7 +28,10 @@ func Load(
 	consoleRedirectToStd bool,
 	runAsUser string,
 ) (*Hypervisor, error) {
-	nodeBasePath := filepath.Join(nodeRoot, name)
+	nodeBasePath, err := resolveNodeBasePath(nodeRoot, name)
+	if err != nil {
+		return nil, err
+	}
 	volatileBasePath := filepath.Join(nodeBasePath, volatileDirectory)
 
 	pidPath := filepath.Join(volatileBasePath, pidFilename)
@@ -36,8 +43,6 @@ func Load(
 	var (
 		runAs     *syscall.Credential
 		groupName = ""
-
-		err error
 	)
 	if len(runAsUser) == 0 {
 		// An empty runas keeps child process credentials inherited from the manager.
@@ -102,4 +107,30 @@ func Load(
 	util.InfoLog.Printf("virtiofs config: %s", h.virtiofsdcfg)
 
 	return h, nil
+}
+
+func resolveNodeBasePath(nodeRoot, name string) (string, error) {
+	if err := validateNodeName(name); err != nil {
+		return "", err
+	}
+
+	nodeBasePath := filepath.Join(nodeRoot, name)
+	rel, err := filepath.Rel(nodeRoot, nodeBasePath)
+	if err != nil {
+		return "", fmt.Errorf("invalid node name %q: %w", name, err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("invalid node name %q", name)
+	}
+	return nodeBasePath, nil
+}
+
+func validateNodeName(name string) error {
+	if len(name) == 0 || name == "." || name == ".." {
+		return fmt.Errorf("invalid node name %q", name)
+	}
+	if strings.Contains(name, "..") || !safeNodeNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid node name %q", name)
+	}
+	return nil
 }

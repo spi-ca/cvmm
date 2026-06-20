@@ -82,6 +82,8 @@ go run . console NODE_NAME
 go run . console-file PTY_ID
 ```
 
+`console-file`은 host PTY를 직접 여는 trusted-admin 용도다. 비-root로 실행할 때는 현재 euid가 소유한 `/dev/pts/<id>`만 허용된다.
+
 ### cloud-hypervisor API 호출
 
 조회 예:
@@ -98,6 +100,7 @@ cat request.yaml | go run . client vm-resize NODE_NAME
 
 ## 4. 운영 점검 포인트
 
+- `NODE_NAME`은 안전한 basename(`node-01`, `vm.test` 등)만 사용하고 `/`, `..`, 공백은 피한다.
 - `<node-root>/<node>/config.yaml`이 실제 source of truth인지 확인
 - `<node-root>/<node>/run/`의 pid/socket 파일 충돌 여부 확인
 - `directory` 항목 수와 `virtiofsd` 프로세스 수가 일치하는지 확인

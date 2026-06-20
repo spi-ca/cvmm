@@ -38,9 +38,17 @@ func ConsoleFile(name string, ptyId int) {
 		"\n---",
 	)
 
-	ptyPath := filepath.Join("/dev/pts", strconv.Itoa(ptyId))
+	ptyPath := consolePtyPath(ptyId)
+	if err := util.ValidateDirectConsolePTYPath(ptyPath); err != nil {
+		panic(err)
+	}
+
 	err := util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func consolePtyPath(ptyId int) string {
+	return filepath.Join("/dev/pts", strconv.Itoa(ptyId))
 }

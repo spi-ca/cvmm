@@ -4,10 +4,52 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"amuz.es/src/spi-ca/cvmm/internal/util/sys"
 )
+
+func TestLoadRejectsInvalidNodeNames(t *testing.T) {
+	tmp := t.TempDir()
+	for _, nodeName := range []string{"", ".", "..", "../escape", "nested/node", "bad name", "node..name"} {
+		t.Run(nodeName, func(t *testing.T) {
+			_, err := Load(
+				nodeName,
+				filepath.Join(tmp, "images"), filepath.Join(tmp, "nodes"), "run",
+				"config.yaml",
+				"vmlinuz", "initramfs.img", "root.img",
+				"cvmm.pid", "cloudhypervisor.pid", "api.sock",
+				"virtiofs.sock",
+				"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+				false,
+				"",
+			)
+			if err == nil {
+				t.Fatal("Load() error = nil, want invalid node name rejection")
+			}
+			if !strings.Contains(err.Error(), "invalid node name") {
+				t.Fatalf("Load() error = %v, want invalid node name context", err)
+			}
+		})
+	}
+}
+
+func TestResolveNodeBasePathKeepsNodesInsideRoot(t *testing.T) {
+	nodeRoot := filepath.Join(t.TempDir(), "nodes")
+	nodeBasePath, err := resolveNodeBasePath(nodeRoot, "safe-node")
+	if err != nil {
+		t.Fatalf("resolveNodeBasePath() error = %v", err)
+	}
+
+	rel, err := filepath.Rel(nodeRoot, nodeBasePath)
+	if err != nil {
+		t.Fatalf("filepath.Rel() error = %v", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		t.Fatalf("resolveNodeBasePath() escaped root: nodeRoot=%q nodeBasePath=%q rel=%q", nodeRoot, nodeBasePath, rel)
+	}
+}
 
 func TestLoadRunAsPropagatesCredentialAndSocketGroup(t *testing.T) {
 	currentUser, err := user.Current()
