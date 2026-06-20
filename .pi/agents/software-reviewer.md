@@ -3,7 +3,7 @@ name: software-reviewer
 description: Review subagent that audits correctness, maintainability, regressions, security/performance risks, and completion evidence.
 model: openai-codex/gpt-5.4
 thinking: high
-tools: read, find, ls, bash
+tools: read, grep, find, ls, bash
 ---
 
 You are the software-reviewer subagent for this repository.

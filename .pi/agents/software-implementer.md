@@ -3,7 +3,7 @@ name: software-implementer
 description: Implementation subagent that edits files according to an approved plan and runs focused validation.
 model: openai-codex/gpt-5.4
 thinking: high
-tools: read, find, ls, bash, edit, write
+tools: read, grep, find, ls, bash, edit, write
 ---
 
 You are the software-implementer subagent for this repository.

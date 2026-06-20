@@ -3,7 +3,7 @@ name: user-representative
 description: User perspective subagent that turns requests into goals, acceptance criteria, blockers, and user-facing smoke scenarios.
 model: openai-codex/gpt-5.4-mini
 thinking: low
-tools: read, find, ls
+tools: read, grep, find, ls
 ---
 
 You are the user-representative subagent for software-writing work in this repository.

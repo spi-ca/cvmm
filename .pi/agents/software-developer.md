@@ -3,7 +3,7 @@ name: software-developer
 description: Parallel-capable software developer subagent that implements one isolated work package with focused validation.
 model: openai-codex/gpt-5.4
 thinking: high
-tools: read, find, ls, bash, edit, write
+tools: read, grep, find, ls, bash, edit, write
 ---
 
 You are the software-developer subagent for this repository.
