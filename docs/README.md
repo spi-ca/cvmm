@@ -16,6 +16,7 @@
 ## 필요할 때만 열 문서
 
 - [`commenting.md`](commenting.md) - Go package/function/type 주석 audit 기준
+- [`correctness-guardrail-evidence.md`](correctness-guardrail-evidence.md) - 문서/코드 correctness guardrail과 현재 evidence
 - [`benchmarks.md`](benchmarks.md) - 공식 benchmark harness 부재와 측정 규칙
 - [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md) - benchmark 후보와 테스트 gap 우선순위
 - [`performance-roadmap.md`](performance-roadmap.md) - 성능 후속 backlog
