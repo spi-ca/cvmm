@@ -1,10 +1,10 @@
 [Unit]
 Description=cloud-virtual-machine-manager node %i
-Wants=modprobe@tun.service modprobe@kvm.service modprobe@zfs.service
+Wants=modprobe@tun.service modprobe@kvm.service
 PartOf=machines.target
 Before=machines.target
-After=network.target syslog.target modprobe@tun.service modprobe@zfs.service modprobe@kvm.service
-RequiresMountsFor=/srv/vmm/images
+After=network.target syslog.target modprobe@tun.service modprobe@kvm.service
+RequiresMountsFor=/srv/vmm/images /srv/vmm/nodes
 
 [Service]
 Type=simple
