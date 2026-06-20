@@ -11,6 +11,8 @@ import (
 	"syscall"
 )
 
+var consoleFileOpenPty = util.OpenPty
+
 // ConsoleFile handles the cvmm console-file command entrypoint for a numeric PTY id.
 func ConsoleFile(name string, ptyId int) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -43,7 +45,7 @@ func ConsoleFile(name string, ptyId int) {
 		panic(err)
 	}
 
-	err := util.OpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
+	err := consoleFileOpenPty(ctx, os.Stdin, os.Stdout, ptyPath)
 	if err != nil {
 		panic(err)
 	}

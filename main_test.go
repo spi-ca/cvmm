@@ -78,6 +78,7 @@ func TestMainCLIEnvOverrideAndBinding(t *testing.T) {
 		"CLOUDHYPERVISOR_PATH=sh",
 		"VIRTIOFSD_PATH=sh",
 		"VIRTIOFS_SOCKET_FILENAME_TEMPLATE=virtiofs-env.sock",
+		"VIRTIOFS_PID_FILENAME_TEMPLATE=virtiofs-env.pid",
 	)
 
 	output, err := cmd.CombinedOutput()
@@ -90,6 +91,7 @@ func TestMainCLIEnvOverrideAndBinding(t *testing.T) {
 		"node.root=" + rt.nodeRoot,
 		"cloudhypervisor.api.filename=" + rt.apiFilename,
 		"virtiofs.socket.filename.template=virtiofs-env.sock",
+		"virtiofs.pid.filename.template=virtiofs-env.pid",
 		"cloudhypervisor.path=sh",
 	} {
 		if !strings.Contains(text, want) {

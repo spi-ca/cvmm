@@ -2,12 +2,45 @@ package model
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"amuz.es/src/spi-ca/cvmm/internal/util"
 	"github.com/google/uuid"
 )
+
+var benchmarkLoadConfigSink *Config
+
+func BenchmarkLoadConfig(b *testing.B) {
+	for _, size := range []struct {
+		name   string
+		disks  int
+		shares int
+	}{
+		{name: "small", disks: 1, shares: 1},
+		{name: "medium", disks: 4, shares: 4},
+		{name: "large", disks: 8, shares: 8},
+	} {
+		b.Run(size.name, func(b *testing.B) {
+			manifestPath := filepath.Join(b.TempDir(), "config.yaml")
+			if err := os.WriteFile(manifestPath, []byte(benchmarkManifest(size.disks, size.shares)), 0o644); err != nil {
+				b.Fatal(err)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				cfg, err := LoadConfig(manifestPath)
+				if err != nil {
+					b.Fatal(err)
+				}
+				benchmarkLoadConfigSink = cfg
+			}
+		})
+	}
+}
 
 func BenchmarkConfigVMConfigAssembly(b *testing.B) {
 	for _, size := range []struct {
@@ -54,6 +87,31 @@ func BenchmarkVirtiofsCommandArgs(b *testing.B) {
 			}
 		})
 	}
+}
+
+func benchmarkManifest(disks, shares int) string {
+	var b strings.Builder
+	b.WriteString(`cpus: 4
+mem: 4G
+uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
+image: bench-image
+cmdline:
+  - quiet
+  - panic=-1
+`)
+	if disks > 0 {
+		b.WriteString("disk:\n")
+		for idx := 0; idx < disks; idx++ {
+			fmt.Fprintf(&b, "  - data/disk-%02d.img\n", idx)
+		}
+	}
+	if shares > 0 {
+		b.WriteString("directory:\n")
+		for idx := 0; idx < shares; idx++ {
+			fmt.Fprintf(&b, "  - share/dir-%02d\n", idx)
+		}
+	}
+	return b.String()
 }
 
 func benchmarkConfig(disks, shares int) *Config {
