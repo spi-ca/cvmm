@@ -2,18 +2,9 @@
 
 ## 시스템 컨텍스트
 
-```text
-node config.yaml + image directory
-          |
-          v
-        cvmm
-          |
-          +--> cloud-hypervisor (API socket, VM lifecycle)
-          |
-          +--> virtiofsd per shared directory
-          |
-          +--> console/client helpers
-```
+![cvmm system context](diagrams/system-context.svg)
+
+원본 Mermaid 파일은 [`docs/diagrams/system-context.mmd`](diagrams/system-context.mmd)이며, 렌더링 규칙은 [`docs/diagrams/README.md`](diagrams/README.md)를 따른다.
 
 ## 패키지 구조
 
