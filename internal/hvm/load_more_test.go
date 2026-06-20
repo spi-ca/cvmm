@@ -36,6 +36,44 @@ func TestLoadRejectsInvalidNodeNames(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsDuplicateDirectoryBasenames(t *testing.T) {
+	tmp := t.TempDir()
+	imageRoot := filepath.Join(tmp, "images")
+	nodeRoot := filepath.Join(tmp, "nodes")
+	nodeName := "duplicate-share-node"
+	nodeBasePath := filepath.Join(nodeRoot, nodeName)
+	imageBasePath := filepath.Join(imageRoot, "test-image")
+
+	writeTestFile(t, filepath.Join(nodeBasePath, "config.yaml"), []byte(`cpus: 1
+mem: 1G
+uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
+image: test-image
+directory:
+  - /srv/team-a/config
+  - /srv/team-b/config
+`))
+	writeTestFile(t, filepath.Join(imageBasePath, "vmlinuz"), nil)
+	writeTestFile(t, filepath.Join(imageBasePath, "root.img"), nil)
+
+	_, err := Load(
+		nodeName,
+		imageRoot, nodeRoot, "run",
+		"config.yaml",
+		"vmlinuz", "initramfs.img", "root.img",
+		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
+		"virtiofs.sock", "virtiofs.pid",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		false,
+		"",
+	)
+	if err == nil {
+		t.Fatal("Load() error = nil, want duplicate directory basename rejection")
+	}
+	if !strings.Contains(err.Error(), `duplicate directory basename "config"`) {
+		t.Fatalf("Load() error = %v, want duplicate basename context", err)
+	}
+}
+
 func TestResolveNodeBasePathKeepsNodesInsideRoot(t *testing.T) {
 	nodeRoot := filepath.Join(t.TempDir(), "nodes")
 	nodeBasePath, err := resolveNodeBasePath(nodeRoot, "safe-node")

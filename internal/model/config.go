@@ -43,6 +43,19 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// ValidateDirectoryBasenames rejects duplicate virtio-fs share identifiers before paths, sockets, pids, or guest tags collide.
+func (i *Config) ValidateDirectoryBasenames() error {
+	seen := map[string]string{}
+	for _, dir := range i.Directory {
+		name := filepath.Base(dir)
+		if prior, ok := seen[name]; ok {
+			return fmt.Errorf("duplicate directory basename %q for %q and %q", name, prior, dir)
+		}
+		seen[name] = dir
+	}
+	return nil
+}
+
 // VirtiofsConfig derives one virtiofsd configuration for each manifest directory entry.
 func (i *Config) VirtiofsConfig(
 	diskImageDirectoryPath,

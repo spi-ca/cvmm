@@ -70,6 +70,9 @@ func Load(
 	if err != nil {
 		return nil, err
 	}
+	if err := cfg.ValidateDirectoryBasenames(); err != nil {
+		return nil, err
+	}
 
 	imageBasePath := filepath.Join(imageRoot, cfg.Image)
 	kernelPath := filepath.Join(imageBasePath, kernelFilename)

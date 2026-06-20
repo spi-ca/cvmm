@@ -79,6 +79,17 @@ func TestConfigBuildsVMAndVirtiofsConfig(t *testing.T) {
 	}
 }
 
+func TestConfigValidateDirectoryBasenamesRejectsCollisions(t *testing.T) {
+	cfg := Config{Directory: []string{"/srv/team-a/config", "/srv/team-b/config"}}
+	err := cfg.ValidateDirectoryBasenames()
+	if err == nil {
+		t.Fatal("ValidateDirectoryBasenames() error = nil, want duplicate basename rejection")
+	}
+	if !strings.Contains(err.Error(), `duplicate directory basename "config"`) {
+		t.Fatalf("ValidateDirectoryBasenames() error = %v, want duplicate basename context", err)
+	}
+}
+
 func writeConfigTestFile(t *testing.T, path string, content []byte) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
