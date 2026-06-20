@@ -4,16 +4,16 @@
 
 ## 현재 검증 상태
 
-현재 자동 테스트는 CLI 검증, entry dispatch, cloud-hypervisor client/수명주기, manifest/path 조립, util/sys helper까지 폭넓게 회귀를 막는다.
+현재 자동 테스트는 CLI validation과 env binding, entry/client/console signal wiring, cloud-hypervisor client/수명주기, manifest/path 조립, console PTY happy-path, terminal resize/restore, poller/PTy cancel·HUP, virtiofsd multi-share restart/shutdown ordering, 그리고 util/model/sys edge helper 상당수를 회귀 보호한다. 남는 갭은 주로 privileged host integration evidence와 host-installed binary/tooling 전제다.
 
-- `main_test.go` - usage 출력, invalid action, invalid `console-file` id 등 기본 CLI validation
-- `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go` - YAML stdin/stdout 처리, malformed stdin 차단, Unix socket client dispatch
-- `internal/hvm/client*_test.go` - action parsing, Unix socket transport, HTTP status mapping, redirect/dial failure
-- `internal/hvm/hypervisor*_test.go`, `internal/hvm/node_checker_test.go`, `internal/hvm/load_more_test.go` - pidfile 검증, readiness/cancel, start/shutdown fallback, manifest/path/runas 조립
-- `internal/model/api_test.go`, `internal/model/config*_test.go`, `internal/model/virtiofsd_args_test.go` - payload rendering, manifest decode, virtiofs args exact assertion
-- `internal/util/*_test.go`, `internal/util/sys/*_test.go` - MAC/IEC/string/range helper, pidfile/process helper, wait/cancel 동작
+- `main_test.go`, `docs_smoke_test.go` - usage 출력, invalid action, env override/binding, flag > env precedence, markdown local link 해석, core docs/`.pi` inventory smoke 검증
+- `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go`, `internal/entry/client_signal_test.go`, `internal/entry/console_file_test.go`, `internal/entry/signal_console_test.go` - YAML stdin/stdout 처리, malformed stdin 차단, Unix socket client dispatch, `start`/`shutdown`/`console`/`console-file` signal cancel, fake `VmInfo` + 실제 PTY attach, `console-file` missing-PTY panic 경로 검증
+- `internal/hvm/client*_test.go`, `internal/hvm/console_security_test.go`, `internal/hvm/hypervisor*_test.go`, `internal/hvm/node_checker_test.go`, `internal/hvm/load_more_test.go`, `internal/hvm/virtiofsd_recoiler_more_test.go` - action parsing, Unix socket transport, lifecycle/pidfile/readiness/cancel, manifest/path/runas 조립, `NODE_NAME` basename/path-traversal 차단, virtiofsd fan-out/restart/shutdown ordering, child stdout/stderr capture 및 `invoke` exit formatting 검증
+- `internal/model/api_test.go`, `internal/model/config*_test.go`, `internal/model/virtiofsd_args_test.go`, `internal/model/enum_text_test.go` - payload rendering, manifest decode, virtiofs args exact assertion, enum invalid-text/zero-value marshal edge
+- `internal/util/int_test.go`, `internal/util/mac_test.go`, `internal/util/str_test.go`, `internal/util/unit_test.go`, `internal/util/poller*_test.go`, `internal/util/execution_result_test.go`, `internal/util/key_seq_test.go`, `internal/util/log_test.go`, `internal/util/lookup_test.go`, `internal/util/pflag_viper_replacer_test.go`, `internal/util/pty_path_test.go`, `internal/util/terminal_test.go` - 값 파서, 문자열 helper, terminal raw-mode/resize/restore, poller rollback/add-remove/register edge, PTY open failure/cancel/HUP, non-terminal stdin 단일 copy 경로, direct `console-file` PTY ownership guard, exit/log/lookup/key-sequence/Viper/PTy-path edge
+- `internal/util/sys/proc*_test.go`, `internal/util/sys/unfilemode_test.go`, `internal/util/sys/user_test.go` - pidfile/process helper, Linux `/proc` 기반 대기, mode helper, user/group lookup error path
 
-아직 `Benchmark*` 함수나 공식 benchmark harness는 없다.
+공식 benchmark harness는 아직 없지만, 로컬 `Benchmark*` 함수는 `internal/model/bench_test.go`, `internal/hvm/bench_test.go`, `internal/util/sys/bench_test.go`에 추가되어 있다.
 
 ## 가능한 benchmark
 
@@ -23,13 +23,13 @@
 
 | 후보 | 대상 코드 | 측정값 | 비고 |
 | --- | --- | --- | --- |
-| manifest decode | `model.LoadConfig` | ns/op, allocs/op | 다양한 manifest 크기 fixture 필요 |
-| VM config assembly | `Config.VMConfig` | ns/op, allocs/op | disk/share 개수별 table benchmark |
-| virtiofs config/args | `Config.VirtiofsConfig`, `VirtiofsConfig.CommandArgs` | ns/op, allocs/op | `directory[]` fan-out 크기별 측정 |
-| `hvm.Load` path assembly | `hvm.Load` | ns/op, allocs/op | tempdir fixture, initramfs present/missing 분리 |
-| API client encoding/decoding | `clientImpl` against fake Unix socket HTTP server | round-trip latency, allocs/op | network 없는 local socket server 사용 |
-| PID helper | `sys.AcquirePidFile`, `ReadPidFile`, `IsPidFileActive` | ns/op | tempdir pidfile 기준 |
-| PTY helper smoke | `util.OpenPty` with local PTY pair | attach/close latency | terminal 상태 영향 분리 필요 |
+| manifest decode | `model.LoadConfig` | ns/op, allocs/op | 아직 미구현; 다양한 manifest 크기 fixture 필요 |
+| VM config assembly | `Config.VMConfig` | ns/op, allocs/op | `internal/model/bench_test.go` 구현 |
+| virtiofs config/args | `Config.VirtiofsConfig`, `VirtiofsConfig.CommandArgs` | ns/op, allocs/op | `internal/model/bench_test.go` 구현 |
+| `hvm.Load` path assembly | `hvm.Load` | ns/op, allocs/op | `internal/hvm/bench_test.go` 구현 (benchmark 중 project log는 discard) |
+| API client encoding/decoding | `clientImpl` against fake Unix socket HTTP server | round-trip latency, allocs/op | `internal/hvm/bench_test.go` fake socket RTT 구현 |
+| PID helper | `sys.AcquirePidFile`, `ReadPidFile`, `IsPidFileActive` | ns/op | `internal/util/sys/bench_test.go` 구현 |
+| PTY helper smoke | `util.OpenPty` with local PTY pair | attach/close latency | 회귀 test는 있음; benchmark는 아직 미구현 |
 
 권장 명령 예:
 
@@ -79,12 +79,12 @@ id hvm
 
 | 모듈 | 핵심 로직 | 단위 테스트 후보 | test double |
 | --- | --- | --- | --- |
-| `main` | CLI action/argument validation, flag/env binding | missing args, invalid action, invalid `console-file` id, usage stderr, env key mapping | subprocess helper 또는 `exec.Command(go test helper)` |
-| `internal/entry` | command entrypoint wiring, stdin/stdout YAML, signal cancel | `Client` bodyful action decode/encode, invalid YAML, `console-file` path construction, signal cancel path | fake `hvm.Client`, temp stdin/stdout, context/signal helper |
-| `internal/hvm` | `Load`, client action parsing, API client, lifecycle coordination | path resolution table, runas failure, client action invalids, Unix socket HTTP status handling, readiness retry timeout, pidfile collision | tempdir manifests, fake Unix socket server, fake client, stub executable |
-| `internal/model` | manifest schema, VM payload, command arg rendering, enum parsing | `Config` defaults, absolute/relative `disk`/`directory`, initramfs missing, `--net` rendering, virtiofs exact args, enum invalid paths | pure table tests/golden strings |
-| `internal/util` | value parsing/rendering, terminal helpers, format helpers | MAC/IEC invalid inputs, `AppendFileSuffix`, range formatting, escape sequence, PTY close/cancel | table tests, `io.Pipe`, local PTY where available |
-| `internal/util/sys` | pidfile/process/user/platform helpers | pidfile acquire/active/cleanup, invalid pid content, user lookup error path, unsupported platform behavior where build tags allow | tempdir pidfiles, current process pid, small helper process |
+| `main` | CLI action/argument validation, flag/env binding | missing args, invalid action, invalid `console-file` id, usage stderr, env key mapping/override, flag/env precedence | subprocess helper 또는 `exec.Command(go test helper)` |
+| `internal/entry` | command entrypoint wiring, stdin/stdout YAML, signal cancel | `Client` bodyful action decode/encode, invalid YAML, `console-file` path construction, `client`/`start`/`shutdown`/`console`/`console-file` signal cancel path | fake `hvm.Client`, temp stdin/stdout, context/signal helper, subprocess |
+| `internal/hvm` | `Load`, client action parsing, API client, lifecycle coordination | path resolution table, runas failure, client action invalids, Unix socket HTTP status handling, readiness retry timeout, pidfile collision, console path validation | tempdir manifests, fake Unix socket server, fake client, stub executable |
+| `internal/model` | manifest schema, VM payload, command arg rendering, enum parsing | `Config` defaults, absolute/relative `disk`/`directory`, initramfs missing, `--net` rendering, virtiofs exact args, enum invalid-text unmarshal and zero-value marshal paths | pure table tests/golden strings |
+| `internal/util` | value parsing/rendering, terminal helpers, format helpers | `ExecutionResult`, log trimming, `LookupBinary`, `PFlagViperReplacer`, escape sequence, terminal resize/restore, PTY close/cancel | table tests, `io.Pipe`, local PTY, subprocess where terminal state 필요 |
+| `internal/util/sys` | pidfile/process/user/platform helpers | pidfile acquire/active/cleanup, invalid pid content, user/group lookup error path, unsupported platform behavior where build tags allow | tempdir pidfiles, current process pid, nonexistent user/group/id, small helper process |
 
 ## 누락된 테스트
 
@@ -92,53 +92,42 @@ id hvm
 
 다음 항목은 더 이상 우선 누락으로 보지 않는다.
 
-- **CLI validation / client dispatch**: `main_test.go`, `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go`가 usage, invalid action/id, YAML decode/encode, malformed stdin 차단을 검증한다.
-- **manifest/path/runas/initramfs**: `internal/hvm/hypervisor_test.go`, `internal/hvm/load_more_test.go`, `internal/model/config_more_test.go`가 initramfs missing/dir/stat error, absolute/relative disk·directory, generated tap/MAC, runas/socket-group 전파를 검증한다.
+- **CLI validation / client dispatch / env binding**: `main_test.go`, `internal/entry/client_dispatch_test.go`, `internal/entry/client_test.go`, `internal/entry/client_signal_test.go`가 usage, invalid action/id, YAML decode/encode, malformed stdin 차단, env override, flag > env precedence, in-flight `client` request cancel path를 검증한다.
+- **entry signal wiring / console attach**: `internal/entry/signal_console_test.go`가 `shutdown`/`console`/`console-file` subprocess signal cancel, `console` fake `VmInfo` + 실제 PTY attach, `console-file` attach 및 missing-PTY panic 경로를 검증한다. `start` signal wiring도 같은 helper로 추가되었고 ambient-capability exec가 허용된 환경에서 실행되며, 그렇지 않으면 실제 런타임 전제를 이유로 skip 한다.
+- **manifest/path/runas/initramfs**: `internal/hvm/hypervisor_test.go`, `internal/hvm/load_more_test.go`, `internal/model/config_more_test.go`가 initramfs missing/dir/stat error, absolute/relative disk·directory, generated tap/MAC, runas/socket-group 전파, invalid `NODE_NAME` 거부를 검증한다.
 - **client dispatch/transport**: `internal/hvm/client_test.go`, `internal/hvm/client_more_test.go`, `internal/hvm/client_action_test.go`가 Unix socket HTTP method/path/status, invalid action parsing, dial failure, redirect 거부를 검증한다.
 - **lifecycle/pidfile/shutdown/start**: `internal/hvm/hypervisor_shutdown_test.go`, `internal/hvm/hypervisor_start_more_test.go`, `internal/hvm/hypervisor_test.go`, `internal/hvm/node_checker_test.go`가 pidfile collision/cleanup, readiness cancel, `VmCreate`/`VmBoot` 실패, graceful power-button shutdown, API-not-ready 및 pre-boot rejection fallback을 검증한다.
-- **virtiofs args / util assertions**: `internal/model/virtiofsd_args_test.go`, `internal/util/*_test.go`, `internal/util/sys/*_test.go`가 exact args, socket-group 분기, 값 파서/문자열 helper, pid/process wait helper를 assertion 기반으로 검증한다.
+- **terminal / poller / PTY 로컬 갭**: `internal/util/terminal_test.go`, `internal/util/poller_test.go`, `internal/util/poller_edge_test.go`, `internal/util/pty_path_test.go`, `internal/util/execution_result_test.go`가 `PrepareTerminal` resize/restore/raw-mode 실패, poller rollback/add-remove/register edge, `OpenPty` open failure/cancel/HUP와 non-terminal pipe input integrity, direct `console-file` PTY ownership guard, `ExecutionResult` 일반 non-exit error branch를 검증한다.
+- **virtiofsd / invoke 세부 assertion**: `internal/hvm/virtiofsd_recoiler_more_test.go`가 multi-share fan-out, restart loop, shutdown ordering, child stdout/stderr capture, `invoke` exit formatting을 검증한다.
+- **deployment/docs smoke**: `docs_smoke_test.go`가 markdown local link check와 core docs/`.pi` inventory smoke를 고정하고, `docker build --target build -f Dockerfile .`는 로컬에서 build-stage smoke를 통과했다.
 
-### Hypervisor/virtiofsd에 아직 남은 갭
+### 아직 남은 갭 / blocker
 
-대상: `internal/hvm/hypervisor.go`, `internal/model/virtiofsd_args.go`
+#### Privileged integration evidence
 
-남은 항목:
+다음 항목은 실제 host 권한, 설치된 binary, 또는 런타임 fixture가 있어야 해서 여전히 별도 작업이다.
 
-- 여러 share에 대한 `virtiofsdRecoiler` fan-out과 restart loop를 더 직접적으로 검증하는 테스트
-- child stdout/stderr capture와 exit error formatting의 상세 assertion
-- 실제 `cloud-hypervisor`/`virtiofsd` binary를 사용하는 privileged integration evidence
+- 실제 `cloud-hypervisor`/`virtiofsd` binary와 `/dev/kvm`, `/dev/net/tun`, image/node root를 사용한 `start`/readiness/boot/shutdown end-to-end evidence
+- running VM 기준 `client vm-info/vm-counters` RTT, `console NODE` attach latency, `virtiofsd` fan-out scaling, systemd start/stop timings
 
-### Console and terminal helpers
+#### Tooling / host prerequisite blocker
 
-대상: `internal/entry/console.go`, `internal/entry/console_file.go`, `internal/util/pty.go`, `internal/util/poller_*.go`
+- `systemd-analyze verify contrib/cvmm@.service`는 로컬에서 실행했지만 `/usr/bin/cvmm`가 설치되어 있지 않아 `Command /usr/bin/cvmm is not executable: No such file or directory`로 실패했다. host-installed binary 또는 override path가 있는 환경에서 다시 기록해야 한다.
 
-누락:
+#### Optional local follow-up
 
-- `console`이 `VmInfo.Config.Console.File` 경로를 사용해 PTY를 여는지
-- `console-file`이 `/dev/pts/<id>`를 정확히 계산하는지
-- escape sequence/cancel/hup 처리
-- poller add/remove/register edge case
+- `console-file`은 이제 경로 canonicalization/char-device 검증에 더해 비-root 실행 시 current euid 소유 PTY만 허용한다. root/trusted-admin이 다른 사용자 PTY를 직접 여는 시나리오는 여전히 운영 통제로 다뤄야 한다.
+- `console-file`의 "유효한 `/dev/pts/<id>` 검증 이후에만 발생하는 open 실패"를 강제로 만드는 deterministic fixture는 아직 없다. 현재는 missing-PTY panic과 `util.OpenPty` missing-path open error로 가장 가까운 failure path를 회귀 보호한다.
+- `model.LoadConfig` benchmark와 `util.OpenPty` 자체 latency benchmark는 후보로만 남아 있다.
 
-### Deployment/docs smoke
+## 후속 우선순위 제안
 
-대상: `contrib/cvmm@.service`, `Dockerfile`, active docs
+1. privileged host fixture를 준비해 실제 `cloud-hypervisor`/`virtiofsd` binary 기준 integration evidence를 수집하기
+2. host-installed `/usr/bin/cvmm` 또는 unit override path가 있는 환경에서 `systemd-analyze verify contrib/cvmm@.service` 결과를 다시 기록하기
+3. 필요 시 `model.LoadConfig` benchmark와 `util.OpenPty` latency benchmark를 추가해 로컬 benchmark 표를 완성하기
+4. deterministic fixture가 생기면 `console-file`의 post-validation open failure와 root/admin cross-owner attach 정책을 별도 회귀 test/evidence로 승격하기
 
-누락:
-
-- `systemd-analyze verify contrib/cvmm@.service` 결과 기록
-- `docker build --target build -f Dockerfile .` build-stage smoke
-- Markdown link check 또는 최소 local link grep
-- docs inventory와 `.pi` inventory를 CI/검증 절차로 고정
-
-## 단위 테스트 우선순위 제안
-
-1. `console` / `console-file` / `util.OpenPty`의 PTY attach·cancel·path 계산 테스트 추가
-2. `virtiofsdRecoiler`의 multi-share fan-out, restart loop, 종료 순서 assertion 보강
-3. child stdout/stderr capture와 exit error formatting 상세 검증 추가
-4. `start`/`shutdown`/`console` entrypoint의 실제 signal wiring을 subprocess 수준으로 확장
-5. local `Benchmark*` 추가: config assembly, virtiofs args, fake socket client RTT
-
-통합 host benchmark harness(`start`/readiness/virtiofsd fan-out/shutdown`)는 위 단위 테스트가 안정된 뒤 별도 작업으로 분리한다.
+통합 host benchmark harness(`start`/readiness/virtiofsd fan-out/shutdown`)는 여전히 별도 작업으로 분리한다.
 
 ## 보고 시 주의사항
 
