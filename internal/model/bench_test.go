@@ -43,6 +43,7 @@ func BenchmarkVirtiofsCommandArgs(b *testing.B) {
 			virtiofs := cfg.VirtiofsConfig(
 				"/srv/vmm/nodes/bench-node",
 				"/srv/vmm/nodes/bench-node/run/virtiofs.sock",
+				"/srv/vmm/nodes/bench-node/run/virtiofs.pid",
 				"hvm",
 			)
 			b.ResetTimer()

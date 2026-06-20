@@ -23,7 +23,7 @@ func Load(
 	manifestFilename,
 	kernelFilename, initramfsFilename, rootfsFilename,
 	pidFilename, apiPidFilename, apiSocketFilename,
-	virtiofsdSocketFilenameTemplate,
+	virtiofsdSocketFilenameTemplate, virtiofsdPidFilenameTemplate,
 	cloudhypervisorBinaryPath, virtiofsdBinaryPath string,
 	consoleRedirectToStd bool,
 	runAsUser string,
@@ -39,6 +39,7 @@ func Load(
 	apiSocketPath := filepath.Join(volatileBasePath, apiSocketFilename)
 
 	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
+	virtiofsdPidPathTemplate := filepath.Join(volatileBasePath, virtiofsdPidFilenameTemplate)
 
 	var (
 		runAs     *syscall.Credential
@@ -103,7 +104,7 @@ func Load(
 	)
 	util.InfoLog.Printf("hypervisor config: %s", h.vmcfg)
 
-	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, groupName)
+	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, virtiofsdPidPathTemplate, groupName)
 	util.InfoLog.Printf("virtiofs config: %s", h.virtiofsdcfg)
 
 	return h, nil

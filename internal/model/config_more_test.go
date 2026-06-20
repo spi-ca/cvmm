@@ -64,9 +64,12 @@ func TestConfigBuildsVMAndVirtiofsConfig(t *testing.T) {
 		t.Fatalf("absolute fs tag = %q, want basename", got)
 	}
 
-	virtiofsCfg := cfg.VirtiofsConfig("/srv/vmm/nodes/node-a", "/srv/vmm/nodes/node-a/run/virtiofs.sock", "kvm")
+	virtiofsCfg := cfg.VirtiofsConfig("/srv/vmm/nodes/node-a", "/srv/vmm/nodes/node-a/run/virtiofs.sock", "/srv/vmm/nodes/node-a/run/virtiofs.pid", "kvm")
 	if got, want := virtiofsCfg[0].Directory, filepath.Join("/srv/vmm/nodes/node-a", "configuration"); got != want {
 		t.Fatalf("relative virtiofs directory = %q, want %q", got, want)
+	}
+	if got, want := virtiofsCfg[0].PidPath, "/srv/vmm/nodes/node-a/run/virtiofs_configuration.pid"; got != want {
+		t.Fatalf("relative virtiofs pid path = %q, want %q", got, want)
 	}
 	if got := virtiofsCfg[0].SocketGroup; got != "kvm" {
 		t.Fatalf("SocketGroup = %q, want kvm", got)

@@ -656,7 +656,7 @@ func (i *Hypervisor) virtiofsdRecoiler(ctx context.Context, closer chan<- struct
 
 					util.InfoLog.Printf("virtiofsd[%s] started", name)
 
-					if err = i.invoke(cmd, "", nil); err != nil {
+					if err = i.invoke(cmd, cfg.PidPath, nil); err != nil {
 						util.ErrLog.Printf("virtiofsd[%s] failed: %s", name, err)
 					} else {
 						util.InfoLog.Printf("virtiofsd[%s] stopped", name)

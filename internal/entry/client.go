@@ -66,6 +66,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		"\n	cloudhypervisor.api.filename=", viper.GetString("cloudhypervisor.api.filename"),
 		"\n	volatile.directory=", viper.GetString("volatile.directory"),
 		"\n	virtiofs.socket.filename.template=", viper.GetString("virtiofs.socket.filename.template"),
+		"\n	virtiofs.pid.filename.template=", viper.GetString("virtiofs.pid.filename.template"),
 		"\n	image.kernel.filename=", viper.GetString("image.kernel.filename"),
 		"\n	image.initramfs.filename=", viper.GetString("image.initramfs.filename"),
 		"\n	image.rootfs.filename=", viper.GetString("image.rootfs.filename"),
@@ -87,6 +88,7 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 		viper.GetString("cloudhypervisor.pid.filename"),
 		viper.GetString("cloudhypervisor.api.filename"),
 		viper.GetString("virtiofs.socket.filename.template"),
+		viper.GetString("virtiofs.pid.filename.template"),
 
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),

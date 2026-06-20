@@ -93,6 +93,7 @@ func BenchmarkLoadPathAssembly(b *testing.B) {
 			"vmlinuz", "initramfs.img", "root.img",
 			"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 			"virtiofs.sock",
+			"virtiofs.pid",
 			"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 			false,
 			"",

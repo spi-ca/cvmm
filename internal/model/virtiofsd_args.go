@@ -8,6 +8,7 @@ import (
 type VirtiofsConfig struct {
 	Directory      string
 	SocketPath     string
+	PidPath        string
 	SocketGroup    string
 	ThreadPoolSize int
 }

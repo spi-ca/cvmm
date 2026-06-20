@@ -62,6 +62,7 @@ directory:
 		kernelFilename, initramfsFilename, rootfsFilename,
 		pidFilename, apiPidFilename, apiSocketFilename,
 		virtiofsSocketFilenameTemplate,
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		false,
 		"",
@@ -128,6 +129,9 @@ directory:
 	if got, want := h.virtiofsdcfg[0].SocketPath, filepath.Join(volatileBasePath, "virtiofs_configuration.sock"); got != want {
 		t.Fatalf("virtiofs socket path = %q, want %q", got, want)
 	}
+	if got, want := h.virtiofsdcfg[0].PidPath, filepath.Join(volatileBasePath, "virtiofs_configuration.pid"); got != want {
+		t.Fatalf("virtiofs pid path = %q, want %q", got, want)
+	}
 }
 
 func TestLoad_HandlesOptionalInitramfsAndAbsolutePaths(t *testing.T) {
@@ -168,6 +172,7 @@ directory:
 		"vmlinuz", "initramfs.img", "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		true,
 		"",
@@ -234,6 +239,7 @@ image: test-image
 		"vmlinuz", "initramfs.img", "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		false,
 		"",
@@ -270,6 +276,7 @@ image: test-image
 		"vmlinuz", filepath.Join("blocked", "initramfs.img"), "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		false,
 		"",
@@ -339,6 +346,7 @@ func TestVirtiofsdRecoilerWaitsForHelperExitBeforeClosing(t *testing.T) {
 	readyPath := filepath.Join(tmp, "ready")
 	termPath := filepath.Join(tmp, "term")
 	exitPath := filepath.Join(tmp, "exit")
+	pidPath := filepath.Join(tmp, "virtiofs.pid")
 	helperDir := makeTestHelperDir(t, "virtiofsd-helper-*")
 
 	t.Setenv("TEST_READY_FILE", readyPath)
@@ -353,6 +361,7 @@ func TestVirtiofsdRecoilerWaitsForHelperExitBeforeClosing(t *testing.T) {
 		virtiofsdcfg: []model.VirtiofsConfig{{
 			Directory:      tmp,
 			SocketPath:     filepath.Join(tmp, "virtiofs.sock"),
+			PidPath:        pidPath,
 			ThreadPoolSize: 1,
 		}},
 	}
@@ -364,6 +373,13 @@ func TestVirtiofsdRecoilerWaitsForHelperExitBeforeClosing(t *testing.T) {
 	go h.virtiofsdRecoiler(ctx, closer)
 
 	waitForFile(t, readyPath, 2*time.Second)
+	pid, err := sys.ReadPidFile(pidPath)
+	if err != nil {
+		t.Fatalf("virtiofsd pid file was not written: %v", err)
+	}
+	if pid <= 0 {
+		t.Fatalf("virtiofsd pid file pid = %d, want positive pid", pid)
+	}
 
 	select {
 	case <-closer:
@@ -382,6 +398,9 @@ func TestVirtiofsdRecoilerWaitsForHelperExitBeforeClosing(t *testing.T) {
 
 	waitForFile(t, exitPath, 3*time.Second)
 	waitForChannelClosed(t, closer, 2*time.Second)
+	if _, err := os.Stat(pidPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("virtiofsd pid file after helper exit: %v, want removed", err)
+	}
 }
 
 func TestStartUsesGracefulShutdownBeforeCancelingCloudHypervisorProcess(t *testing.T) {
@@ -669,6 +688,7 @@ func TestLoad_ReturnsManifestErrors(t *testing.T) {
 		"vmlinuz", "initramfs.img", "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		false,
 		"",
@@ -685,6 +705,7 @@ func TestLoad_ReturnsManifestErrors(t *testing.T) {
 		"vmlinuz", "initramfs.img", "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
+		"virtiofs.pid",
 		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
 		false,
 		"",
