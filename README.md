@@ -158,6 +158,7 @@ cvmm console-file PTY_ID
 - [design](docs/design.md): load/start/client/console 설계
 - [architecture](docs/architecture.md): package 책임과 데이터 흐름
 - [operations](docs/operations.md): runbook과 검증/evidence 규칙
+- [ADR 0001](docs/adr/0001-passt-default-network-backend.md): future `passt` 기본 network backend 결정. 현재 구현 설명은 아니며 구현 전 설계 기록이다.
 - [diagrams](docs/diagrams/README.md): Mermaid source와 SVG/PNG 산출물
 - [benchmarks](docs/benchmarks.md): 현재 성능 측정 방침
 

@@ -12,6 +12,7 @@
 4. [`architecture.md`](architecture.md) - package 책임과 lifecycle
 5. [`operations.md`](operations.md) - 실행 방법, 점검 명령, evidence 기준
 6. [`diagrams/README.md`](diagrams/README.md) - diagram source와 SVG/PNG 산출물 규칙
+7. [`adr/`](adr/) - 아직 구현되지 않은 future-facing architecture decision records 포함
 
 ## 필요할 때만 열 문서
 
@@ -21,4 +22,5 @@
 - [`test-and-benchmark-gaps.md`](test-and-benchmark-gaps.md) - benchmark 후보와 테스트 gap 우선순위
 - [`performance-roadmap.md`](performance-roadmap.md) - 성능 후속 backlog
 - [`pi-agents.md`](pi-agents.md) - repo-local Pi agents/skills/prompt resources
+- [`adr/0001-passt-default-network-backend.md`](adr/0001-passt-default-network-backend.md) - future `passt` 기본 backend 결정; 현재 구현 설명이 아님
 - [`guidelines/`](guidelines/) - agent-facing documentation guidelines; repository rule source가 아니라 정리 기준 참고 자료
