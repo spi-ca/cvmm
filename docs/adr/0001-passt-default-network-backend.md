@@ -7,7 +7,7 @@
 
 `cvmm` currently implements a single manifest-managed TAP network device for `start`:
 
-- the manifest exposes `net_mac_addr` and `net_if_name`;
+- the current manifest exposes top-level `net_mac_addr` and `net_if_name`;
 - `hvm.Load` generates a `vmtap-*` interface name when one is not supplied;
 - `model.Config.NetConfig` renders a single cloud-hypervisor `tap=...` network entry;
 - `Hypervisor.Start` gives the `cloud-hypervisor` child `CAP_NET_ADMIN` unconditionally.
@@ -23,16 +23,26 @@ For `passt`-specific behavior, the upstream/local `passt` man page, documentatio
 ### Default backend and manifest selector
 
 1. `passt` will become the default manifest-managed network backend.
-2. The user-facing backend selector will be a nested manifest enum named `net.backend` with accepted values `passt` and `tap`:
+2. The user-facing network configuration will move under a nested manifest tree named `net`. The backend selector is `net.backend`, with accepted values `passt` and `tap`:
 
    ```yaml
    net:
      backend: passt
+     mac_addr: 2e:33:5f:11:1b:42
    ```
 
 3. After this ADR is implemented, an omitted `net.backend` means `passt`; `net.backend: tap` is the explicit compatibility opt-in for the current TAP behavior. A CLI override can be considered later, but it is not part of this decision.
-4. Existing `net_mac_addr` applies to both backends for the first implementation.
-5. Existing `net_if_name` is TAP-only. If a manifest selects `passt` or omits `net.backend` after this ADR is implemented, a non-empty `net_if_name` must be rejected with an error that tells the operator to set `net.backend: tap` to keep TAP behavior. This is an intentional migration gate for legacy TAP manifests rather than implicit TAP fallback.
+4. The current top-level `net_mac_addr` manifest field will become nested `net.mac_addr` and applies to both backends for the first implementation.
+5. The current top-level `net_if_name` manifest field will become nested `net.if_name` and is TAP-only:
+
+   ```yaml
+   net:
+     backend: tap
+     mac_addr: 2e:33:5f:11:1b:42
+     if_name: vmtap-01
+   ```
+
+   If a manifest selects `passt` or omits `net.backend` after this ADR is implemented, a non-empty `net.if_name` must be rejected with an error that tells the operator to set `net.backend: tap` to keep TAP behavior. This is an intentional migration gate for legacy TAP manifests rather than implicit TAP fallback.
 
 ### Helper management parity with virtiofsd
 
@@ -131,9 +141,9 @@ A simple single-helper launcher with explicit cleanup is preferred over copying 
 
 - Documentation that describes current behavior must continue to say that the current code is TAP-based until the implementation lands.
 - Implementing this ADR intentionally changes the default backend for manifests that omit `net.backend`.
-- Existing manifests that rely on TAP-specific `net_if_name` must add `net.backend: tap` during migration.
+- Existing manifests that rely on TAP-specific `net_if_name` must migrate it to `net.if_name` and add `net.backend: tap` during migration.
 - Existing deployments that run the manager as root and rely on `--runas` only to lower cloud-hypervisor must either keep `net.backend: tap` or move to a dedicated non-root service user/group with safe `passt.sock` access control before using the default passt backend.
-- The implementation must fail with an actionable error for `net_if_name` without `net.backend: tap`; it must not silently infer TAP from the legacy field.
+- The implementation must fail with an actionable error for `net.if_name` without `net.backend: tap`; it must not silently infer TAP from the TAP-only field.
 - Multi-NIC manifest support and port forwarding require separate design work.
 
 ## Consequences
@@ -147,7 +157,7 @@ A simple single-helper launcher with explicit cleanup is preferred over copying 
 
 The implementation should include at least:
 
-- manifest/model tests for default `passt`, explicit `tap`, legacy `net_if_name` rejection without `net.backend: tap`, and single manifest-managed NIC behavior;
+- manifest/model tests for default `passt`, explicit `tap`, nested `net.mac_addr`, TAP-only `net.if_name` rejection without `net.backend: tap`, and single manifest-managed NIC behavior;
 - VM config tests asserting `vhost_user: true`, `vhost_socket`, and `vhost_mode: "Client"` for passt;
 - start-path tests that `passt` is started before `vm.create`, waits for socket readiness, treats post-create `passt` exit as fatal, and is cleaned up on every failure path;
 - pid ownership tests showing `cvmm` writes and removes `passt.pid`;
