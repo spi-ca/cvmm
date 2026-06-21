@@ -127,6 +127,50 @@ net_if_name: vmtap-01
 	}
 }
 
+func TestLoadBuildsPasstConfig(t *testing.T) {
+	tmp := t.TempDir()
+	imageRoot := filepath.Join(tmp, "images")
+	nodeRoot := filepath.Join(tmp, "nodes")
+	nodeName := "passt-config-node"
+	nodeBasePath := filepath.Join(nodeRoot, nodeName)
+	imageBasePath := filepath.Join(imageRoot, "test-image")
+
+	writeTestFile(t, filepath.Join(nodeBasePath, "config.yaml"), []byte(`cpus: 1
+mem: 1G
+uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
+image: test-image
+`))
+	writeTestFile(t, filepath.Join(imageBasePath, "vmlinuz"), nil)
+	writeTestFile(t, filepath.Join(imageBasePath, "root.img"), nil)
+
+	h, err := Load(
+		nodeName,
+		imageRoot, nodeRoot, "run",
+		"config.yaml",
+		"vmlinuz", "initramfs.img", "root.img",
+		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
+		"virtiofs.sock",
+		"virtiofs.pid",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
+		false,
+		"",
+	)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	defer h.Close()
+
+	if got, want := h.passtcfg.SocketPath, filepath.Join(nodeBasePath, "run", "passt.sock"); got != want {
+		t.Fatalf("passtcfg.SocketPath = %q, want %q", got, want)
+	}
+	if got, want := h.passtcfg.PidPath, filepath.Join(nodeBasePath, "run", "passt.pid"); got != want {
+		t.Fatalf("passtcfg.PidPath = %q, want %q", got, want)
+	}
+	if got, want := h.vmcfg.Net[0].VhostSocket, h.passtcfg.SocketPath; got != want {
+		t.Fatalf("vmcfg passt socket = %q, want %q", got, want)
+	}
+}
+
 func TestLoadRunAsPropagatesCredentialAndSocketGroup(t *testing.T) {
 	currentUser, err := user.Current()
 	if err != nil {

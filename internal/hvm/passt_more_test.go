@@ -29,8 +29,8 @@ func TestCloudHypervisorAmbientCapsDependOnNetworkBackend(t *testing.T) {
 }
 
 func TestPasstCommandArgs(t *testing.T) {
-	h := &Hypervisor{passtSocketPath: "/srv/vmm/nodes/node-a/run/passt.sock"}
-	got := strings.Join(h.passtCommandArgs(), " ")
+	h := &Hypervisor{passtcfg: model.PasstConfig{SocketPath: "/srv/vmm/nodes/node-a/run/passt.sock", PidPath: "/srv/vmm/nodes/node-a/run/passt.pid"}}
+	got := strings.Join(h.passtcfg.CommandArgs(), " ")
 	for _, want := range []string{"--vhost-user", "--socket /srv/vmm/nodes/node-a/run/passt.sock", "--foreground"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("passt args = %q, want %q", got, want)
@@ -176,9 +176,11 @@ func TestStartPasstLifecycleWritesPidAndCleansUp(t *testing.T) {
 		cloudhypervisorBinaryPath: cloudPath,
 		cloudhypervisorPidPath:    filepath.Join(runDir, "cloudhypervisor.pid"),
 		passtBinaryPath:           passtPath,
-		passtSocketPath:           filepath.Join(runDir, "passt.sock"),
-		passtPidPath:              filepath.Join(runDir, "passt.pid"),
-		managerUID:                uint32(os.Geteuid()),
+		passtcfg: model.PasstConfig{
+			SocketPath: filepath.Join(runDir, "passt.sock"),
+			PidPath:    filepath.Join(runDir, "passt.pid"),
+		},
+		managerUID: uint32(os.Geteuid()),
 		vmcfg: model.VmConfig{
 			Payload: model.PayloadConfig{Kernel: "/kernel"},
 			Net: []model.NetConfig{{
@@ -198,9 +200,9 @@ func TestStartPasstLifecycleWritesPidAndCleansUp(t *testing.T) {
 
 	waitForFile(t, passtReadyPath, 5*time.Second)
 	waitForFile(t, createPath, 5*time.Second)
-	waitForFile(t, h.passtPidPath, 5*time.Second)
+	waitForFile(t, h.passtcfg.PidPath, 5*time.Second)
 
-	pidBytes, err := os.ReadFile(h.passtPidPath)
+	pidBytes, err := os.ReadFile(h.passtcfg.PidPath)
 	if err != nil {
 		t.Fatalf("ReadFile(passt pid) error = %v", err)
 	}
@@ -225,8 +227,8 @@ func TestStartPasstLifecycleWritesPidAndCleansUp(t *testing.T) {
 	waitForFile(t, powerPath, 2*time.Second)
 	waitForFile(t, passtTermPath, 2*time.Second)
 	waitForFile(t, passtExitPath, 2*time.Second)
-	assertPathAbsent(t, h.passtPidPath)
-	assertPathAbsent(t, h.passtSocketPath)
+	assertPathAbsent(t, h.passtcfg.PidPath)
+	assertPathAbsent(t, h.passtcfg.SocketPath)
 }
 
 func TestStartWaitsForPasstSocketBeforeVmCreate(t *testing.T) {
@@ -267,9 +269,11 @@ func TestStartWaitsForPasstSocketBeforeVmCreate(t *testing.T) {
 		cloudhypervisorBinaryPath: cloudPath,
 		cloudhypervisorPidPath:    filepath.Join(runDir, "cloudhypervisor.pid"),
 		passtBinaryPath:           passtPath,
-		passtSocketPath:           filepath.Join(runDir, "passt.sock"),
-		passtPidPath:              filepath.Join(runDir, "passt.pid"),
-		managerUID:                uint32(os.Geteuid()),
+		passtcfg: model.PasstConfig{
+			SocketPath: filepath.Join(runDir, "passt.sock"),
+			PidPath:    filepath.Join(runDir, "passt.pid"),
+		},
+		managerUID: uint32(os.Geteuid()),
 		vmcfg: model.VmConfig{
 			Payload: model.PayloadConfig{Kernel: "/kernel"},
 			Net: []model.NetConfig{{
@@ -350,9 +354,11 @@ func TestStartTreatsPasstExitAfterCreateAsFatal(t *testing.T) {
 		cloudhypervisorBinaryPath: cloudPath,
 		cloudhypervisorPidPath:    filepath.Join(runDir, "cloudhypervisor.pid"),
 		passtBinaryPath:           passtPath,
-		passtSocketPath:           filepath.Join(runDir, "passt.sock"),
-		passtPidPath:              filepath.Join(runDir, "passt.pid"),
-		managerUID:                uint32(os.Geteuid()),
+		passtcfg: model.PasstConfig{
+			SocketPath: filepath.Join(runDir, "passt.sock"),
+			PidPath:    filepath.Join(runDir, "passt.pid"),
+		},
+		managerUID: uint32(os.Geteuid()),
 		vmcfg: model.VmConfig{
 			Payload: model.PayloadConfig{Kernel: "/kernel"},
 			Net: []model.NetConfig{{
@@ -375,6 +381,6 @@ func TestStartTreatsPasstExitAfterCreateAsFatal(t *testing.T) {
 	}
 	waitForFile(t, createPath, 5*time.Second)
 	waitForFile(t, powerPath, 2*time.Second)
-	assertPathAbsent(t, h.passtPidPath)
-	assertPathAbsent(t, h.passtSocketPath)
+	assertPathAbsent(t, h.passtcfg.PidPath)
+	assertPathAbsent(t, h.passtcfg.SocketPath)
 }

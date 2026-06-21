@@ -40,8 +40,10 @@ func Load(
 
 	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
 	virtiofsdPidPathTemplate := filepath.Join(volatileBasePath, virtiofsdPidFilenameTemplate)
-	passtSocketPath := filepath.Join(volatileBasePath, "passt.sock")
-	passtPidPath := filepath.Join(volatileBasePath, "passt.pid")
+	passtcfg := model.PasstConfig{
+		SocketPath: filepath.Join(volatileBasePath, "passt.sock"),
+		PidPath:    filepath.Join(volatileBasePath, "passt.pid"),
+	}
 
 	var (
 		runAs     *syscall.Credential
@@ -63,8 +65,7 @@ func Load(
 		cloudhypervisorPidPath:    apiPidPath,
 		virtiofsdBinaryPath:       virtiofsdBinaryPath,
 		passtBinaryPath:           passtBinaryPath,
-		passtSocketPath:           passtSocketPath,
-		passtPidPath:              passtPidPath,
+		passtcfg:                  passtcfg,
 		runAs:                     runAs,
 		managerUID:                uint32(os.Geteuid()),
 		managerGID:                uint32(os.Getegid()),
@@ -107,13 +108,13 @@ func Load(
 	if cfg.UsesTapNetwork() {
 		util.InfoLog.Printf("network backend(%s) interface(%s): %s", cfg.Net.Backend, cfg.Net.IfName, cfg.Net.MacAddr)
 	} else {
-		util.InfoLog.Printf("network backend(%s) socket(%s): %s", cfg.Net.Backend, passtSocketPath, cfg.Net.MacAddr)
+		util.InfoLog.Printf("network backend(%s) socket(%s): %s", cfg.Net.Backend, passtcfg.SocketPath, cfg.Net.MacAddr)
 	}
 
 	h.vmcfg = cfg.VMConfig(
 		h.name,
 		kernelPath, initramfsPath, rootfsPath,
-		nodeBasePath, virtiofsdSocketPathTemplate, passtSocketPath,
+		nodeBasePath, virtiofsdSocketPathTemplate, passtcfg.SocketPath,
 		consoleRedirectToStd,
 	)
 	util.InfoLog.Printf("hypervisor config summary(base, pre-thp decision): cpus=%d memory_size=%d disks=%d nets=%d fs=%d", h.vmcfg.Cpus.BootVcpus, h.vmcfg.Memory.Size, len(h.vmcfg.Disks), len(h.vmcfg.Net), len(h.vmcfg.Fs))

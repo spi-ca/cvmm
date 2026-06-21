@@ -51,8 +51,7 @@ type Hypervisor struct {
 	cloudhypervisorPidPath    string
 	virtiofsdBinaryPath       string
 	passtBinaryPath           string
-	passtSocketPath           string
-	passtPidPath              string
+	passtcfg                  model.PasstConfig
 	runAs                     *syscall.Credential
 	managerUID                uint32
 	managerGID                uint32
@@ -159,7 +158,7 @@ func (i *Hypervisor) passtProcessIdentity() sys.ProcessIdentityExpectation {
 	return sys.ProcessIdentityExpectation{
 		Name:               filepath.Base(i.passtBinaryPath),
 		ExecutableBasename: filepath.Base(i.passtBinaryPath),
-		CommandArgs:        i.passtCommandArgs(),
+		CommandArgs:        i.passtcfg.CommandArgs(),
 	}
 }
 
@@ -175,10 +174,6 @@ func (i *Hypervisor) cloudHypervisorAmbientCaps() []uintptr {
 		return nil
 	}
 	return []uintptr{unix.CAP_NET_ADMIN}
-}
-
-func (i *Hypervisor) passtCommandArgs() []string {
-	return []string{"--vhost-user", "--socket", i.passtSocketPath, "--foreground"}
 }
 
 func (i *Hypervisor) validateRuntimeDirectoryPath() error {
@@ -297,7 +292,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		return err
 	}
 	if i.usesPasstNetwork() {
-		if err := i.preparePidFile(i.passtPidPath, i.passtProcessIdentity(), "passt already running"); err != nil {
+		if err := i.preparePidFile(i.passtcfg.PidPath, i.passtProcessIdentity(), "passt already running"); err != nil {
 			return err
 		}
 	}
@@ -410,7 +405,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		passtProcessCancel = cancelPasst
 		passtErrorChan = make(chan error, 1)
 		passtStartedChan = make(chan *os.Process, 1)
-		passtCmd := exec.CommandContext(passtCtx, i.passtBinaryPath, i.passtCommandArgs()...)
+		passtCmd := exec.CommandContext(passtCtx, i.passtBinaryPath, i.passtcfg.CommandArgs()...)
 		passtCmd.Cancel = func() error {
 			if passtCmd.Process == nil {
 				return nil
@@ -427,7 +422,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 			return fmt.Errorf("failed to set passt pdeathsig(%s): %w", syscall.SIGTERM, err)
 		}
 
-		_ = os.Remove(i.passtSocketPath)
+		_ = os.Remove(i.passtcfg.SocketPath)
 		go func() {
 			startedClosed := false
 			closeStarted := func() {
@@ -440,7 +435,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 			defer closeStarted()
 			defer util.InfoLog.Printf("passt stopped")
 
-			invokeErr := i.invoke(passtCmd, i.passtPidPath, func(process *os.Process) {
+			invokeErr := i.invoke(passtCmd, i.passtcfg.PidPath, func(process *os.Process) {
 				passtStartedChan <- process
 				closeStarted()
 			})
@@ -523,8 +518,8 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 				passtErrorChan = nil
 			}
 		}
-		_ = os.Remove(i.passtSocketPath)
-		_ = os.Remove(i.passtPidPath)
+		_ = os.Remove(i.passtcfg.SocketPath)
+		_ = os.Remove(i.passtcfg.PidPath)
 	}
 	stopHypervisorImmediately := func() error {
 		stopAncillaries()
@@ -683,7 +678,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 		return errors.Join(err, stopHypervisorImmediately())
 	}
 	if i.usesPasstNetwork() {
-		if err := waitForUnixSocketReady(ctx, i.passtSocketPath, tryPasstResult); err != nil {
+		if err := waitForUnixSocketReady(ctx, i.passtcfg.SocketPath, tryPasstResult); err != nil {
 			if parentCtx.Err() != nil {
 				return stopHypervisorImmediately()
 			}
@@ -697,7 +692,7 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	}
 	util.InfoLog.Printf("hypervisor started(pid: %d, i socket: %s)", process.Pid, i.cli.socketPath)
 	if passtProcess := passtStarted(); passtProcess != nil {
-		util.InfoLog.Printf("passt started(pid: %d, socket: %s)", passtProcess.Pid, i.passtSocketPath)
+		util.InfoLog.Printf("passt started(pid: %d, socket: %s)", passtProcess.Pid, i.passtcfg.SocketPath)
 	}
 
 	sharedMemory := i.vmcfg.Memory != nil && i.vmcfg.Memory.Shared
