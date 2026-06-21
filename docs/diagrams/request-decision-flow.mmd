@@ -6,24 +6,45 @@ sequenceDiagram
     participant Load as hvm.Load
     participant Model as internal/model
     participant HV as Hypervisor.Start
+    participant Passt as passt helper
     participant CH as cloud-hypervisor
     participant VFS as virtiofsd helpers
     participant Guest as Guest VM
 
     Caller->>Main: cvmm start NODE_NAME + flags/env
     Main->>Entry: dispatch start(NODE_NAME)
-    Entry->>Load: Load(imageRoot,nodeRoot,filenames,runas)
+    Entry->>Load: Load(imageRoot,nodeRoot,filenames,runas,passtPath)
     Load->>Model: LoadConfig(node-root/node/config.yaml)
-    Model-->>Load: Config(cpus,mem,uuid,image,disk[],directory[])
-    Load->>Model: VMConfig(...) + VirtiofsConfig(...)
-    Model-->>Load: cloud-hypervisor payload + per-share virtiofsd socket/pid config
-    Load-->>Entry: Hypervisor with socket/pid/run paths
+    Model->>Model: NormalizeNetwork()\nmerge legacy net_* into net\ndefault backend = passt
+    Model-->>Load: Config(cpus,mem,uuid,image,net,disk[],directory[])
+    Load->>Load: generate MAC when omitted\ngenerate vmtap-* only for tap
+    alt backend = passt
+        Load->>Model: VMConfig(..., passt.sock) + VirtiofsConfig(...)
+        Model-->>Load: VmCreate net = vhost_user + vhost_socket + Client\nvirtiofs socket/pid configs
+    else backend = tap
+        Load->>Model: VMConfig(..., passt.sock unused) + VirtiofsConfig(...)
+        Model-->>Load: VmCreate net = tap=<if_name>\nvirtiofs socket/pid configs
+    end
+    Load-->>Entry: Hypervisor with run/, socket/pid paths
     Entry->>HV: Start(ctx)
+    HV->>HV: validate run/ is not a symlink
+    alt backend = passt
+        HV->>HV: validate service uid/gid and run/ owner + mode
+    end
     HV->>HV: acquire cvmm.pid and remove stale API socket
     HV->>CH: exec cloud-hypervisor --api-socket path=run/cloudhypervisor.sock
+    alt backend = passt
+        HV->>Passt: exec --vhost-user --socket run/passt.sock --foreground
+    end
     loop API readiness polling
         HV->>CH: VmmPing over Unix-socket HTTP
         CH-->>HV: ready or retry
+    end
+    alt backend = passt
+        loop socket readiness polling
+            HV->>Passt: stat/dial run/passt.sock
+            Passt-->>HV: ready or retry
+        end
     end
     HV->>CH: VmCreate(VmConfig JSON)
     HV->>VFS: start reconciler goroutines for directory[]
@@ -33,6 +54,10 @@ sequenceDiagram
     par steady state
         HV->>CH: VmInfo/status polling
         HV->>VFS: reconcile missing helpers
+    and passt failure path
+        Passt-->>HV: unexpected exit after vm.create
+        HV->>CH: VmPowerButton or force shutdown
+        HV->>HV: remove passt.sock/passt.pid and helper state
     and stop path
         Caller->>Entry: SIGTERM/SIGINT/SIGHUP/SIGQUIT
         Entry->>HV: cancel parent context

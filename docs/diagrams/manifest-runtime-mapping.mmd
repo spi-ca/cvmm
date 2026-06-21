@@ -2,7 +2,7 @@ flowchart LR
     manifest["config.yaml"] --> image["image: <name>"]
     manifest --> disk["disk[]\nwritable data disks"]
     manifest --> directory["directory[]\nvirtio-fs exports"]
-    manifest --> net["net_mac_addr / net_if_name\noptional"]
+    manifest --> net["net.backend / net.mac_addr / net.if_name\nlegacy top-level fields merge here"]
     manifest --> cpuMem["cpus / mem / uuid / cmdline"]
 
     image --> imageBase["image-root/image"]
@@ -23,7 +23,19 @@ flowchart LR
     tag --> socket["socket = run/virtiofs_<tag>.sock"]
     tag --> pidfile["pid = run/virtiofs_<tag>.pid"]
 
-    net --> defaultNet["generate MAC and vmtap-* if omitted"]
+    net --> backendRule{"backend omitted?"}
+    backendRule -- yes --> defaultPasst["default backend = passt"]
+    backendRule -- no --> explicitBackend["backend = passt or tap"]
+    explicitBackend --> ifNameRule{"if_name with\nbackend != tap?"}
+    defaultPasst --> ifNameRule
+    ifNameRule -- yes --> rejectTap["reject\nset net.backend: tap"]
+    ifNameRule -- no --> macDefault["generate MAC if omitted"]
+    macDefault --> passtMap{"effective backend"}
+    passtMap -- passt --> passtFiles["node run/\npasst.sock + passt.pid"]
+    passtMap -- passt --> passtPayload["VmCreate net\nvhost_user=true\nvhost_socket=run/passt.sock\nvhost_mode=Client"]
+    passtMap -- tap --> tapDefault["generate vmtap-* if if_name omitted"]
+    tapDefault --> tapPayload["VmCreate net\ntap=<if_name>"]
+
     cpuMem --> vmPayload["VmConfig fields\ncpus, memory, platform UUID, cmdline"]
 
     root --> vm["cloud-hypervisor VmCreate payload"]
@@ -34,5 +46,6 @@ flowchart LR
     socket --> vfs
     pidfile --> vfs
     vfs --> vm
-    defaultNet --> vm
+    passtPayload --> vm
+    tapPayload --> vm
     vmPayload --> vm

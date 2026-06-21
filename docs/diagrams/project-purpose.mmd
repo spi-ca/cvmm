@@ -15,6 +15,7 @@ flowchart LR
 
     subgraph manages["cvmm이 관리"]
         ch["cloud-hypervisor\nVM lifecycle\nUnix API socket"]
+        passt["passt helper\ndefault network backend"]
         vfs["virtiofsd helpers\none process per share"]
     end
 
@@ -22,7 +23,7 @@ flowchart LR
         vm["booted VM"]
         disks["root + data disks"]
         shares["virtio-fs shares"]
-        network["TAP network"]
+        network["network\ndefault passt\nexplicit TAP compatibility"]
         console["console / PTY"]
     end
 
@@ -32,6 +33,7 @@ flowchart LR
     ch --> vm
     ch --> disks
     ch --> network
+    passt --> network
     ch --> console
     vfs --> shares
     disks --> vm

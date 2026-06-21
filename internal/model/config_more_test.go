@@ -23,17 +23,38 @@ func TestLoadConfigOpenAndDecodeErrors(t *testing.T) {
 	}
 }
 
+func TestConfigMemoryConfigLeavesTHPUnsetForStartTimeProbe(t *testing.T) {
+	cfg := &Config{Mem: util.MustLoadIECSize("4G")}
+
+	memory := cfg.MemoryConfig()
+	if memory.Thp != nil {
+		t.Fatalf("MemoryConfig().Thp = %v, want nil", *memory.Thp)
+	}
+	if got, want := memory.Size, int64(util.MustLoadIECSize("4G")); got != want {
+		t.Fatalf("MemoryConfig().Size = %d, want %d", got, want)
+	}
+	if !memory.Shared {
+		t.Fatal("MemoryConfig().Shared = false, want true")
+	}
+	if memory.Mergeable {
+		t.Fatal("MemoryConfig().Mergeable = true, want false for default shared memory")
+	}
+}
+
 func TestConfigBuildsVMAndVirtiofsConfig(t *testing.T) {
 	cfg := &Config{
-		Cpus:       2,
-		Mem:        util.MustLoadIECSize("4G"),
-		Uuid:       uuid.MustParse("87773d86-0030-4db4-9e90-e5a4314ff11b"),
-		Image:      "test-image",
-		NetMacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
-		NetIfName:  "vmtap-01",
-		Cmdline:    []string{"quiet"},
-		Disk:       []string{"data.img", "/srv/vmm/disks/archive.img"},
-		Directory:  []string{"configuration", "/srv/vmm/share/absolute"},
+		Cpus:  2,
+		Mem:   util.MustLoadIECSize("4G"),
+		Uuid:  uuid.MustParse("87773d86-0030-4db4-9e90-e5a4314ff11b"),
+		Image: "test-image",
+		Net: ManifestNetConfig{
+			Backend: NetBackendTap,
+			MacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
+			IfName:  "vmtap-01",
+		},
+		Cmdline:   []string{"quiet"},
+		Disk:      []string{"data.img", "/srv/vmm/disks/archive.img"},
+		Directory: []string{"configuration", "/srv/vmm/share/absolute"},
 	}
 
 	vmcfg := cfg.VMConfig(
@@ -43,6 +64,7 @@ func TestConfigBuildsVMAndVirtiofsConfig(t *testing.T) {
 		"/srv/vmm/images/test-image/root.img",
 		"/srv/vmm/nodes/node-a",
 		"/srv/vmm/nodes/node-a/run/virtiofs.sock",
+		"/srv/vmm/nodes/node-a/run/passt.sock",
 		true,
 	)
 	if got, want := vmcfg.Payload.Cmdline, "systemd.machine_id=87773d8600304db49e90e5a4314ff11b console=hvc0 quiet"; got != want {

@@ -94,7 +94,7 @@ func BenchmarkLoadPathAssembly(b *testing.B) {
 			"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 			"virtiofs.sock",
 			"virtiofs.pid",
-			"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+			"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 			false,
 			"",
 		)

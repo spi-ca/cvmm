@@ -8,7 +8,8 @@
 
 - 사용한 binary와 git revision
 - host OS / kernel / CPU / storage 요약
-- `cloud-hypervisor`와 `virtiofsd` 버전 또는 binary path
+- `cloud-hypervisor`, `virtiofsd`, `passt` 버전 또는 binary path
+- network backend(`passt`/`tap`)와 helper binary path/version
 - node manifest와 image 이름
 - 실행한 명령
 - raw output 또는 원시 측정값
@@ -18,9 +19,11 @@
 
 - `start NODE` end-to-end latency
 - API readiness (`vmm-ping`)까지의 대기 시간
+- 기본 `passt` helper spawn + socket readiness 시간
 - `vm-info` / `vm-counters` API round-trip latency
 - `console NODE` attach latency
 - 공유 디렉터리 수 증가에 따른 `virtiofsd` fan-out 비용
+- `tap` 호환 경로 대비 `passt` 기본 경로 startup/shutdown 비용 차이
 - `shutdown NODE` 종료 시간
 
 ## 최소 claim 기준
@@ -31,6 +34,8 @@
 - 반복 측정 여러 회
 - 평균만이 아니라 편차나 percentile 기록
 - 실패/timeout 케이스도 함께 보관
+
+`passt` 기본 경로와 `tap` 호환 경로는 같은 표에서 섞지 말고 backend를 명시해 분리 기록한다.
 
 ## 비목표
 

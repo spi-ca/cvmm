@@ -42,7 +42,7 @@ func TestClientDispatchVmCreateReadsYAMLAndCallsUnixSocket(t *testing.T) {
 	})
 
 	stdinPath := filepath.Join(t.TempDir(), "stdin.yaml")
-	if err := os.WriteFile(stdinPath, []byte("payload:\n  kernel: /custom/kernel\n"), 0o644); err != nil {
+	if err := os.WriteFile(stdinPath, []byte("payload:\n  kernel: /custom/kernel\nmemory:\n  size: 1024\n  thp: false\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	stdin, err := os.Open(stdinPath)
@@ -63,6 +63,9 @@ func TestClientDispatchVmCreateReadsYAMLAndCallsUnixSocket(t *testing.T) {
 	}
 	if !strings.Contains(got.Body, `"kernel":"/custom/kernel"`) {
 		t.Fatalf("request body = %s, want encoded payload kernel", got.Body)
+	}
+	if !strings.Contains(got.Body, `"thp":false`) {
+		t.Fatalf("request body = %s, want explicit thp:false", got.Body)
 	}
 }
 
@@ -195,10 +198,10 @@ func setupClientRuntime(t *testing.T) *clientRuntime {
 
 	tmp := t.TempDir()
 	rt := &clientRuntime{
-		nodeName:   "client-node",
-		imageRoot:  filepath.Join(tmp, "images"),
-		nodeRoot:   filepath.Join(tmp, "nodes"),
-		socketPath: filepath.Join(tmp, "nodes", "client-node", "run", "api.sock"),
+		nodeName:   "n",
+		imageRoot:  filepath.Join(tmp, "i"),
+		nodeRoot:   filepath.Join(tmp, "n"),
+		socketPath: filepath.Join(tmp, "n", "n", "run", "api.sock"),
 	}
 	nodeBasePath := filepath.Join(rt.nodeRoot, rt.nodeName)
 	imageBasePath := filepath.Join(rt.imageRoot, "test-image")

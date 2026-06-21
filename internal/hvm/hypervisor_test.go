@@ -41,6 +41,8 @@ func TestLoad_BuildsRuntimeConfigFromManifest(t *testing.T) {
 mem: 4G
 uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
 image: test-image
+net:
+  backend: tap
 net_mac_addr: 2e:33:5f:11:1b:42
 net_if_name: vmtap-01
 cmdline:
@@ -63,7 +65,7 @@ directory:
 		pidFilename, apiPidFilename, apiSocketFilename,
 		virtiofsSocketFilenameTemplate,
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	)
@@ -173,7 +175,7 @@ directory:
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		true,
 		"",
 	)
@@ -211,8 +213,17 @@ directory:
 	if len(h.vmcfg.Net) != 1 || len(h.vmcfg.Net[0].Mac) == 0 {
 		t.Fatalf("generated MAC missing: %#v", h.vmcfg.Net)
 	}
-	if got := h.vmcfg.Net[0].Tap; !strings.HasPrefix(got, "vmtap-") {
-		t.Fatalf("generated tap = %q, want vmtap-*", got)
+	if got := h.vmcfg.Net[0].Tap; got != "" {
+		t.Fatalf("tap = %q, want empty for default passt backend", got)
+	}
+	if !h.vmcfg.Net[0].VhostUser {
+		t.Fatalf("VhostUser = %v, want true for default passt backend", h.vmcfg.Net[0].VhostUser)
+	}
+	if got, want := h.vmcfg.Net[0].VhostSocket, filepath.Join(nodeBasePath, "run", "passt.sock"); got != want {
+		t.Fatalf("VhostSocket = %q, want %q", got, want)
+	}
+	if got, want := h.vmcfg.Net[0].VhostMode, "Client"; got != want {
+		t.Fatalf("VhostMode = %q, want %q", got, want)
 	}
 }
 
@@ -240,7 +251,7 @@ image: test-image
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	)
@@ -277,7 +288,7 @@ image: test-image
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	)
@@ -689,7 +700,7 @@ func TestLoad_ReturnsManifestErrors(t *testing.T) {
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	); err == nil {
@@ -706,7 +717,7 @@ func TestLoad_ReturnsManifestErrors(t *testing.T) {
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	); err == nil {
@@ -835,6 +846,7 @@ func buildCloudHypervisorStubBinary(t *testing.T, dir string) string {
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -887,6 +899,44 @@ func writeResponseFromEnv(w http.ResponseWriter, statusKey, bodyKey string, defa
 	}
 }
 
+func appendWrite(path, content string) {
+	if path == "" {
+		return
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	if _, err := file.WriteString(content); err != nil {
+		panic(err)
+	}
+}
+
+func sequenceValue(key string, index int) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return ""
+	}
+	parts := strings.Split(value, "|")
+	if index < len(parts) {
+		return parts[index]
+	}
+	return parts[len(parts)-1]
+}
+
+func sequenceStatus(key string, index int, defaultStatus int) int {
+	value := sequenceValue(key, index)
+	if value == "" {
+		return defaultStatus
+	}
+	status, err := strconv.Atoi(value)
+	if err != nil {
+		panic(err)
+	}
+	return status
+}
+
 func main() {
 	if os.Getenv("TEST_HELPER_PROBE") == "1" {
 		return
@@ -915,6 +965,7 @@ func main() {
 	server := &http.Server{}
 	mux := http.NewServeMux()
 	server.Handler = mux
+	createCalls := 0
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGTERM)
@@ -930,8 +981,21 @@ func main() {
 		_ = json.NewEncoder(w).Encode(map[string]any{"version": "1.0", "pid": 1, "features": []string{}})
 	})
 	mux.HandleFunc("/api/v1/vm.create", func(w http.ResponseWriter, r *http.Request) {
+		mustWrite(os.Getenv("TEST_CH_CREATE_FILE"), "create")
+		body, _ := io.ReadAll(r.Body)
+		appendWrite(os.Getenv("TEST_CH_CREATE_BODY_FILE"), string(body)+"\n")
+		callIndex := createCalls
+		createCalls++
 		sleepFromEnv("TEST_CH_CREATE_DELAY_MS")
-		writeResponseFromEnv(w, "TEST_CH_CREATE_STATUS", "TEST_CH_CREATE_BODY", http.StatusNoContent)
+		status := sequenceStatus("TEST_CH_CREATE_STATUS_SEQUENCE", callIndex, statusFromEnv("TEST_CH_CREATE_STATUS", http.StatusNoContent))
+		responseBody := sequenceValue("TEST_CH_CREATE_BODY_SEQUENCE", callIndex)
+		if responseBody == "" {
+			responseBody = os.Getenv("TEST_CH_CREATE_BODY")
+		}
+		w.WriteHeader(status)
+		if responseBody != "" {
+			_, _ = w.Write([]byte(responseBody))
+		}
 	})
 	mux.HandleFunc("/api/v1/vm.boot", func(w http.ResponseWriter, r *http.Request) {
 		sleepFromEnv("TEST_CH_BOOT_DELAY_MS")
@@ -1004,6 +1068,137 @@ func ensureCloudHypervisorHelperCanStart(t *testing.T, helperPath string) {
 	if err := cmd.Wait(); err != nil {
 		t.Fatalf("cloud-hypervisor helper preflight wait failed: %v", err)
 	}
+}
+
+func buildPasstStubBinary(t *testing.T, dir string) string {
+	t.Helper()
+
+	sourcePath := filepath.Join(dir, "main.go")
+	binaryPath := filepath.Join(dir, "passt-stub")
+	source := `package main
+
+import (
+	"net"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
+)
+
+func mustWrite(path, content string) {
+	if path == "" {
+		return
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		panic(err)
+	}
+}
+
+func sleepFromEnv(key string) {
+	value := os.Getenv(key)
+	if value == "" {
+		return
+	}
+	millis, err := strconv.Atoi(value)
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(time.Duration(millis) * time.Millisecond)
+}
+
+func main() {
+	if os.Getenv("TEST_HELPER_PROBE") == "1" {
+		return
+	}
+
+	var socketPath string
+	var seenVhostUser bool
+	var seenForeground bool
+	for idx := 1; idx < len(os.Args); idx++ {
+		switch os.Args[idx] {
+		case "--vhost-user":
+			seenVhostUser = true
+		case "--foreground":
+			seenForeground = true
+		case "--socket":
+			if idx+1 < len(os.Args) {
+				socketPath = os.Args[idx+1]
+				idx++
+			}
+		}
+	}
+	if !seenVhostUser || !seenForeground || socketPath == "" {
+		panic("missing passt command arguments")
+	}
+	if argsPath := os.Getenv("TEST_PASST_ARGS_FILE"); argsPath != "" {
+		mustWrite(argsPath, strconv.Quote(stringsJoin(os.Args[1:], "\n")))
+	}
+	mustWrite(os.Getenv("TEST_PASST_SELF_PID_FILE"), strconv.Itoa(os.Getpid()))
+	sleepFromEnv("TEST_PASST_READY_DELAY_MS")
+
+	_ = os.Remove(socketPath)
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(socketPath)
+	defer listener.Close()
+	mustWrite(os.Getenv("TEST_PASST_READY_FILE"), "ready")
+
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGTERM)
+	go func() {
+		<-sigterm
+		mustWrite(os.Getenv("TEST_PASST_TERM_FILE"), "term")
+		mustWrite(os.Getenv("TEST_PASST_EXIT_FILE"), "exit")
+		os.Exit(0)
+	}()
+
+	if exitAfter := os.Getenv("TEST_PASST_EXIT_AFTER_READY_MS"); exitAfter != "" {
+		millis, err := strconv.Atoi(exitAfter)
+		if err != nil {
+			panic(err)
+		}
+		go func() {
+			time.Sleep(time.Duration(millis) * time.Millisecond)
+			mustWrite(os.Getenv("TEST_PASST_EXIT_FILE"), "exit")
+			os.Exit(0)
+		}()
+	}
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		_ = conn.Close()
+	}
+}
+
+func stringsJoin(values []string, sep string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	joined := values[0]
+	for _, value := range values[1:] {
+		joined += sep + value
+	}
+	return joined
+}
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("go", "build", "-o", binaryPath, sourcePath)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("failed to build passt stub: %v\n%s", err, out)
+	}
+	absBinaryPath, err := filepath.Abs(binaryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return absBinaryPath
 }
 
 func waitForFile(t *testing.T, path string, timeout time.Duration) {

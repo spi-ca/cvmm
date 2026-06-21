@@ -22,7 +22,7 @@ func TestLoadRejectsInvalidNodeNames(t *testing.T) {
 				"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 				"virtiofs.sock",
 				"virtiofs.pid",
-				"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+				"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 				false,
 				"",
 			)
@@ -62,7 +62,7 @@ directory:
 		"vmlinuz", "initramfs.img", "root.img",
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock", "virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		"",
 	)
@@ -87,6 +87,43 @@ func TestResolveNodeBasePathKeepsNodesInsideRoot(t *testing.T) {
 	}
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		t.Fatalf("resolveNodeBasePath() escaped root: nodeRoot=%q nodeBasePath=%q rel=%q", nodeRoot, nodeBasePath, rel)
+	}
+}
+
+func TestLoadRejectsTapOnlyIfNameWithoutTapBackend(t *testing.T) {
+	tmp := t.TempDir()
+	imageRoot := filepath.Join(tmp, "images")
+	nodeRoot := filepath.Join(tmp, "nodes")
+	nodeName := "legacy-tap-node"
+	nodeBasePath := filepath.Join(nodeRoot, nodeName)
+	imageBasePath := filepath.Join(imageRoot, "test-image")
+
+	writeTestFile(t, filepath.Join(nodeBasePath, "config.yaml"), []byte(`cpus: 1
+mem: 1G
+uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
+image: test-image
+net_if_name: vmtap-01
+`))
+	writeTestFile(t, filepath.Join(imageBasePath, "vmlinuz"), nil)
+	writeTestFile(t, filepath.Join(imageBasePath, "root.img"), nil)
+
+	_, err := Load(
+		nodeName,
+		imageRoot, nodeRoot, "run",
+		"config.yaml",
+		"vmlinuz", "initramfs.img", "root.img",
+		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
+		"virtiofs.sock",
+		"virtiofs.pid",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
+		false,
+		"",
+	)
+	if err == nil {
+		t.Fatal("Load() error = nil, want actionable TAP migration rejection")
+	}
+	if !strings.Contains(err.Error(), "net.backend: tap") {
+		t.Fatalf("Load() error = %v, want net.backend: tap guidance", err)
 	}
 }
 
@@ -121,7 +158,7 @@ directory:
 		"cvmm.pid", "cloudhypervisor.pid", "api.sock",
 		"virtiofs.sock",
 		"virtiofs.pid",
-		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd",
+		"/usr/bin/cloud-hypervisor", "/usr/bin/virtiofsd", "/usr/bin/passt",
 		false,
 		currentUser.Username,
 	)

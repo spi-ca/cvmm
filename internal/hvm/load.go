@@ -24,7 +24,7 @@ func Load(
 	kernelFilename, initramfsFilename, rootfsFilename,
 	pidFilename, apiPidFilename, apiSocketFilename,
 	virtiofsdSocketFilenameTemplate, virtiofsdPidFilenameTemplate,
-	cloudhypervisorBinaryPath, virtiofsdBinaryPath string,
+	cloudhypervisorBinaryPath, virtiofsdBinaryPath, passtBinaryPath string,
 	consoleRedirectToStd bool,
 	runAsUser string,
 ) (*Hypervisor, error) {
@@ -40,6 +40,8 @@ func Load(
 
 	virtiofsdSocketPathTemplate := filepath.Join(volatileBasePath, virtiofsdSocketFilenameTemplate)
 	virtiofsdPidPathTemplate := filepath.Join(volatileBasePath, virtiofsdPidFilenameTemplate)
+	passtSocketPath := filepath.Join(volatileBasePath, "passt.sock")
+	passtPidPath := filepath.Join(volatileBasePath, "passt.pid")
 
 	var (
 		runAs     *syscall.Credential
@@ -55,11 +57,17 @@ func Load(
 
 	h := &Hypervisor{
 		name:                      name,
+		volatileBasePath:          volatileBasePath,
 		pidPath:                   pidPath,
 		cloudhypervisorBinaryPath: cloudhypervisorBinaryPath,
 		cloudhypervisorPidPath:    apiPidPath,
 		virtiofsdBinaryPath:       virtiofsdBinaryPath,
+		passtBinaryPath:           passtBinaryPath,
+		passtSocketPath:           passtSocketPath,
+		passtPidPath:              passtPidPath,
 		runAs:                     runAs,
+		managerUID:                uint32(os.Geteuid()),
+		managerGID:                uint32(os.Getegid()),
 	}
 
 	h.cli = newClient(apiSocketPath)
@@ -73,20 +81,19 @@ func Load(
 	if err := cfg.ValidateDirectoryBasenames(); err != nil {
 		return nil, err
 	}
+	h.netBackend = cfg.Net.Backend
 
 	imageBasePath := filepath.Join(imageRoot, cfg.Image)
 	kernelPath := filepath.Join(imageBasePath, kernelFilename)
 	initramfsPath := filepath.Join(imageBasePath, initramfsFilename)
 	rootfsPath := filepath.Join(imageBasePath, rootfsFilename)
 
-	if len(cfg.NetMacAddr) == 0 {
-		cfg.NetMacAddr = util.GenerateKvmMACAddress()
+	if len(cfg.Net.MacAddr) == 0 {
+		cfg.Net.MacAddr = util.GenerateKvmMACAddress()
 	}
-
-	if len(cfg.NetIfName) == 0 {
-		cfg.NetIfName = cfg.NetMacAddr.GenerateIfName("vmtap-")
+	if cfg.UsesTapNetwork() && len(cfg.Net.IfName) == 0 {
+		cfg.Net.IfName = cfg.Net.MacAddr.GenerateIfName("vmtap-")
 	}
-
 	if len(initramfsPath) == 0 {
 		// An empty initramfs path means the VM will boot without initramfs.
 	} else if stat, err := os.Stat(initramfsPath); errors.Is(err, os.ErrNotExist) {
@@ -97,18 +104,22 @@ func Load(
 		initramfsPath = ""
 	}
 
-	util.InfoLog.Printf("network interface(%s): %s", cfg.NetIfName, cfg.NetMacAddr)
+	if cfg.UsesTapNetwork() {
+		util.InfoLog.Printf("network backend(%s) interface(%s): %s", cfg.Net.Backend, cfg.Net.IfName, cfg.Net.MacAddr)
+	} else {
+		util.InfoLog.Printf("network backend(%s) socket(%s): %s", cfg.Net.Backend, passtSocketPath, cfg.Net.MacAddr)
+	}
 
 	h.vmcfg = cfg.VMConfig(
 		h.name,
 		kernelPath, initramfsPath, rootfsPath,
-		nodeBasePath, virtiofsdSocketPathTemplate,
+		nodeBasePath, virtiofsdSocketPathTemplate, passtSocketPath,
 		consoleRedirectToStd,
 	)
-	util.InfoLog.Printf("hypervisor config: %s", h.vmcfg)
+	util.InfoLog.Printf("hypervisor config summary(base, pre-thp decision): cpus=%d memory_size=%d disks=%d nets=%d fs=%d", h.vmcfg.Cpus.BootVcpus, h.vmcfg.Memory.Size, len(h.vmcfg.Disks), len(h.vmcfg.Net), len(h.vmcfg.Fs))
 
 	h.virtiofsdcfg = cfg.VirtiofsConfig(nodeBasePath, virtiofsdSocketPathTemplate, virtiofsdPidPathTemplate, groupName)
-	util.InfoLog.Printf("virtiofs config: %s", h.virtiofsdcfg)
+	util.InfoLog.Printf("virtiofs config summary: shares=%d socket_group_set=%t", len(h.virtiofsdcfg), groupName != "")
 
 	return h, nil
 }

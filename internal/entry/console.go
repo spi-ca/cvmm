@@ -40,6 +40,7 @@ func Console(name, nodeName string) {
 		"\n	argNodeName=", nodeName,
 		"\n	virtiofsd.path=", viper.GetString("virtiofsd.path"),
 		"\n	cloudhypervisor.path=", viper.GetString("cloudhypervisor.path"),
+		"\n	passt.path=", viper.GetString("passt.path"),
 		"\n	image.root=", viper.GetString("image.root"),
 		"\n	node.root=", viper.GetString("node.root"),
 		"\n	manifest.filename=", viper.GetString("manifest.filename"),
@@ -76,6 +77,7 @@ func Console(name, nodeName string) {
 
 		util.LookupBinary(viper.GetString("cloudhypervisor.path")),
 		util.LookupBinary(viper.GetString("virtiofsd.path")),
+		util.LookupBinary(viper.GetString("passt.path")),
 		viper.GetBool("console"),
 
 		viper.GetString("runas"),

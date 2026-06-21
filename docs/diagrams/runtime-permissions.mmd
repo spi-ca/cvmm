@@ -1,47 +1,68 @@
 flowchart LR
     subgraph svc["Service context"]
-        systemd["systemd unit\nUser/Group\ncapabilities"]
-        runas["optional --runas\nlookup target user"]
+        systemd["systemd/service manager\nUser/Group for cvmm service"]
+        runas["optional --runas\ncloud-hypervisor child only"]
+        backend["manifest net.backend\ndefault passt / explicit tap"]
     end
 
-    subgraph cvmm["cvmm process"]
+    subgraph cvmm["cvmm manager"]
         load["hvm.Load\nread manifest\nresolve paths"]
         start["Hypervisor.Start\nlaunch children\ncleanup state"]
+        runtimeGate["Start gate\nrun/ must not be symlink"]
+        policy["Passt policy\nnon-root service uid/gid only\nrun/ owned by service user\nmode <= 0700"]
     end
 
     subgraph host["Host access required"]
         image["image-root\nread kernel/initramfs/root"]
         node["node-root\nconfig, disks, shares"]
-        run["node run/\ncvmm/cloud-hypervisor pid\nvirtiofs pid + Unix sockets"]
-        devices["/dev/kvm\n/dev/net/tun"]
+        run["node run/\ncvmm/cloud-hypervisor pid\npasst.sock + passt.pid\nvirtiofs pid + Unix sockets"]
+        kvm["/dev/kvm\nVM execution"]
+        tun["/dev/net/tun\nTAP backend only"]
     end
 
     subgraph children["Managed child processes"]
-        ch["cloud-hypervisor\nmay switch credentials\nto --runas user"]
-        vfs["virtiofsd per share\nruns as service account\ncvmm records helper pid\nsocket group may use --runas primary group"]
+        chPasst["cloud-hypervisor\npasst mode\ninherits service uid/gid or same --runas\nno ambient network caps"]
+        chTap["cloud-hypervisor\ntap mode\nmay switch credentials via --runas\nambient CAP_NET_ADMIN"]
+        passt["passt helper\nservice account child\nno ambient capabilities\nforeground direct child"]
+        vfs["virtiofsd per share\nservice account child\nsocket group may follow --runas primary group"]
     end
 
     subgraph guest["Guest-visible result"]
         vm["Guest VM"]
         block["virtio-blk disks"]
         fs["virtio-fs shares\nsubmounts announced"]
-        net["TAP network"]
+        netPasst["vhost-user NIC via passt.sock"]
+        netTap["TAP NIC"]
     end
 
     systemd --> load --> start
-    runas --> start
+    runas --> load
+    backend --> load
+    start --> runtimeGate
+    runtimeGate --> policy
     load --> image
     load --> node
     start --> run
-    start --> ch
+    runtimeGate --> run
+    policy --> run
+    start --> chPasst
+    start --> chTap
+    start --> passt
     start --> vfs
-    ch --> devices
-    ch --> vm
-    ch --> block
-    ch --> net
+    chPasst --> kvm
+    chTap --> kvm
+    chTap --> tun
+    passt --> run
     vfs --> node
     vfs --> run
+    chPasst --> vm
+    chTap --> vm
+    chPasst --> block
+    chTap --> block
+    passt --> netPasst
+    chTap --> netTap
     vfs --> fs
     fs --> vm
     block --> vm
-    net --> vm
+    netPasst --> vm
+    netTap --> vm

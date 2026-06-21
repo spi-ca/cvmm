@@ -74,7 +74,11 @@ func TestClientImplVmCreateSendsJSONBody(t *testing.T) {
 	client := newClient(socketPath)
 	defer client.Close()
 
-	cfg := model.VmConfig{Payload: model.PayloadConfig{Kernel: "/kernel"}}
+	thpDisabled := false
+	cfg := model.VmConfig{
+		Payload: model.PayloadConfig{Kernel: "/kernel"},
+		Memory:  &model.MemoryConfig{Size: 1024, Thp: &thpDisabled},
+	}
 	if err := client.VmCreate(context.Background(), cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -84,6 +88,9 @@ func TestClientImplVmCreateSendsJSONBody(t *testing.T) {
 	}
 	if !strings.Contains(got.Body, `"kernel":"/kernel"`) {
 		t.Fatalf("request body = %s, want kernel JSON", got.Body)
+	}
+	if !strings.Contains(got.Body, `"thp":false`) {
+		t.Fatalf("request body = %s, want explicit thp:false", got.Body)
 	}
 }
 

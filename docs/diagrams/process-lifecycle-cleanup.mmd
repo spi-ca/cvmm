@@ -1,30 +1,46 @@
 flowchart LR
     subgraph startPhase["Start gate"]
-        start["cvmm start\nNODE_NAME"] --> pid["Acquire\ncvmm.pid"]
+        start["cvmm start\nNODE_NAME"] --> runtimeDir["Validate run/ directory\nnot a symlink"]
+        runtimeDir --> runCheck{"backend = passt?"}
+        runCheck -- yes --> runPerm["Validate service uid/gid\nrun/ owner = service uid\nmode <= 0700"]
+        runCheck -- no --> pid["Acquire\ncvmm.pid"]
+        runPerm --> pid
         pid --> active{"active\npid file?"}
         active -- yes --> duplicate["Refuse\nduplicate start"]
         active -- no --> stale["Remove stale\nAPI socket"]
     end
 
     subgraph bootPhase["Boot path"]
-        stale --> spawn["Exec\ncloud-hypervisor"]
-        spawn --> ready["Poll vmm.ping\nuntil ready"]
-        ready --> readyOK{"ready?"}
-        readyOK -- yes --> create["vm.create\nVmConfig"]
+        stale --> spawnCH["Exec\ncloud-hypervisor"]
+        stale --> passtBranch{"backend = passt?"}
+        passtBranch -- yes --> spawnPasst["Exec passt\n--vhost-user --socket run/passt.sock --foreground"]
+        passtBranch -- no --> tapPath["TAP path\nno passt helper"]
+        spawnCH --> readyCH["Poll vmm.ping\nuntil ready"]
+        readyCH --> readyOK{"hypervisor ready?"}
+        spawnPasst --> readyPasst["Wait for passt.sock\nreadiness"]
+        readyPasst --> passtOK{"passt ready?"}
+        readyOK -- yes --> createGate{"backend = passt?"}
+        createGate -- no --> create["vm.create\nVmConfig"]
+        createGate -- yes --> waitBoth["Gate on passt.sock readiness"]
+        passtOK -- yes --> waitBoth
+        tapPath --> create
+        waitBoth --> create
         create --> createOK{"create ok?"}
         createOK -- yes --> helpers["Start virtiofsd\nreconciler"]
-        helpers --> boot["vm.boot"]
         helpers -. async helper lifecycle .-> helperPid["Record per-share\nvirtiofs pid files"]
+        helpers --> boot["vm.boot"]
         boot --> bootOK{"boot ok?"}
         bootOK -- yes --> running["Running\nmonitor VM/helpers"]
     end
 
     subgraph failure["Startup failure cleanup"]
-        readyOK -- no --> startupCleanup["Terminate child\nremove pid\nstartup error"]
-        createOK -- no --> createCleanup["Terminate child\nremove pid\ncreate error"]
-        bootOK -- no --> bootCleanup["Cancel helpers\nterminate child\nremove pid\nboot error"]
+        readyOK -- no --> startupCleanup["Terminate children\nremove API/pid state\nstartup error"]
+        passtOK -- no --> passtCleanup["Terminate passt + hypervisor\nremove passt.sock/passt.pid\nstartup error"]
+        createOK -- no --> createCleanup["Terminate children\nremove passt.sock/passt.pid\ncreate error"]
+        bootOK -- no --> bootCleanup["Cancel helpers\nterminate children\nremove pid/socket state\nboot error"]
         duplicate --> failed["Failed"]
         startupCleanup --> failed
+        passtCleanup --> failed
         createCleanup --> failed
         bootCleanup --> failed
     end
@@ -33,15 +49,17 @@ flowchart LR
         running --> reconcile["Reconcile missing\nvirtiofsd helpers"]
         reconcile --> running
         running --> signal["SIGTERM / SIGINT\nor shutdown command"]
+        running --> fatalPasst["Unexpected passt exit\nafter vm.create"]
     end
 
     subgraph stopPhase["Shutdown cleanup"]
         signal --> power["vm.power-button"]
+        fatalPasst --> power
         power --> wait["Wait for VM exit"]
         wait --> exited{"exit in time?"}
         exited -- no --> kill["Force kill child"]
         exited -- yes --> stopHelpers["Cancel helpers"]
         kill --> stopHelpers
-        stopHelpers --> cleanup["Remove owned\npid/socket state\nincluding virtiofs pid\ncollect errors"]
+        stopHelpers --> cleanup["Remove owned\npid/socket state\nincluding passt.sock/passt.pid\nand virtiofs pid files"]
         cleanup --> stopped["Stopped"]
     end

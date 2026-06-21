@@ -46,6 +46,7 @@ func init() {
 
 	flags.String("virtiofsd-path", "/usr/lib/virtiofsd", "specify virtiofsd binary path")
 	flags.String("cloudhypervisor-path", "/usr/bin/cloud-hypervisor", "specify cloud-hypervisor binary path")
+	flags.String("passt-path", "/usr/bin/passt", "specify passt binary path")
 
 	flags.Parse()
 	viper.SetEnvKeyReplacer(envNameReplacer)

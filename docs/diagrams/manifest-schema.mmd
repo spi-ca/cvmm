@@ -8,25 +8,36 @@ flowchart TD
         image["image\nimage repository directory name"]
     end
 
-    subgraph optional["선택 필드"]
-        mac["net_mac_addr\nMAC address\nempty => generated"]
-        tap["net_if_name\nTAP interface name\nempty => generated vmtap-*"]
+    subgraph optional["선택/호환 필드"]
+        net["net\nbackend/mac_addr/if_name"]
+        legacyMac["legacy net_mac_addr\ncompatibility input"]
+        legacyTap["legacy net_if_name\ncompatibility input"]
         cmdline["cmdline[]\nextra kernel command line entries"]
         disk["disk[]\nwritable data disk paths"]
         directory["directory[]\nvirtio-fs export paths"]
     end
 
-    subgraph resolution["경로/기본값 해석"]
+    subgraph resolution["정규화/기본값/검증"]
+        normalize["NormalizeNetwork()\nmerge legacy fields into net"]
+        backendRule{"net.backend set?"}
+        backendDefault["default backend = passt"]
+        backendExplicit["explicit backend\npasst or tap"]
+        ifNameRule{"net.if_name with\nbackend != tap?"}
+        rejectTap["reject manifest\nactionable tap-only error"]
+        defaults["generate missing MAC\nand TAP name only for tap"]
+        effectiveBackend{"effective backend"}
         imageBase["image-root/image\nvmlinuz\noptional initramfs.img\nroot.img"]
         diskRule{"disk path\nabsolute?"}
         basenameRule{"directory basename\nunique?"}
         dirRule{"directory path\nabsolute?"}
-        defaults["generate missing\nMAC and TAP name"]
         cmd["prepend systemd.machine_id\nand join cmdline[]"]
     end
 
-    subgraph vmcfg["생성되는 런타임 설정"]
+    subgraph runtime["생성되는 런타임 설정/파일"]
         payload["VmConfig payload\nCPU, memory, platform, kernel, disks, net, fs"]
+        netTapPayload["tap payload\ntap=<if_name>"]
+        netPasstPayload["passt payload\nvhost_user=true\nvhost_socket=run/passt.sock\nvhost_mode=Client"]
+        passtFiles["node run/\npasst.sock\npasst.pid"]
         vfs["[]VirtiofsConfig\nsocket path, pid path, tag, directory\nthread pool, socket group"]
     end
 
@@ -37,13 +48,22 @@ flowchart TD
     mem --> payload
     uuid --> cmd --> payload
     cmdline --> cmd
-    mac --> defaults --> payload
-    tap --> defaults
+    net --> normalize
+    legacyMac --> normalize
+    legacyTap --> normalize
+    normalize --> backendRule
+    backendRule -- no --> backendDefault --> ifNameRule
+    backendRule -- yes --> backendExplicit --> ifNameRule
+    ifNameRule -- yes --> rejectTap
+    ifNameRule -- no --> defaults --> effectiveBackend
+    effectiveBackend -- tap --> netTapPayload --> payload
+    effectiveBackend -- passt --> netPasstPayload --> payload
+    netPasstPayload --> passtFiles
     disk --> diskRule
     diskRule -- yes --> diskAbs["use exact host path"] --> payload
     diskRule -- no --> diskRel["join node-root/node/disk"] --> payload
     directory --> basenameRule
-    basenameRule -- no --> reject["reject manifest\ntag/socket/pid collision"]
+    basenameRule -- no --> rejectDir["reject manifest\ntag/socket/pid collision"]
     basenameRule -- yes --> dirRule
     dirRule -- yes --> dirAbs["use exact host directory"] --> vfs
     dirRule -- no --> dirRel["join node-root/node/directory"] --> vfs

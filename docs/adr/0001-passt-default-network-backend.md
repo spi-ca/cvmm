@@ -1,20 +1,22 @@
 # ADR 0001: Use passt as the default managed network backend
 
-- Status: Accepted
+- Status: Accepted; implemented in current codebase
 - Date: 2026-06-21
+
+> Implementation note: this ADR was written before the code change. Phrases such as "currently" in the original context describe the repository at decision time; current behavior is documented in `README.md`, `docs/design.md`, `docs/architecture.md`, and `docs/operations.md`.
 
 ## Context
 
-`cvmm` currently implements a single manifest-managed TAP network device for `start`:
+At decision time, `cvmm` implemented a single manifest-managed TAP network device for `start`:
 
 - the current manifest exposes top-level `net_mac_addr` and `net_if_name`;
 - `hvm.Load` generates a `vmtap-*` interface name when one is not supplied;
 - `model.Config.NetConfig` renders a single cloud-hypervisor `tap=...` network entry;
 - `Hypervisor.Start` gives the `cloud-hypervisor` child `CAP_NET_ADMIN` unconditionally.
 
-This ADR records the intended direction for a future implementation. It does not describe behavior that is already implemented or validated in the current codebase.
+This ADR recorded the intended direction for the implementation that is now present in the current codebase.
 
-The local evaluation found that `passt` can provide a vhost-user socket that cloud-hypervisor can consume with a network payload using `vhost_user`, `vhost_socket`, and `vhost_mode: "Client"`. The exact implementation still needs code changes, tests, and runtime validation.
+The local evaluation found that `passt` can provide a vhost-user socket that cloud-hypervisor can consume with a network payload using `vhost_user`, `vhost_socket`, and `vhost_mode: "Client"`.
 
 For `passt`-specific behavior, the upstream/local `passt` man page, documentation, and source are authoritative references for this project, analogous to the way cvmm treats cloud-hypervisor and virtiofsd documentation for their command/API behavior.
 
@@ -74,7 +76,7 @@ For the first implementation:
 
 ## Target operational semantics
 
-The following sections describe the target state after this ADR is implemented; current `cvmm` behavior remains TAP-based.
+The following sections describe the implemented target state for this ADR.
 
 ### Runtime artifacts and command shape
 
@@ -139,7 +141,7 @@ A simple single-helper launcher with explicit cleanup is preferred over copying 
 
 ## Rollout and migration
 
-- Documentation that describes current behavior must continue to say that the current code is TAP-based until the implementation lands.
+- Documentation that describes current behavior must say that the default manifest-managed backend is `passt` and TAP requires explicit `net.backend: tap`.
 - Implementing this ADR intentionally changes the default backend for manifests that omit `net.backend`.
 - Existing manifests that rely on TAP-specific `net_if_name` must migrate it to `net.if_name` and add `net.backend: tap` during migration.
 - Existing deployments that run the manager as root and rely on `--runas` only to lower cloud-hypervisor must either keep `net.backend: tap` or move to a dedicated non-root service user/group with safe `passt.sock` access control before using the default passt backend.

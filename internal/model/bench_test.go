@@ -62,6 +62,7 @@ func BenchmarkConfigVMConfigAssembly(b *testing.B) {
 					"/srv/vmm/images/bench/root.img",
 					"/srv/vmm/nodes/bench-node",
 					"/srv/vmm/nodes/bench-node/run/virtiofs.sock",
+					"/srv/vmm/nodes/bench-node/run/passt.sock",
 					false,
 				)
 			}

@@ -12,12 +12,15 @@ import (
 
 func TestConfig_MarshalYAMLMatchesManifestSchema(t *testing.T) {
 	cfg := &Config{
-		Cpus:       2,
-		Mem:        util.MustLoadIECSize("4G"),
-		Uuid:       uuid.MustParse("87773d86-0030-4db4-9e90-e5a4314ff11b"),
-		Image:      "test-image",
-		NetMacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
-		NetIfName:  "vmtap-01",
+		Cpus:  2,
+		Mem:   util.MustLoadIECSize("4G"),
+		Uuid:  uuid.MustParse("87773d86-0030-4db4-9e90-e5a4314ff11b"),
+		Image: "test-image",
+		Net: ManifestNetConfig{
+			Backend: NetBackendTap,
+			MacAddr: util.MustLoadMACAddress("2e:33:5f:11:1b:42"),
+			IfName:  "vmtap-01",
+		},
 		Cmdline: []string{
 			"console=hvc0",
 			"quiet",
@@ -35,8 +38,10 @@ func TestConfig_MarshalYAMLMatchesManifestSchema(t *testing.T) {
 mem: 4G
 uuid: 87773d86-0030-4db4-9e90-e5a4314ff11b
 image: test-image
-net_mac_addr: 2e:33:5f:11:1b:42
-net_if_name: vmtap-01
+net:
+    backend: tap
+    mac_addr: 2e:33:5f:11:1b:42
+    if_name: vmtap-01
 cmdline:
     - console=hvc0
     - quiet

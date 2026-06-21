@@ -14,7 +14,9 @@
 - Node manifest default: `<node-root>/<node>/config.yaml`
 - Runtime files default: `<node-root>/<node>/run/`
 
-`start` loads a node manifest, resolves image artifacts, starts `cloud-hypervisor`, waits for API readiness, creates the VM, boots it, and keeps auxiliary `virtiofsd` processes reconciled.
+`start` loads a node manifest, resolves image artifacts, starts `cloud-hypervisor` and, when the effective backend is `passt`, a node-scoped `passt` helper, waits for readiness, creates the VM, boots it, and keeps auxiliary `virtiofsd` processes reconciled.
+
+Current manifest-managed networking defaults to nested `net` configuration with `passt`. Explicit TAP compatibility remains available with `net.backend: tap`; `CAP_NET_ADMIN` is only required for TAP, and `passt` mode requires a dedicated non-root service user plus restricted `<node>/run/` ownership/mode checks. `--runas` remains a `cloud-hypervisor` child setting and cannot be used to deploy `passt` from a root manager.
 
 ## CLI surface
 
@@ -32,6 +34,7 @@ Some `client` actions read YAML request bodies from stdin.
 
 - Do not describe this repository with unrelated legacy project identities or stacks.
 - Keep docs aligned with `main.go`, `internal/entry`, `internal/hvm`, and `internal/model`.
+- Keep docs explicit about current default-`passt` behavior, explicit `net.backend: tap` compatibility, `passt` helper lifecycle/runtime artifacts, runtime permission checks, and `--runas` limitations.
 - Do not reintroduce legacy non-cvmm artifact archives; add only explicit `cvmm` evidence with provenance.
 - Do not modify `docs/guidelines/**` unless explicitly requested.
 

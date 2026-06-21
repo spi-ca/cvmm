@@ -12,17 +12,32 @@ import (
 	"github.com/google/uuid"
 )
 
+type NetBackend string
+
+const (
+	NetBackendPasst NetBackend = "passt"
+	NetBackendTap   NetBackend = "tap"
+)
+
+// ManifestNetConfig describes the manifest-managed single-NIC selector and settings.
+type ManifestNetConfig struct {
+	Backend NetBackend      `json:"backend,omitempty" yaml:"backend,omitempty"`
+	MacAddr util.MACAddress `json:"mac_addr,omitempty" yaml:"mac_addr,omitempty"`
+	IfName  string          `json:"if_name,omitempty" yaml:"if_name,omitempty"`
+}
+
 // Config describes configuration data that cvmm translates into runtime VM state.
 type Config struct {
-	Cpus       int             `json:"cpus" yaml:"cpus"`
-	Mem        util.IECSize    `json:"mem" yaml:"mem"`
-	Uuid       uuid.UUID       `json:"uuid" yaml:"uuid"`
-	Image      string          `json:"image" yaml:"image"`
-	NetMacAddr util.MACAddress `json:"net_mac_addr" yaml:"net_mac_addr"`
-	NetIfName  string          `json:"net_if_name" yaml:"net_if_name"`
-	Cmdline    []string        `json:"cmdline" yaml:"cmdline"`
-	Disk       []string        `json:"disk" yaml:"disk"`
-	Directory  []string        `json:"directory" yaml:"directory"`
+	Cpus       int               `json:"cpus" yaml:"cpus"`
+	Mem        util.IECSize      `json:"mem" yaml:"mem"`
+	Uuid       uuid.UUID         `json:"uuid" yaml:"uuid"`
+	Image      string            `json:"image" yaml:"image"`
+	Net        ManifestNetConfig `json:"net,omitempty" yaml:"net,omitempty"`
+	NetMacAddr util.MACAddress   `json:"net_mac_addr,omitempty" yaml:"net_mac_addr,omitempty"`
+	NetIfName  string            `json:"net_if_name,omitempty" yaml:"net_if_name,omitempty"`
+	Cmdline    []string          `json:"cmdline" yaml:"cmdline"`
+	Disk       []string          `json:"disk" yaml:"disk"`
+	Directory  []string          `json:"directory" yaml:"directory"`
 }
 
 // LoadConfig reads and decodes a YAML node manifest from path.
@@ -40,8 +55,51 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	if err := cfg.NormalizeNetwork(); err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
 }
+
+// NormalizeNetwork merges legacy top-level fields into net, applies backend defaults, and rejects unsupported combinations.
+func (i *Config) NormalizeNetwork() error {
+	if len(i.NetMacAddr) > 0 {
+		if len(i.Net.MacAddr) == 0 {
+			i.Net.MacAddr = i.NetMacAddr
+		} else if i.Net.MacAddr.String() != i.NetMacAddr.String() {
+			return fmt.Errorf("manifest network conflict: net.mac_addr %q does not match legacy net_mac_addr %q", i.Net.MacAddr, i.NetMacAddr)
+		}
+	}
+
+	if len(i.NetIfName) > 0 {
+		if len(i.Net.IfName) == 0 {
+			i.Net.IfName = i.NetIfName
+		} else if i.Net.IfName != i.NetIfName {
+			return fmt.Errorf("manifest network conflict: net.if_name %q does not match legacy net_if_name %q", i.Net.IfName, i.NetIfName)
+		}
+	}
+
+	switch i.Net.Backend {
+	case "":
+		i.Net.Backend = NetBackendPasst
+	case NetBackendPasst, NetBackendTap:
+	default:
+		return fmt.Errorf("unsupported net.backend %q: supported values are %q and %q", i.Net.Backend, NetBackendPasst, NetBackendTap)
+	}
+
+	if len(i.Net.IfName) > 0 && i.Net.Backend != NetBackendTap {
+		return fmt.Errorf("net.if_name requires net.backend: tap; set net.backend: tap to keep TAP behavior")
+	}
+
+	return nil
+}
+
+// UsesPasstNetwork reports whether the effective manifest-managed backend is passt.
+func (i *Config) UsesPasstNetwork() bool { return i.Net.Backend == NetBackendPasst }
+
+// UsesTapNetwork reports whether the effective manifest-managed backend is TAP.
+func (i *Config) UsesTapNetwork() bool { return i.Net.Backend == NetBackendTap }
 
 // ValidateDirectoryBasenames rejects duplicate virtio-fs share identifiers before paths, sockets, pids, or guest tags collide.
 func (i *Config) ValidateDirectoryBasenames() error {
@@ -92,7 +150,8 @@ func (i *Config) VMConfig(
 	initramfsPath,
 	rootfsPath,
 	diskImageDirectoryPath,
-	virtiofsSocketPathTemplate string,
+	virtiofsSocketPathTemplate,
+	passtSocketPath string,
 	consoleHasStd bool,
 ) VmConfig {
 	return VmConfig{
@@ -102,7 +161,7 @@ func (i *Config) VMConfig(
 		Cpus:            i.CpusConfig(),
 		Memory:          i.MemoryConfig(),
 		Disks:           i.DiskConfig(rootfsPath, diskImageDirectoryPath),
-		Net:             i.NetConfig(),
+		Net:             i.NetConfig(passtSocketPath),
 		Rng:             i.RngConfig(),
 		Balloon:         i.BalloonConfig(),
 		Fs:              i.FsConfig(virtiofsSocketPathTemplate),
@@ -150,13 +209,11 @@ func (i *Config) CpusConfig() *CpusConfig {
 	}
 }
 
-// MemoryConfig maps the manifest memory size to shared THP-enabled guest memory.
+// MemoryConfig maps the manifest memory size to shared guest memory and leaves THP undecided for start-time host probing.
 func (i *Config) MemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		Size:      int64(i.Mem),
-		Mergeable: true,
-		Shared:    true,
-		Thp:       true,
+		Size:   int64(i.Mem),
+		Shared: true,
 	}
 }
 
@@ -190,16 +247,21 @@ func (i *Config) DiskConfig(imageFilePath string, diskImageDirectoryPath string)
 	return cfgs
 }
 
-// NetConfig builds the TAP network payload from the manifest or generated defaults.
-func (i *Config) NetConfig() []NetConfig {
-	return []NetConfig{
-		{
-			Tap:       i.NetIfName,
-			Mac:       i.NetMacAddr,
-			NumQueues: i.Cpus,
-			QueueSize: 1024,
-		},
+// NetConfig builds the manifest-managed network payload for the effective backend.
+func (i *Config) NetConfig(passtSocketPath string) []NetConfig {
+	cfg := NetConfig{
+		Mac:       i.Net.MacAddr,
+		NumQueues: i.Cpus,
+		QueueSize: 1024,
 	}
+	if i.UsesTapNetwork() {
+		cfg.Tap = i.Net.IfName
+	} else {
+		cfg.VhostUser = true
+		cfg.VhostSocket = passtSocketPath
+		cfg.VhostMode = "Client"
+	}
+	return []NetConfig{cfg}
 }
 
 // RngConfig configures the guest RNG source.

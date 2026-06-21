@@ -12,7 +12,7 @@ const expectedDefaultVmConfigString = `--kernel /srv/vmm/images/test/vmlinuz
 --initramfs /srv/vmm/images/test/initramfs.img
 --cpus boot=2,max=2
 --platform serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
---memory size=2147483648,mergeable=on,shared=on,thp=on
+--memory size=2147483648,shared=on
 --disk path=/srv/vmm/images/test/root.img,readonly=on path=/srv/vmm/nodes/test/data.img
 --net tap=vmtap-tst,num_queues=2,queue_size=128
 --rng src=/dev/urandom
@@ -34,7 +34,7 @@ boot=2,max=2
 --platform
 serial_number=a6a7a918188645d5adb5aaabdca22f16,uuid=a6a7a918-1886-45d5-adb5-aaabdca22f16,oem_strings=amuzes-test
 --memory
-size=2147483648,mergeable=on,shared=on,thp=on
+size=2147483648,shared=on
 --disk
 path=/srv/vmm/images/test/root.img,readonly=on
 path=/srv/vmm/nodes/test/data.img
@@ -140,6 +140,56 @@ thp: true
 	}
 
 	assertEqualString(t, i.String(), "--memory size=4294967296,mergeable=on,shared=on,hugepages=on,hugepage_size=1073741824,hotplug_method=Acpi,hotplug_size=8589934592,hotplugged_size=1073741824,prefault=on,thp=on")
+}
+
+func TestMemoryConfig_CommandArgsTHPStates(t *testing.T) {
+	base := MemoryConfig{Size: 1024, Shared: true}
+	thpEnabled := true
+	thpDisabled := false
+
+	tests := []struct {
+		name string
+		thp  *bool
+		want string
+	}{
+		{name: "enabled", thp: &thpEnabled, want: "--memory size=1024,shared=on,thp=on"},
+		{name: "disabled", thp: &thpDisabled, want: "--memory size=1024,shared=on,thp=off"},
+		{name: "unset", thp: nil, want: "--memory size=1024,shared=on"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := base
+			cfg.Thp = tt.thp
+			assertEqualString(t, cfg.String(), tt.want)
+		})
+	}
+}
+
+func TestMemoryConfig_JSONTHPStates(t *testing.T) {
+	thpEnabled := true
+	thpDisabled := false
+
+	tests := []struct {
+		name string
+		thp  *bool
+		want string
+	}{
+		{name: "enabled", thp: &thpEnabled, want: `{"size":1024,"thp":true}`},
+		{name: "disabled", thp: &thpDisabled, want: `{"size":1024,"thp":false}`},
+		{name: "unset", thp: nil, want: `{"size":1024}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := MemoryConfig{Size: 1024, Thp: tt.thp}
+			buf, err := json.Marshal(cfg)
+			if err != nil {
+				t.Fatalf("json.Marshal() error = %v", err)
+			}
+			assertEqualString(t, string(buf), tt.want)
+		})
+	}
 }
 
 func TestVMInfo_Serialize(t *testing.T) {

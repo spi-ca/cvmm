@@ -186,7 +186,7 @@ type (
 		Hugepages      bool               `json:"hugepages,omitempty" yaml:"hugepages,omitempty"`
 		HugepageSize   int64              `json:"hugepage_size,omitempty" yaml:"hugepage_size,omitempty"`
 		Prefault       bool               `json:"prefault,omitempty" yaml:"prefault,omitempty"`
-		Thp            bool               `json:"thp,omitempty" yaml:"thp,omitempty"`
+		Thp            *bool              `json:"thp,omitempty" yaml:"thp,omitempty"`
 		Zones          []MemoryZoneConfig `json:"zones,omitempty" yaml:"zones,omitempty"`
 	}
 
@@ -774,8 +774,12 @@ func (m MemoryConfig) CommandArgs() []string {
 		args = append(args, "prefault=on")
 	}
 
-	if m.Thp {
-		args = append(args, "thp=on")
+	if m.Thp != nil {
+		if *m.Thp {
+			args = append(args, "thp=on")
+		} else {
+			args = append(args, "thp=off")
+		}
 	}
 
 	flags := []string(nil)
@@ -1569,6 +1573,8 @@ func joinArgs(args []string) string {
 	return builder.String()
 }
 
+func boolPtr(value bool) *bool { return &value }
+
 // DefaultVmConfig returns a representative VM configuration used by model tests.
 func DefaultVmConfig() VmConfig {
 	return VmConfig{
@@ -1604,10 +1610,8 @@ func DefaultVmConfig() VmConfig {
 		},
 		Cpus: &CpusConfig{BootVcpus: 2, MaxVcpus: 2},
 		Memory: &MemoryConfig{
-			Size:      2 * 1024 * 1024 * 1024,
-			Mergeable: true,
-			Shared:    true,
-			Thp:       true,
+			Size:   2 * 1024 * 1024 * 1024,
+			Shared: true,
 		},
 		Console:      &ConsoleConfig{Mode: ConsoleModePty},
 		DebugConsole: &DebugConsoleConfig{IoBase: 0xe9},

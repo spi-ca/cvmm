@@ -77,6 +77,7 @@ func TestMainCLIEnvOverrideAndBinding(t *testing.T) {
 		"IMAGE_ROOTFS_FILENAME=root.img",
 		"CLOUDHYPERVISOR_PATH=sh",
 		"VIRTIOFSD_PATH=sh",
+		"PASST_PATH=sh",
 		"VIRTIOFS_SOCKET_FILENAME_TEMPLATE=virtiofs-env.sock",
 		"VIRTIOFS_PID_FILENAME_TEMPLATE=virtiofs-env.pid",
 	)
@@ -93,6 +94,7 @@ func TestMainCLIEnvOverrideAndBinding(t *testing.T) {
 		"virtiofs.socket.filename.template=virtiofs-env.sock",
 		"virtiofs.pid.filename.template=virtiofs-env.pid",
 		"cloudhypervisor.path=sh",
+		"passt.path=sh",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("output = %s, want %q", text, want)
@@ -118,6 +120,7 @@ func TestMainCLIFlagsOverrideEnv(t *testing.T) {
 		"NODE_ROOT="+filepath.Join(t.TempDir(), "wrong-nodes"),
 		"CLOUDHYPERVISOR_PATH=sh",
 		"VIRTIOFSD_PATH=sh",
+		"PASST_PATH=sh",
 	)
 
 	output, err := cmd.CombinedOutput()
@@ -163,14 +166,14 @@ type mainClientRuntime struct {
 	socketPath        string
 }
 
-func setupMainClientRuntime(t *testing.T, imageRootName, nodeRootName, volatileDirectory, manifestFilename, apiFilename string) *mainClientRuntime {
+func setupMainClientRuntime(t *testing.T, _, _ string, volatileDirectory, manifestFilename, apiFilename string) *mainClientRuntime {
 	t.Helper()
 
 	tmp := t.TempDir()
 	rt := &mainClientRuntime{
-		nodeName:          "main-client-node",
-		imageRoot:         filepath.Join(tmp, imageRootName),
-		nodeRoot:          filepath.Join(tmp, nodeRootName),
+		nodeName:          "n",
+		imageRoot:         filepath.Join(tmp, "i"),
+		nodeRoot:          filepath.Join(tmp, "n"),
 		volatileDirectory: volatileDirectory,
 		manifestFilename:  manifestFilename,
 		apiFilename:       apiFilename,

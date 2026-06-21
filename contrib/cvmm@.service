@@ -1,5 +1,6 @@
 [Unit]
 Description=cloud-virtual-machine-manager node %i
+# `modprobe@tun.service` remains for manifests that opt into `net.backend: tap`.
 Wants=modprobe@tun.service modprobe@kvm.service
 PartOf=machines.target
 Before=machines.target
@@ -15,10 +16,16 @@ TimeoutStopSec=3m
 Environment=GOMEMLIMIT=32MiB
 Environment=GOGC=100
 WorkingDirectory=/srv/vmm/nodes
-# Set User=/Group=, capability bounds, and node/share directory ownership for the deployment.
-# --runas only changes the cloud-hypervisor child; virtiofsd helpers run as this service user.
+User=hvm
+Group=hvm
+UMask=0077
+# Default passt deployment: run the manager as a dedicated non-root service user that owns
+# `<node-root>/<node>/run/` and keep `--runas` unset.
+# `--runas` only changes the cloud-hypervisor child; `virtiofsd` and `passt` helpers run as this
+# service user. Root manager + `--runas` is not a supported passt deployment model.
+# If a manifest opts into `net.backend: tap`, add the required tap/capability handling with a
+# deployment-specific override instead of reusing the default passt unit unchanged.
 ExecStart=/usr/bin/cvmm \
-    --runas hvm \
     start %i
 KillMode=mixed
 Restart=on-failure

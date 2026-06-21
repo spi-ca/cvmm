@@ -19,6 +19,7 @@ flowchart LR
 
     subgraph runtime["Runtime processes and sockets"]
         ch["cloud-hypervisor\nUnix API socket + pid"]
+        passt["passt helper\nnode-scoped socket + cvmm-managed pid"]
         vfs["virtiofsd per share\nUnix socket + cvmm-managed pid"]
         pty["guest console PTY"]
     end
@@ -27,7 +28,7 @@ flowchart LR
         guest["Guest VM"]
         blk["virtio-blk\nroot.img + data disks"]
         fs["virtio-fs shares"]
-        net["TAP interface"]
+        net["network NIC\ndefault passt\nexplicit TAP compatibility"]
     end
 
     operator --> cli
@@ -38,9 +39,11 @@ flowchart LR
     model --> images
     model --> nodes
     hvm --> ch
+    hvm --> passt
     hvm --> vfs
     ch --> guest
     ch --> pty
     ch --> blk --> guest
     vfs --> fs --> guest
     ch --> net
+    passt --> net

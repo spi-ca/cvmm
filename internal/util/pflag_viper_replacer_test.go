@@ -31,8 +31,9 @@ func TestPFlagViperReplacerBindsFlagsAndEnv(t *testing.T) {
 
 	flagSet := flags.NewFlagSet("test", flags.ContinueOnError)
 	flagSet.String("cloudhypervisor-path", "/usr/bin/cloud-hypervisor", "")
+	flagSet.String("passt-path", "/usr/bin/passt", "")
 	flagSet.String("virtiofs-socket-filename-template", "virtiofs.sock", "")
-	if err := flagSet.Parse([]string{"--cloudhypervisor-path=/bin/sh"}); err != nil {
+	if err := flagSet.Parse([]string{"--cloudhypervisor-path=/bin/sh", "--passt-path=/bin/sh"}); err != nil {
 		t.Fatalf("Parse() error = %v", err)
 	}
 
@@ -49,6 +50,9 @@ func TestPFlagViperReplacerBindsFlagsAndEnv(t *testing.T) {
 
 	if got := viper.GetString("cloudhypervisor.path"); got != "/bin/sh" {
 		t.Fatalf("cloudhypervisor.path = %q, want %q", got, "/bin/sh")
+	}
+	if got := viper.GetString("passt.path"); got != "/bin/sh" {
+		t.Fatalf("passt.path = %q, want %q", got, "/bin/sh")
 	}
 	if got := viper.GetString("virtiofs.socket.filename.template"); got != "env.sock" {
 		t.Fatalf("virtiofs.socket.filename.template = %q, want %q", got, "env.sock")
