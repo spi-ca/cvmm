@@ -1,7 +1,16 @@
 {
-  "$schema": "https://unpkg.com/@aliou/pi-guardrails@0.13.2/schema.json",
+  "$schema": "https://unpkg.com/@aliou/pi-guardrails@0.14.0/schema.json",
   "pathAccess": {
-    "allowedPaths": []
+    "allowedPaths": [
+      {
+        "kind": "directory",
+        "path": "/srv/vmm"
+      },
+      {
+        "kind": "directory",
+        "path": "/dev"
+      }
+    ]
   },
   "version": "0.9.0-20260327"
 }

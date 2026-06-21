@@ -98,8 +98,12 @@ func TestPiGuardrailsConfigMatchesDocumentation(t *testing.T) {
 		Schema     string `json:"$schema"`
 		Version    string `json:"version"`
 		PathAccess *struct {
-			AllowedPaths *[]string `json:"allowedPaths"`
+			AllowedPaths *[]json.RawMessage `json:"allowedPaths"`
 		} `json:"pathAccess"`
+	}
+	type allowedPath struct {
+		Kind string `json:"kind"`
+		Path string `json:"path"`
 	}
 
 	for _, path := range []string{".pi/extensions/guardrails.json", ".pi/extensions/guardrails.v0.json"} {
@@ -120,11 +124,30 @@ func TestPiGuardrailsConfigMatchesDocumentation(t *testing.T) {
 		if cfg.PathAccess.AllowedPaths == nil {
 			t.Fatalf("%s must keep pathAccess.allowedPaths so project-local path exceptions remain explicit", path)
 		}
-		if len(*cfg.PathAccess.AllowedPaths) != 0 {
-			t.Fatalf("%s pathAccess.allowedPaths = %v, want empty project-local path exception list", path, *cfg.PathAccess.AllowedPaths)
+		if path == ".pi/extensions/guardrails.v0.json" {
+			if len(*cfg.PathAccess.AllowedPaths) != 0 {
+				t.Fatalf("%s pathAccess.allowedPaths = %s, want empty legacy path exception list", path, content)
+			}
+			continue
 		}
-		if path == ".pi/extensions/guardrails.json" && cfg.Version == "" {
+		if cfg.Version == "" {
 			t.Fatalf("current guardrails.json must keep version documented in docs/pi-agents.md")
+		}
+		want := []allowedPath{
+			{Kind: "directory", Path: "/srv/vmm"},
+			{Kind: "directory", Path: "/dev"},
+		}
+		if len(*cfg.PathAccess.AllowedPaths) != len(want) {
+			t.Fatalf("%s pathAccess.allowedPaths length = %d, want %d", path, len(*cfg.PathAccess.AllowedPaths), len(want))
+		}
+		for idx, raw := range *cfg.PathAccess.AllowedPaths {
+			var got allowedPath
+			if err := json.Unmarshal(raw, &got); err != nil {
+				t.Fatalf("%s pathAccess.allowedPaths[%d] error = %v", path, idx, err)
+			}
+			if got != want[idx] {
+				t.Fatalf("%s pathAccess.allowedPaths[%d] = %#v, want %#v", path, idx, got, want[idx])
+			}
 		}
 	}
 }
