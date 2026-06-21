@@ -14,8 +14,9 @@
 6. [`migration-adr-001-passt-network.md`](migration-adr-001-passt-network.md) - ADR-001 network manifest migration checklist
 7. [`adr/0001-passt-default-network-backend.md`](adr/0001-passt-default-network-backend.md) - default `passt` 결정 배경, migration 의도, 구현 시 기대한 검증 기준
 8. [`adr/0002-adaptive-thp-handling.md`](adr/0002-adaptive-thp-handling.md) - guest THP adaptive handling 결정, 구현 범위, fallback 기록
-9. [`diagrams/README.md`](diagrams/README.md) - diagram source와 SVG/PNG 산출물 규칙
-10. [`adr/`](adr/) - 구현된 결정과 future-facing decision record를 함께 포함
+9. [`adr/0003-passt-config-helper-shape.md`](adr/0003-passt-config-helper-shape.md) - narrow `PasstConfig` internal helper shape 결정과 구현 기록
+10. [`diagrams/README.md`](diagrams/README.md) - diagram source와 SVG/PNG 산출물 규칙
+11. [`adr/`](adr/) - 구현된 결정과 future-facing decision record를 함께 포함
 
 ## 필요할 때만 열 문서
 

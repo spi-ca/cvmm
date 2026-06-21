@@ -214,6 +214,7 @@ cvmm console-file PTY_ID
 - [ADR-001 migration note](docs/migration-adr-001-passt-network.md): legacy `net_*` manifest를 nested `net`/default `passt` 또는 explicit `tap`으로 옮기는 방법
 - [ADR 0001](docs/adr/0001-passt-default-network-backend.md): default `passt` 결정 배경, migration 의도, 구현 시 검증 기준
 - [ADR 0002](docs/adr/0002-adaptive-thp-handling.md): guest THP adaptive handling 결정과 구현 상태 기록
+- [ADR 0003](docs/adr/0003-passt-config-helper-shape.md): narrow `PasstConfig` internal helper shape 결정과 구현 기록
 - [diagrams](docs/diagrams/README.md): Mermaid source와 SVG/PNG 산출물
 - [benchmarks](docs/benchmarks.md): 현재 성능 측정 방침
 
