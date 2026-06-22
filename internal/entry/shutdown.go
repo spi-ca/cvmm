@@ -85,6 +85,9 @@ func Shutdown(name, nodeName string) {
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}
+	if err := h.ValidateRuntimeAccessPath(); err != nil {
+		util.ErrLog.Fatal(err)
+	}
 
 	defer h.Close()
 	h.Shutdown(ctx)

@@ -16,7 +16,7 @@
 
 `start` loads a node manifest, resolves image artifacts, starts `cloud-hypervisor` and, when the effective backend is `passt`, a node-scoped `passt` helper, waits for readiness, creates the VM, boots it, and keeps auxiliary `virtiofsd` processes reconciled.
 
-Current manifest-managed networking defaults to nested `net` configuration with `passt`. Explicit TAP compatibility remains available with `net.backend: tap`; `CAP_NET_ADMIN` is only required for TAP, and `passt` mode requires a dedicated non-root service user plus restricted `<node>/run/` ownership/mode checks. `--runas` remains a `cloud-hypervisor` child setting and cannot be used to deploy `passt` from a root manager.
+Current manifest-managed networking defaults to nested `net` configuration with `passt`. Explicit TAP compatibility remains available with `net.backend: tap`; `CAP_NET_ADMIN` is only required for TAP, and all backends require restricted `<node>/run/` ownership/mode checks before start or socket/pid access. `passt` mode additionally requires a dedicated non-root service user. `--runas` remains a `cloud-hypervisor` child setting and cannot be used to deploy `passt` from a root manager.
 
 ## CLI surface
 

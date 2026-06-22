@@ -27,9 +27,10 @@ sequenceDiagram
     end
     Load-->>Entry: Hypervisor with run/, socket/pid paths
     Entry->>HV: Start(ctx)
-    HV->>HV: validate run/ is not a symlink
+    HV->>HV: validate run/ is not a symlink\nis a directory\nowner = manager/service uid\nmode <= 0700
     alt backend = passt
-        HV->>HV: validate service uid/gid and run/ owner + mode
+        HV->>HV: require dedicated non-root service user
+        HV->>HV: reject --runas changing cloud-hypervisor away from service uid/gid
     end
     HV->>HV: acquire cvmm.pid and remove stale API socket
     HV->>CH: exec cloud-hypervisor --api-socket path=run/cloudhypervisor.sock

@@ -163,10 +163,7 @@ func (i *Hypervisor) passtProcessIdentity() sys.ProcessIdentityExpectation {
 }
 
 func (i *Hypervisor) usesPasstNetwork() bool {
-	if i.netBackend == model.NetBackendPasst {
-		return true
-	}
-	return len(i.vmcfg.Net) > 0 && i.vmcfg.Net[0].VhostUser
+	return i.netBackend == model.NetBackendPasst
 }
 
 func (i *Hypervisor) cloudHypervisorAmbientCaps() []uintptr {
@@ -193,36 +190,43 @@ func (i *Hypervisor) validateRuntimeDirectoryPath() error {
 	return nil
 }
 
+func (i *Hypervisor) validateRuntimeDirectorySecurity() error {
+	if i.volatileBasePath == "" {
+		return nil
+	}
+	if err := i.validateRuntimeDirectoryPath(); err != nil {
+		return err
+	}
+	info, err := os.Lstat(i.volatileBasePath)
+	if err != nil {
+		return fmt.Errorf("failed to inspect runtime directory %q: %w", i.volatileBasePath, err)
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fmt.Errorf("failed to inspect runtime directory %q ownership", i.volatileBasePath)
+	}
+	expectedUID := i.managerUID
+	if expectedUID == 0 {
+		expectedUID = uint32(os.Geteuid())
+	}
+	if stat.Uid != expectedUID {
+		return fmt.Errorf("runtime directory %q must be owned by manager/service uid %d", i.volatileBasePath, expectedUID)
+	}
+	if perm := info.Mode().Perm(); perm > 0o700 {
+		return fmt.Errorf("runtime directory %q must not be more permissive than 0700 (found %04o)", i.volatileBasePath, perm)
+	}
+	return nil
+}
+
+// ValidateRuntimeAccessPath rejects unsafe runtime paths before non-start commands touch node-local pid or socket files.
+func (i *Hypervisor) ValidateRuntimeAccessPath() error { return i.validateRuntimeDirectorySecurity() }
+
 func (i *Hypervisor) validatePasstServiceIdentity() error {
 	if i.managerUID == 0 {
 		return fmt.Errorf("passt backend requires running cvmm as a dedicated non-root service user; root manager with --runas is unsupported")
 	}
 	if i.runAs != nil && (i.runAs.Uid != i.managerUID || i.runAs.Gid != i.managerGID) {
 		return fmt.Errorf("passt backend does not support --runas changing cloud-hypervisor away from the service uid/gid; set net.backend: tap or run without --runas")
-	}
-	return nil
-}
-
-func (i *Hypervisor) validatePasstRuntimeDirectory() error {
-	info, err := os.Lstat(i.volatileBasePath)
-	if err != nil {
-		return fmt.Errorf("failed to inspect passt runtime directory %q: %w", i.volatileBasePath, err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 {
-		return fmt.Errorf("passt runtime directory %q must not be a symlink", i.volatileBasePath)
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("passt runtime directory %q is not a directory", i.volatileBasePath)
-	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		return fmt.Errorf("failed to inspect passt runtime directory %q ownership", i.volatileBasePath)
-	}
-	if stat.Uid != i.managerUID {
-		return fmt.Errorf("passt runtime directory %q must be owned by service uid %d", i.volatileBasePath, i.managerUID)
-	}
-	if perm := info.Mode().Perm(); perm > 0o700 {
-		return fmt.Errorf("passt runtime directory %q must not be more permissive than 0700 (found %04o)", i.volatileBasePath, perm)
 	}
 	return nil
 }
@@ -270,14 +274,11 @@ func (i *Hypervisor) Start(parentCtx context.Context) error {
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 
-	if err := i.validateRuntimeDirectoryPath(); err != nil {
+	if err := i.validateRuntimeDirectorySecurity(); err != nil {
 		return err
 	}
 	if i.usesPasstNetwork() {
 		if err := i.validatePasstServiceIdentity(); err != nil {
-			return err
-		}
-		if err := i.validatePasstRuntimeDirectory(); err != nil {
 			return err
 		}
 	}

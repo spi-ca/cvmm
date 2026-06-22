@@ -8,8 +8,8 @@ flowchart LR
     subgraph cvmm["cvmm manager"]
         load["hvm.Load\nread manifest\nresolve paths"]
         start["Hypervisor.Start\nlaunch children\ncleanup state"]
-        runtimeGate["Start gate\nrun/ must not be symlink"]
-        policy["Passt policy\nnon-root service uid/gid only\nrun/ owned by service user\nmode <= 0700"]
+        runtimeGate["Runtime gate\nrun/ must not be symlink\nowner = manager/service uid\nmode <= 0700"]
+        policy["Passt policy\nnon-root service uid/gid only\nmismatched --runas rejected"]
     end
 
     subgraph host["Host access required"]
@@ -21,7 +21,7 @@ flowchart LR
     end
 
     subgraph children["Managed child processes"]
-        chPasst["cloud-hypervisor\npasst mode\ninherits service uid/gid or same --runas\nno ambient network caps"]
+        chPasst["cloud-hypervisor\npasst mode\nservice uid/gid only\nno ambient network caps"]
         chTap["cloud-hypervisor\ntap mode\nmay switch credentials via --runas\nambient CAP_NET_ADMIN"]
         passt["passt helper\nservice account child\nno ambient capabilities\nforeground direct child"]
         vfs["virtiofsd per share\nservice account child\nsocket group may follow --runas primary group"]

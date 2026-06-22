@@ -132,7 +132,8 @@ net:
 
 - `CAP_NET_ADMIN`은 `net.backend: tap`일 때만 `cloud-hypervisor` child에 부여된다.
 - `passt` backend에서는 `cloud-hypervisor` child에 ambient capability를 추가하지 않는다.
-- `passt` backend는 dedicated non-root service user로 `cvmm`를 실행해야 하며, `<node-root>/<node>/run/`은 그 service uid가 소유하고 mode가 `0700` 이하여야 한다.
+- 모든 backend에서 `<node-root>/<node>/run/`은 `cvmm` manager/service uid가 소유하고 mode가 `0700` 이하여야 한다.
+- `passt` backend는 추가로 dedicated non-root service user로 `cvmm`를 실행해야 한다.
 - root manager에서 `--runas`로 `cloud-hypervisor`만 낮추는 배포는 `passt` backend에서 지원하지 않는다.
 - `virtiofsd` helper는 계속 service 사용자 권한으로 실행되고, `--runas` 사용자의 primary group은 virtio-fs socket group으로 전달될 수 있다.
 
@@ -170,7 +171,7 @@ cvmm \
   start TAP_NODE_NAME
 ```
 
-`--runas hvm`은 `cloud-hypervisor` 권한만 낮춘다. `virtiofsd`와 `passt` helper는 `cvmm` manager/service 사용자의 권한을 상속한다.
+`--runas hvm`은 `cloud-hypervisor` 권한만 낮춘다. `virtiofsd`와 `passt` helper는 `cvmm` manager/service 사용자의 권한을 상속한다. TAP 호환 경로에서도 `<node-root>/<node>/run/`은 여전히 그 manager/service uid 소유이며 mode가 `0700` 이하여야 한다.
 
 VM 종료:
 

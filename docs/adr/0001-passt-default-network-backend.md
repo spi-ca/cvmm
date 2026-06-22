@@ -133,18 +133,18 @@ A simple single-helper launcher with explicit cleanup is preferred over copying 
 
 - `CAP_NET_ADMIN` should be needed only for the TAP backend. Passt-backed cloud-hypervisor execution should not receive `CAP_NET_ADMIN` merely because networking is enabled.
 - `passt` must not inherit the current `virtiofsd` ambient capability set. The first version should give `passt` no ambient capabilities; because port forwarding is out of scope, `CAP_NET_BIND_SERVICE` is also out of scope.
-- The first version supports passt backend only when the manager runs under a dedicated non-root service user/group. A root manager that relies on `--runas` only to lower cloud-hypervisor remains unsupported for passt until a later design explicitly covers it. The current example `contrib/cvmm@.service` pattern with `--runas` but no enforced `User=`/`Group=` is therefore not sufficient for passt deployment as-is.
-- Because `passt` can drop privileges internally, the implementation must pass or otherwise enforce the intended service uid/gid rather than relying on passt's default credential behavior.
-- If `--runas` makes cloud-hypervisor run as a different uid/gid from the service user, the implementation must provide a dedicated private group, ownership handoff, or equivalent narrow socket access control for `passt.sock`; otherwise the `--runas` + `passt` combination must remain unsupported.
-- `<node-root>/<node>/run` must be owned by the service user. For passt mode, `start` should fail closed if the directory is more permissive than `0700`, or more permissive than `0750` when using a dedicated private group for socket sharing. Do not reuse any helper that silently creates the passt runtime directory as `0755`.
-- Passt sockets should not be exposed to shared human login groups. If group access is needed, use a dedicated VM/private group that grants access only to the service user and the cloud-hypervisor child identity.
+- The first version supports passt backend only when the manager runs under a dedicated non-root service user/group. The current `contrib/cvmm@.service` file is the active example of that model; earlier root-manager `--runas`-only examples are historical and are not sufficient for passt deployment.
+- Current implementation keeps `passt` on the service uid/gid inherited from the manager rather than relying on `--runas` to hand ownership to a different cloud-hypervisor child identity.
+- If `--runas` makes cloud-hypervisor run as a different uid/gid from the service user, the `passt` backend remains unsupported. Earlier private-group or ownership-handoff discussion in this ADR was not implemented.
+- `<node-root>/<node>/run` must be owned by the active `cvmm` manager/service user for every backend. `start` should fail closed if the directory is more permissive than `0700`. Passt mode still adds the dedicated non-root service-user requirement above. Do not reuse any helper that silently creates the runtime directory as `0755`.
+- Passt sockets should not be exposed to shared human login groups.
 
 ## Rollout and migration
 
 - Documentation that describes current behavior must say that the default manifest-managed backend is `passt` and TAP requires explicit `net.backend: tap`.
 - Implementing this ADR intentionally changes the default backend for manifests that omit `net.backend`.
 - Existing manifests that rely on TAP-specific `net_if_name` must migrate it to `net.if_name` and add `net.backend: tap` during migration.
-- Existing deployments that run the manager as root and rely on `--runas` only to lower cloud-hypervisor must either keep `net.backend: tap` or move to a dedicated non-root service user/group with safe `passt.sock` access control before using the default passt backend.
+- Existing deployments that run the manager as root and rely on `--runas` only to lower cloud-hypervisor must either keep `net.backend: tap` or move to a dedicated non-root service user/group and run without `--runas` before using the default passt backend.
 - The implementation must fail with an actionable error for `net.if_name` without `net.backend: tap`; it must not silently infer TAP from the TAP-only field.
 - Multi-NIC manifest support and port forwarding require separate design work.
 
@@ -164,6 +164,6 @@ The implementation should include at least:
 - start-path tests that `passt` is started before `vm.create`, waits for socket readiness, treats post-create `passt` exit as fatal, and is cleaned up on every failure path;
 - pid ownership tests showing `cvmm` writes and removes `passt.pid`;
 - capability tests showing `CAP_NET_ADMIN` is only attached for TAP and no `virtiofsd` filesystem capabilities are attached to `passt`;
-- runtime-directory permission tests that reject unsafe owner/mode combinations for passt mode;
+- runtime-directory permission tests that reject unsafe owner/mode combinations for every backend start path, including explicit TAP compatibility;
 - command-shape tests showing `--foreground` is present and `--pid` is absent for the first passt implementation;
 - docs-only checks plus `go test ./...` and `go vet ./...` for code changes.

@@ -25,7 +25,7 @@
 - `manifest-runtime-mapping.mmd`: manifest-to-runtime mapping diagram. `image`, `disk[]`, `directory[]`, nested/default network fields가 TAP 또는 vhost-user `passt` payload와 helper socket/pid config로 바뀌는 흐름을 보여준다.
 - `validation-evidence-flow.mmd`: validation/evidence flow diagram. 문서, Go 코드, 다이어그램, container/deploy, runtime measurement 변경별 검증 증거 흐름을 보여준다.
 - `client-action-dispatch.mmd`: client command dispatch diagram. `client ACTION NODE_NAME`의 action parsing, YAML stdin body, Unix socket API, stdout/error 흐름을 보여준다.
-- `process-lifecycle-cleanup.mmd`: lifecycle sequence diagram. start 중 pidfile, passt run/ 권한 검증, API/socket readiness, VM create/boot, virtiofsd reconcile, fatal `passt` exit, shutdown cleanup 경계를 보여준다.
+- `process-lifecycle-cleanup.mmd`: lifecycle sequence diagram. start 중 공통 `run/` directory 보안 검증, `passt` identity branch, pidfile, API/socket readiness, VM create/boot, virtiofsd reconcile, fatal `passt` exit, shutdown cleanup 경계를 보여준다.
 - `runtime-permissions.mmd`: deployment permission diagram. dedicated non-root `passt` service account, `--runas` 제한, TAP-only `CAP_NET_ADMIN`, host device/path/socket/pid 권한과 child process 경계를 보여준다.
 
 ## 저장소 기준 렌더링 규칙

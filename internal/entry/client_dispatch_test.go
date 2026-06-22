@@ -161,9 +161,7 @@ func TestClientDispatchMalformedStdinStopsBeforeAPICall(t *testing.T) {
 func withClientUnixHTTPServer(t *testing.T, socketPath string, handler http.HandlerFunc) (string, <-chan clientRecordedRequest) {
 	t.Helper()
 
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	ensureClientTestRuntimeDir(t, socketPath)
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -260,10 +258,31 @@ func discardClientLogs(t *testing.T) {
 	})
 }
 
+func ensureClientTestDir(t *testing.T, dir string, mode os.FileMode) {
+	t.Helper()
+	if err := os.MkdirAll(dir, mode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, mode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func ensureClientTestRuntimeDir(t *testing.T, path string) {
+	t.Helper()
+	runtimeDir := filepath.Dir(path)
+	ensureClientTestDir(t, filepath.Dir(runtimeDir), 0o755)
+	ensureClientTestDir(t, runtimeDir, 0o700)
+}
+
 func writeClientTestFile(t *testing.T, path string, content []byte) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
+
+	dir := filepath.Dir(path)
+	if filepath.Base(dir) == "run" {
+		ensureClientTestRuntimeDir(t, path)
+	} else {
+		ensureClientTestDir(t, dir, 0o755)
 	}
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		t.Fatal(err)

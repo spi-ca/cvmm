@@ -28,6 +28,25 @@ func TestCloudHypervisorAmbientCapsDependOnNetworkBackend(t *testing.T) {
 	}
 }
 
+func TestUsesPasstNetworkDependsOnManifestBackend(t *testing.T) {
+	h := &Hypervisor{
+		netBackend: model.NetBackendTap,
+		vmcfg: model.VmConfig{Net: []model.NetConfig{{
+			VhostUser:   true,
+			VhostSocket: "/srv/vmm/nodes/node-a/run/passt.sock",
+			VhostMode:   "Client",
+		}}},
+	}
+	if h.usesPasstNetwork() {
+		t.Fatal("usesPasstNetwork() = true, want false when manifest backend is tap")
+	}
+
+	h.netBackend = model.NetBackendPasst
+	if !h.usesPasstNetwork() {
+		t.Fatal("usesPasstNetwork() = false, want true when manifest backend is passt")
+	}
+}
+
 func TestPasstCommandArgs(t *testing.T) {
 	h := &Hypervisor{passtcfg: model.PasstConfig{SocketPath: "/srv/vmm/nodes/node-a/run/passt.sock", PidPath: "/srv/vmm/nodes/node-a/run/passt.pid"}}
 	got := strings.Join(h.passtcfg.CommandArgs(), " ")
@@ -68,7 +87,23 @@ func TestStartRejectsSymlinkRuntimeDirectoryForTap(t *testing.T) {
 	}
 }
 
-func TestValidatePasstRuntimeDirectoryRejectsUnsafeMode(t *testing.T) {
+func TestValidateRuntimeDirectorySecurityRejectsUnsafeModeForTap(t *testing.T) {
+	runDir := filepath.Join(t.TempDir(), "run")
+	if err := os.MkdirAll(runDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &Hypervisor{
+		netBackend:       model.NetBackendTap,
+		volatileBasePath: runDir,
+		managerUID:       uint32(os.Geteuid()),
+	}
+	if err := h.validateRuntimeDirectorySecurity(); err == nil || !strings.Contains(err.Error(), "0700") {
+		t.Fatalf("validateRuntimeDirectorySecurity() error = %v, want 0700 rejection", err)
+	}
+}
+
+func TestValidateRuntimeAccessPathRejectsUnsafeMode(t *testing.T) {
 	runDir := filepath.Join(t.TempDir(), "run")
 	if err := os.MkdirAll(runDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -78,12 +113,12 @@ func TestValidatePasstRuntimeDirectoryRejectsUnsafeMode(t *testing.T) {
 		volatileBasePath: runDir,
 		managerUID:       uint32(os.Geteuid()),
 	}
-	if err := h.validatePasstRuntimeDirectory(); err == nil || !strings.Contains(err.Error(), "0700") {
-		t.Fatalf("validatePasstRuntimeDirectory() error = %v, want 0700 rejection", err)
+	if err := h.ValidateRuntimeAccessPath(); err == nil || !strings.Contains(err.Error(), "0700") {
+		t.Fatalf("ValidateRuntimeAccessPath() error = %v, want 0700 rejection", err)
 	}
 }
 
-func TestValidatePasstRuntimeDirectoryRejectsWrongOwner(t *testing.T) {
+func TestValidateRuntimeDirectorySecurityRejectsWrongOwner(t *testing.T) {
 	runDir := filepath.Join(t.TempDir(), "run")
 	if err := os.MkdirAll(runDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -93,12 +128,12 @@ func TestValidatePasstRuntimeDirectoryRejectsWrongOwner(t *testing.T) {
 		volatileBasePath: runDir,
 		managerUID:       uint32(os.Geteuid()) + 1,
 	}
-	if err := h.validatePasstRuntimeDirectory(); err == nil || !strings.Contains(err.Error(), "must be owned") {
-		t.Fatalf("validatePasstRuntimeDirectory() error = %v, want owner rejection", err)
+	if err := h.validateRuntimeDirectorySecurity(); err == nil || !strings.Contains(err.Error(), "must be owned") {
+		t.Fatalf("validateRuntimeDirectorySecurity() error = %v, want owner rejection", err)
 	}
 }
 
-func TestValidatePasstRuntimeDirectoryRejectsSymlink(t *testing.T) {
+func TestValidateRuntimeDirectorySecurityRejectsSymlink(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "target")
 	if err := os.MkdirAll(target, 0o700); err != nil {
@@ -113,8 +148,8 @@ func TestValidatePasstRuntimeDirectoryRejectsSymlink(t *testing.T) {
 		volatileBasePath: link,
 		managerUID:       uint32(os.Geteuid()),
 	}
-	if err := h.validatePasstRuntimeDirectory(); err == nil || !strings.Contains(err.Error(), "symlink") {
-		t.Fatalf("validatePasstRuntimeDirectory() error = %v, want symlink rejection", err)
+	if err := h.validateRuntimeDirectorySecurity(); err == nil || !strings.Contains(err.Error(), "symlink") {
+		t.Fatalf("validateRuntimeDirectorySecurity() error = %v, want symlink rejection", err)
 	}
 }
 

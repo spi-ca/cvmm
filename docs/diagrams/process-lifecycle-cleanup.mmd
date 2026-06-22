@@ -1,10 +1,10 @@
 flowchart LR
     subgraph startPhase["Start gate"]
-        start["cvmm start\nNODE_NAME"] --> runtimeDir["Validate run/ directory\nnot a symlink"]
+        start["cvmm start\nNODE_NAME"] --> runtimeDir["Validate run/ directory\nno symlink\nowner = manager/service uid\nmode <= 0700"]
         runtimeDir --> runCheck{"backend = passt?"}
-        runCheck -- yes --> runPerm["Validate service uid/gid\nrun/ owner = service uid\nmode <= 0700"]
+        runCheck -- yes --> passtIdentity["Validate passt service uid/gid\nand --runas boundary"]
         runCheck -- no --> pid["Acquire\ncvmm.pid"]
-        runPerm --> pid
+        passtIdentity --> pid
         pid --> active{"active\npid file?"}
         active -- yes --> duplicate["Refuse\nduplicate start"]
         active -- no --> stale["Remove stale\nAPI socket"]

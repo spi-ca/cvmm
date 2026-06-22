@@ -102,6 +102,9 @@ func Client(name, nodeName string, action hvm.ClientAction) {
 	if err != nil {
 		util.ErrLog.Fatal(err)
 	}
+	if err := h.ValidateRuntimeAccessPath(); err != nil {
+		util.ErrLog.Fatal(err)
+	}
 
 	defer h.Close()
 

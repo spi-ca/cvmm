@@ -82,7 +82,7 @@ entry.Console
 - `virtiofsd`와 `passt` helper는 서비스 계정으로 실행된다. `virtiofsd`는 `--runas` 사용자의 primary group을 `--socket-group`에 반영할 수 있지만, `passt`는 그 모델을 재사용하지 않는다.
 - `Hypervisor.Start`는 `passt` backend에서 node-scoped helper를 `vm.create` 전에 시작하고 `passt.sock` readiness를 기다린다. `vm.create` 이후 helper가 죽으면 fatal lifecycle error로 보고 shutdown/cleanup을 수행한다.
 - `Hypervisor.Start`의 `CAP_NET_ADMIN` 부여는 TAP backend로 제한된다. `passt` backend의 `cloud-hypervisor` child에는 networking 때문에 ambient capability를 추가하지 않는다.
-- `passt` backend는 dedicated non-root service user가 소유한 `<node-root>/<node>/run/`을 요구하며, mode가 `0700`보다 완화되면 거부한다.
+- 모든 backend는 `<node-root>/<node>/run/`이 `cvmm` manager/service uid 소유이고 mode가 `0700`보다 완화되지 않아야 하며, `start`와 `client`/`console`/`shutdown` socket/pid 접근 전에 이를 검증한다. `passt` backend는 추가로 dedicated non-root service user를 요구한다.
 - root manager + `--runas` 조합은 `passt` backend에서 지원하지 않는다. 다른 uid/gid로 `cloud-hypervisor`를 내려야 하면 `net.backend: tap`을 선택하거나 service uid/gid 설계를 다시 잡아야 한다.
 - manifest `directory`는 절대경로도 허용하고 `virtiofsd`는 `--announce-submounts`를 사용하므로, 공유 디렉터리와 하위 mount 노출은 manifest 작성 권한과 서비스 계정/capability 모델에 좌우된다.
 

@@ -195,9 +195,7 @@ image: test-image
 func withMainUnixHTTPServer(t *testing.T, socketPath string, handler http.HandlerFunc) (string, <-chan mainRecordedRequest) {
 	t.Helper()
 
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	ensureMainTestRuntimeDir(t, socketPath)
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -216,6 +214,20 @@ func withMainUnixHTTPServer(t *testing.T, socketPath string, handler http.Handle
 		close(recordCh)
 	})
 	return socketPath, recordCh
+}
+
+func ensureMainTestRuntimeDir(t *testing.T, path string) {
+	t.Helper()
+	runtimeDir := filepath.Dir(path)
+	if err := os.MkdirAll(filepath.Dir(runtimeDir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(runtimeDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(runtimeDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func writeMainTestFile(t *testing.T, path string, content []byte) {

@@ -103,7 +103,8 @@ net:
 - `vm.create` 이후 `passt` 비정상 종료는 fatal lifecycle error로 처리되어야 한다.
 - `CAP_NET_ADMIN`은 TAP backend에만 적용되어야 한다.
 - `passt` backend의 `cloud-hypervisor` child는 networking 때문에 ambient capability를 추가로 받지 않아야 한다.
-- `passt` backend는 dedicated non-root service user/group과 안전한 `run/` directory 권한 검증을 요구해야 한다.
+- 모든 backend와 non-start socket/pid 접근 경로는 안전한 `run/` directory owner/mode/symlink 검증을 요구해야 한다.
+- `passt` backend는 추가로 dedicated non-root service user/group을 요구해야 한다.
 - root manager + `--runas`만으로 helper를 낮추는 현재 배포 패턴은 `passt` backend 지원 요구사항으로 간주하지 않는다.
 - 시작 시 중복 pid file과 이미 실행 중인 프로세스를 감지해야 한다.
 
