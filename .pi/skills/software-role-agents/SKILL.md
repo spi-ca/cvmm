@@ -1,17 +1,23 @@
 ---
 name: software-role-agents
-description: Run a software-writing workflow with Pi subagents for user representative, systems engineer, designer, parallel-capable developer, implementer, QA, and reviewer roles.
+description: Run a software-writing workflow with Pi subagents for base required roles plus a conditional systems engineer and parallel-capable developer.
 ---
 
 # Software Role Agents
 
 Use this skill to run larger cvmm tasks through the project-local role agents.
 
+Base required roles for every task: `user-representative`, `software-designer`, `software-implementer`, `software-qa`, and `software-reviewer`.
+
+Conditional roles:
+- Use `software-systems-engineer` when OS/runtime/dependency/permission/deployment/operational constraints materially affect the task.
+- Use `software-developer` only when the design identifies at least one independent work package.
+
 ## When to Use
 
 - New features, bug fixes, refactors, or documentation changes need explicit requirements, implementation, QA, and review evidence.
 - The task touches Go CLI code, cloud-hypervisor or virtiofsd orchestration, YAML/OpenAPI manifests, systemd unit files, or repo-local Pi resources.
-- You want isolated `subagent` contexts for requirements, system constraints, design, implementation, QA, and review.
+- You want isolated `subagent` contexts for requirements, conditional system constraints, design, implementation, QA, and review.
 
 ## Installed pi-subagent Frontmatter Policy
 
@@ -34,12 +40,13 @@ The project role agents use Codex model IDs and a separate `thinking` field.
 
 ### software-systems-engineer
 
+- Use this role only when OS/runtime/dependency/permission/deployment/operational constraints materially affect the task.
 - Inspect Linux runtime assumptions, file paths, sockets, permissions, external binaries, service lifecycle, and operational constraints.
-- Pay extra attention when the task touches `cloud-hypervisor`, `virtiofsd`, manifests under `contrib/`, or start/stop flows.
+- Pay extra attention when the task touches `cloud-hypervisor`, `virtiofsd`, manifests under `contrib/`, start/stop flows, or systemd units.
 
 ### software-designer
 
-- Turn the requirements and system constraints into an implementation plan.
+- Turn the requirements and any applicable system constraints into an implementation plan.
 - Separate Go code, manifests, service files, docs, and Pi asset work into clear packages when possible.
 - Define the validation strategy that matches the touched surfaces.
 
@@ -71,67 +78,107 @@ The project role agents use Codex model IDs and a separate `thinking` field.
 | Role | Main input | Main output |
 | --- | --- | --- |
 | `user-representative` | User request, current docs, current behavior evidence | intent summary, acceptance criteria, user-facing scenarios, blockers |
-| `software-systems-engineer` | requirements output, repo/environment evidence | system constraints, risks, feasibility, system-level validation |
-| `software-designer` | requirements + system constraints + code/doc structure | change plan, work packages, risks, verification strategy |
+| `software-systems-engineer` (conditional) | requirements output, repo/environment evidence | system constraints, risks, feasibility, system-level validation |
+| `software-designer` | requirements + optional system constraints + code/doc structure | change plan, work packages, risks, verification strategy |
 | `software-developer` | one approved package with allowed files and acceptance criteria | package diff, focused validation, conflict report, blockers |
 | `software-implementer` | approved plan, developer-lane outputs, current files | integrated changes, validation results, blockers |
 | `software-qa` | acceptance criteria, diffs, validation surface | QA matrix, command/artifact evidence, findings |
 | `software-reviewer` | requirements, design, diff, QA results | review verdict, blocking issues, completion audit |
 
-## Recommended Subagent Chain
+## Recommended Subagent Calls
 
-Use this chain for sufficiently large tasks. Run `parallel-development` only when the designer has separated non-overlapping packages.
+Use these supported top-level `subagent` call shapes for sufficiently large tasks. Keep the planning stages in a serial `chain`, run `software-developer` lanes in a separate top-level parallel call only when the designer has separated non-overlapping packages, then run a serial implementation merge call followed by a top-level parallel QA/review call.
+
+### Serial planning chain when system constraints matter
 
 ```json
 {
   "chain": [
     {
-      "label": "requirements",
       "agent": "user-representative",
       "task": "Summarize user intent, acceptance criteria, user-facing scenarios, constraints, and blockers for: <task>"
     },
     {
-      "label": "system-constraints",
       "agent": "software-systems-engineer",
       "task": "Using the requirements output, inspect repository and environment constraints and provide system-level feasibility, risks, and verification for: <task>"
     },
     {
-      "label": "design",
       "agent": "software-designer",
       "task": "Using requirements and system constraints, design the implementation plan and verification strategy for: <task>"
+    }
+  ],
+  "mode": "spawn"
+}
+```
+
+### Serial planning chain when system constraints do not matter
+
+```json
+{
+  "chain": [
+    {
+      "agent": "user-representative",
+      "task": "Summarize user intent, acceptance criteria, user-facing scenarios, constraints, and blockers for: <task>"
     },
     {
-      "type": "parallel",
-      "label": "parallel-development",
-      "tasks": [
-        {
-          "agent": "software-developer",
-          "task": "Implement independent work package A for: <task>. Include allowed files, acceptance criteria, preserved behavior, and focused validation."
-        },
-        {
-          "agent": "software-developer",
-          "task": "Implement independent work package B for: <task>. Include allowed files, acceptance criteria, preserved behavior, and focused validation."
-        }
-      ]
+      "agent": "software-designer",
+      "task": "Using the requirements output directly, design the implementation plan and verification strategy for: <task>. Also record why software-systems-engineer was not needed."
+    }
+  ],
+  "mode": "spawn"
+}
+```
+
+### Parallel development call
+
+```json
+{
+  "tasks": [
+    {
+      "agent": "software-developer",
+      "task": "Implement independent work package A for: <task>. Include allowed files, acceptance criteria, preserved behavior, and focused validation."
     },
     {
-      "label": "implementation-merge",
-      "agent": "software-implementer",
-      "task": "Integrate developer lane results, resolve approved shared-file work, and run focused validation for: <task>"
+      "agent": "software-developer",
+      "task": "Implement independent work package B for: <task>. Include allowed files, acceptance criteria, preserved behavior, and focused validation."
+    }
+  ],
+  "mode": "spawn"
+}
+```
+
+If there is exactly one independent work package, use a single top-level call instead of a parallel batch:
+
+```json
+{
+  "agent": "software-developer",
+  "task": "Implement the one approved independent work package for: <task>. Include allowed files, acceptance criteria, preserved behavior, and focused validation.",
+  "mode": "spawn"
+}
+```
+
+### Serial implementation merge call
+
+```json
+{
+  "agent": "software-implementer",
+  "task": "Integrate developer lane results, resolve approved shared-file work, and run focused validation for: <task>",
+  "mode": "spawn"
+}
+```
+
+### Parallel QA and review call
+
+```json
+{
+  "tasks": [
+    {
+      "agent": "software-qa",
+      "task": "Validate the implementation against acceptance criteria for: <task>"
     },
     {
-      "type": "parallel",
-      "label": "verification-review",
-      "tasks": [
-        {
-          "agent": "software-qa",
-          "task": "Validate the implementation against acceptance criteria for: <task>"
-        },
-        {
-          "agent": "software-reviewer",
-          "task": "Review the implementation, evidence, maintainability, and completion readiness for: <task>"
-        }
-      ]
+      "agent": "software-reviewer",
+      "task": "Review the implementation, evidence, maintainability, and completion readiness for: <task>"
     }
   ],
   "mode": "spawn"
@@ -153,7 +200,7 @@ Pick only the checks that match the changed files:
 If `subagent` execution is unavailable or the task is small, the root agent should still cover the same responsibilities in order:
 
 1. Requirements
-2. System constraints
+2. System constraints when OS/runtime/dependency/permission/deployment/operational constraints materially affect the task
 3. Design
 4. Developer package work when applicable
 5. Implementation/integration
@@ -164,7 +211,8 @@ If `subagent` execution is unavailable or the task is small, the root agent shou
 
 Before finishing, confirm all of the following:
 
-- Every required role produced output, or the root agent explicitly covered that role in a small-task fallback.
+- Every base required role produced output, or the root agent explicitly covered that role in a small-task fallback.
+- If `software-systems-engineer` was skipped, the workflow recorded why the task did not materially depend on OS/runtime/dependency/permission/deployment/operational constraints.
 - If `software-developer` lanes were used, each lane reported allowed files, changed files, validation, and any conflict status.
 - Every explicit requirement is mapped to current evidence from files, diffs, commands, tests, logs, or artifacts.
 - The validation surface matches the touched files instead of using unrelated checks.
@@ -185,7 +233,7 @@ Before finishing, confirm all of the following:
 - Acceptance criteria:
 - Blockers:
 
-### software-systems-engineer
+### software-systems-engineer (when used)
 - Constraints:
 - Risks:
 - System validation:
@@ -217,7 +265,8 @@ Before finishing, confirm all of the following:
 
 ## Pitfalls
 
-- Do not skip required roles just because the task feels familiar.
+- Do not skip base required roles just because the task feels familiar.
+- Do not skip `software-systems-engineer` when the task materially depends on OS/runtime/dependency/permission/deployment/operational constraints.
 - Do not parallelize packages that share files, sockets, service definitions, or unresolved design decisions.
 - Do not use unrelated legacy filesystem semantics as quality gates for this repo.
 - Do not report unrun validations as passing.

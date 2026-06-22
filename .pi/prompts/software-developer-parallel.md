@@ -41,12 +41,22 @@ Recommended parallel implementation shape:
 }
 ```
 
-Recommended verification shape:
+Recommended serial merge call:
+
+Use this call after parallel developer lanes when shared-file integration or final package assembly is still required.
 
 ```json
 {
-  "type": "parallel",
-  "label": "qa-review",
+  "agent": "software-implementer",
+  "task": "Merge approved developer-lane results, resolve shared-file integration, and run focused validation for: $ARGUMENTS",
+  "mode": "spawn"
+}
+```
+
+Recommended verification call:
+
+```json
+{
   "tasks": [
     {
       "agent": "software-qa",
@@ -56,7 +66,8 @@ Recommended verification shape:
       "agent": "software-reviewer",
       "task": "Review diffs, evidence, maintainability, and completion readiness for: $ARGUMENTS"
     }
-  ]
+  ],
+  "mode": "spawn"
 }
 ```
 

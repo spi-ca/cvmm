@@ -25,7 +25,7 @@ Do not use this skill when:
 
 - Model: `openai-codex/gpt-5.4`
 - Thinking: `high`
-- Tools: `read`, `find`, `ls`, `bash`, `edit`, `write`
+- Tools: `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`
 
 ## Procedure
 
