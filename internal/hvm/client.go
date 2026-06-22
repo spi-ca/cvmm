@@ -74,7 +74,7 @@ const (
 	clientUrlVmResize           = "http://localhost/api/v1/vm.resize"
 	clientUrlVmResizeZone       = "http://localhost/api/v1/vm.resize-zone"
 	clientUrlVmAddDevice        = "http://localhost/api/v1/vm.add-device"
-	clientUrlVmAddUserevice     = "http://localhost/api/v1/vm.add-user-device"
+	clientUrlVmAddUserDevice    = "http://localhost/api/v1/vm.add-user-device"
 	clientUrlVmRemoveDevice     = "http://localhost/api/v1/vm.remove-device"
 	clientUrlVmAddDisk          = "http://localhost/api/v1/vm.add-disk"
 	clientUrlVmAddFs            = "http://localhost/api/v1/vm.add-fs"
@@ -605,7 +605,7 @@ func (c *clientImpl) VmAddUserDevice(ctx context.Context, config model.VmAddUser
 		return nil, fmt.Errorf("failed to encode VmAddUserDevice: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddUserevice, bytes.NewReader(reqBuf))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, clientUrlVmAddUserDevice, bytes.NewReader(reqBuf))
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute VmAddUserDevice, http request creation failed : %w", err)
 	}

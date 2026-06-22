@@ -137,6 +137,31 @@ func TestClientImplVmAddDeviceReturnsJSONAndNoContent(t *testing.T) {
 	})
 }
 
+func TestClientImplVmAddUserDeviceUsesUserDeviceEndpoint(t *testing.T) {
+	socketPath, records := withUnixHTTPServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(model.PciDeviceInfo{ID: "user-device0", Bdf: "0000:00:06.0"})
+	})
+
+	client := newClient(socketPath)
+	defer client.Close()
+
+	resp, err := client.VmAddUserDevice(context.Background(), model.VmAddUserDevice{Socket: "/tmp/device.sock"})
+	if err != nil {
+		t.Fatalf("VmAddUserDevice() error = %v", err)
+	}
+	if resp == nil || resp.ID != "user-device0" || resp.Bdf != "0000:00:06.0" {
+		t.Fatalf("VmAddUserDevice() = %#v, want decoded pci info", resp)
+	}
+	got := <-records
+	if got.Path != "/api/v1/vm.add-user-device" || got.Method != http.MethodPut {
+		t.Fatalf("request = %s %s, want PUT /api/v1/vm.add-user-device", got.Method, got.Path)
+	}
+	if !strings.Contains(got.Body, `"socket":"/tmp/device.sock"`) {
+		t.Fatalf("request body = %s, want encoded user-device socket", got.Body)
+	}
+}
+
 func TestClientImplCheckRedirectRejectsRedirects(t *testing.T) {
 	client := newClient(filepath.Join(t.TempDir(), "missing.sock"))
 	defer client.Close()
